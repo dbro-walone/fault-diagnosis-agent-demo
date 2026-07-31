@@ -1,0 +1,64 @@
+{
+  "schema_name": "dme-fault-knowledge-graph-edges",
+  "schema_version": "1.0.0",
+  "model_id": "storage-fault-knowledge-graph",
+  "data_disclaimer": "图谱内部关系描述通用知识关联，不代表本次故障已确认的根因路径。",
+  "relation_legend": {
+    "EXHIBITS": "对象类型会出现某故障现象",
+    "SUSCEPTIBLE_TO": "对象类型可能发生某故障模式",
+    "CAUSED_BY": "现象可由某故障模式解释",
+    "TRIGGERED_BY": "故障模式的触发机制",
+    "LEADS_TO": "故障模式导致的下游机制",
+    "EVIDENCED_BY": "故障模式可由某证据规则佐证",
+    "INSTANCE_OF_CASE": "历史案例属于某故障模式",
+    "REFERENCES": "历史案例引用某证据规则"
+  },
+  "edges": [
+    { "edge_id": "kg-ctrl-exhibits-reset", "source_id": "ot-controller", "target_id": "sym-controller-reset", "relation_type": "EXHIBITS", "direction": "directed", "weight": 1.0 },
+    { "edge_id": "kg-ctrl-exhibits-throughput", "source_id": "ot-controller", "target_id": "sym-throughput-drop", "relation_type": "EXHIBITS", "direction": "directed", "weight": 1.0 },
+    { "edge_id": "kg-lun-exhibits-latency", "source_id": "ot-lun", "target_id": "sym-latency-increase", "relation_type": "EXHIBITS", "direction": "directed", "weight": 1.0 },
+    { "edge_id": "kg-block-exhibits-latency", "source_id": "ot-block-service", "target_id": "sym-latency-increase", "relation_type": "EXHIBITS", "direction": "directed", "weight": 0.8 },
+    { "edge_id": "kg-host-exhibits-latency", "source_id": "ot-host", "target_id": "sym-latency-increase", "relation_type": "EXHIBITS", "direction": "directed", "weight": 0.7 },
+    { "edge_id": "kg-fc-exhibits-latency", "source_id": "ot-fc-port", "target_id": "sym-latency-increase", "relation_type": "EXHIBITS", "direction": "directed", "weight": 0.7 },
+    { "edge_id": "kg-san-exhibits-latency", "source_id": "ot-san-fabric", "target_id": "sym-latency-increase", "relation_type": "EXHIBITS", "direction": "directed", "weight": 0.7 },
+    { "edge_id": "kg-pool-exhibits-latency", "source_id": "ot-pool", "target_id": "sym-latency-increase", "relation_type": "EXHIBITS", "direction": "directed", "weight": 0.7 },
+    { "edge_id": "kg-disk-exhibits-latency", "source_id": "ot-disk", "target_id": "sym-latency-increase", "relation_type": "EXHIBITS", "direction": "directed", "weight": 0.6 },
+
+    { "edge_id": "kg-ctrl-sus-warmreset", "source_id": "ot-controller", "target_id": "fm-controller-warm-reset", "relation_type": "SUSCEPTIBLE_TO", "direction": "directed", "weight": 1.0 },
+    { "edge_id": "kg-ctrl-sus-watchdog", "source_id": "ot-controller", "target_id": "fm-watchdog-timeout", "relation_type": "SUSCEPTIBLE_TO", "direction": "directed", "weight": 0.9 },
+    { "edge_id": "kg-ctrl-sus-failover", "source_id": "ot-controller", "target_id": "fm-controller-failover", "relation_type": "SUSCEPTIBLE_TO", "direction": "directed", "weight": 0.9 },
+    { "edge_id": "kg-fc-sus-flap", "source_id": "ot-fc-port", "target_id": "fm-fc-link-flap", "relation_type": "SUSCEPTIBLE_TO", "direction": "directed", "weight": 0.9 },
+    { "edge_id": "kg-san-sus-fault", "source_id": "ot-san-fabric", "target_id": "fm-san-link-fault", "relation_type": "SUSCEPTIBLE_TO", "direction": "directed", "weight": 0.9 },
+    { "edge_id": "kg-pool-sus-bottleneck", "source_id": "ot-pool", "target_id": "fm-pool-bottleneck", "relation_type": "SUSCEPTIBLE_TO", "direction": "directed", "weight": 0.9 },
+    { "edge_id": "kg-disk-sus-badsector", "source_id": "ot-disk", "target_id": "fm-disk-bad-sector", "relation_type": "SUSCEPTIBLE_TO", "direction": "directed", "weight": 0.9 },
+
+    { "edge_id": "kg-latency-caused-warmreset", "source_id": "sym-latency-increase", "target_id": "fm-controller-warm-reset", "relation_type": "CAUSED_BY", "direction": "directed", "weight": 1.0 },
+    { "edge_id": "kg-latency-caused-fcflap", "source_id": "sym-latency-increase", "target_id": "fm-fc-link-flap", "relation_type": "CAUSED_BY", "direction": "directed", "weight": 0.8 },
+    { "edge_id": "kg-latency-caused-sanfault", "source_id": "sym-latency-increase", "target_id": "fm-san-link-fault", "relation_type": "CAUSED_BY", "direction": "directed", "weight": 0.7 },
+    { "edge_id": "kg-latency-caused-pool", "source_id": "sym-latency-increase", "target_id": "fm-pool-bottleneck", "relation_type": "CAUSED_BY", "direction": "directed", "weight": 0.7 },
+    { "edge_id": "kg-latency-caused-disk", "source_id": "sym-latency-increase", "target_id": "fm-disk-bad-sector", "relation_type": "CAUSED_BY", "direction": "directed", "weight": 0.6 },
+    { "edge_id": "kg-reset-caused-warmreset", "source_id": "sym-controller-reset", "target_id": "fm-controller-warm-reset", "relation_type": "CAUSED_BY", "direction": "directed", "weight": 1.0 },
+    { "edge_id": "kg-reset-caused-watchdog", "source_id": "sym-controller-reset", "target_id": "fm-watchdog-timeout", "relation_type": "CAUSED_BY", "direction": "directed", "weight": 0.9 },
+    { "edge_id": "kg-throughput-caused-failover", "source_id": "sym-throughput-drop", "target_id": "fm-controller-failover", "relation_type": "CAUSED_BY", "direction": "directed", "weight": 0.9 },
+
+    { "edge_id": "kg-warmreset-trig-watchdog", "source_id": "fm-controller-warm-reset", "target_id": "mech-watchdog", "relation_type": "TRIGGERED_BY", "direction": "directed", "weight": 1.0 },
+    { "edge_id": "kg-warmreset-leads-io", "source_id": "fm-controller-warm-reset", "target_id": "mech-io-interruption", "relation_type": "LEADS_TO", "direction": "directed", "weight": 1.0 },
+    { "edge_id": "kg-warmreset-leads-failover", "source_id": "fm-controller-warm-reset", "target_id": "mech-failover-switch", "relation_type": "LEADS_TO", "direction": "directed", "weight": 0.9 },
+    { "edge_id": "kg-watchdog-leads-mech", "source_id": "fm-watchdog-timeout", "target_id": "mech-watchdog", "relation_type": "LEADS_TO", "direction": "directed", "weight": 1.0 },
+    { "edge_id": "kg-failover-leads-switch", "source_id": "fm-controller-failover", "target_id": "mech-failover-switch", "relation_type": "LEADS_TO", "direction": "directed", "weight": 1.0 },
+
+    { "edge_id": "kg-warmreset-ev-reset", "source_id": "fm-controller-warm-reset", "target_id": "er-reset-alarm", "relation_type": "EVIDENCED_BY", "direction": "directed", "weight": 1.0 },
+    { "edge_id": "kg-warmreset-ev-fp", "source_id": "fm-controller-warm-reset", "target_id": "er-watchdog-fp", "relation_type": "EVIDENCED_BY", "direction": "directed", "weight": 1.0 },
+    { "edge_id": "kg-warmreset-ev-throughput", "source_id": "fm-controller-warm-reset", "target_id": "er-throughput-zero", "relation_type": "EVIDENCED_BY", "direction": "directed", "weight": 0.9 },
+    { "edge_id": "kg-warmreset-ev-takeover", "source_id": "fm-controller-warm-reset", "target_id": "er-takeover", "relation_type": "EVIDENCED_BY", "direction": "directed", "weight": 0.9 },
+    { "edge_id": "kg-warmreset-ev-latency", "source_id": "fm-controller-warm-reset", "target_id": "er-latency-impact", "relation_type": "EVIDENCED_BY", "direction": "directed", "weight": 0.9 },
+    { "edge_id": "kg-fcflap-ev-fcnormal", "source_id": "fm-fc-link-flap", "target_id": "er-fc-normal", "relation_type": "EVIDENCED_BY", "direction": "directed", "weight": 0.9 },
+    { "edge_id": "kg-failover-ev-takeover", "source_id": "fm-controller-failover", "target_id": "er-takeover", "relation_type": "EVIDENCED_BY", "direction": "directed", "weight": 1.0 },
+    { "edge_id": "kg-watchdog-ev-fp", "source_id": "fm-watchdog-timeout", "target_id": "er-watchdog-fp", "relation_type": "EVIDENCED_BY", "direction": "directed", "weight": 1.0 },
+
+    { "edge_id": "kg-case-instance-warmreset", "source_id": "case-warm-reset-001", "target_id": "fm-controller-warm-reset", "relation_type": "INSTANCE_OF_CASE", "direction": "directed", "weight": 1.0 },
+    { "edge_id": "kg-case-ref-reset", "source_id": "case-warm-reset-001", "target_id": "er-reset-alarm", "relation_type": "REFERENCES", "direction": "directed", "weight": 0.7 },
+    { "edge_id": "kg-case-ref-fp", "source_id": "case-warm-reset-001", "target_id": "er-watchdog-fp", "relation_type": "REFERENCES", "direction": "directed", "weight": 0.7 },
+    { "edge_id": "kg-case-ref-takeover", "source_id": "case-warm-reset-001", "target_id": "er-takeover", "relation_type": "REFERENCES", "direction": "directed", "weight": 0.6 }
+  ]
+}

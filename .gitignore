@@ -1,0 +1,7 @@
+node_modules/
+dist/
+.DS_Store
+*.log
+.vite/
+verify-pipeline.mjs
+src/three-global.ts.deprecated

@@ -1,0 +1,298 @@
+{
+  "schema_name": "dme-fault-knowledge-graph",
+  "schema_version": "1.0.0",
+  "model_id": "storage-fault-knowledge-graph",
+  "display_name": "故障知识图谱（四层：对象类型—故障现象—故障模式/机制—证据规则/案例）",
+  "data_mode": "mock",
+  "data_disclaimer": "本知识图谱为通用故障知识沉淀，描述类型与模式的可能性，不代表本次故障的根因结论。",
+  "layers": [
+    { "code": "OBJECT_TYPE", "name": "对象类型", "order": 0 },
+    { "code": "SYMPTOM", "name": "故障现象", "order": 1 },
+    { "code": "FAULT_MODE", "name": "故障模式", "order": 2 },
+    { "code": "MECHANISM", "name": "触发机制", "order": 2 },
+    { "code": "EVIDENCE_RULE", "name": "证据规则", "order": 3 },
+    { "code": "CASE", "name": "历史案例", "order": 3 }
+  ],
+  "nodes": [
+    {
+      "node_id": "ot-controller",
+      "node_type": "OBJECT_TYPE",
+      "layer": "OBJECT_TYPE",
+      "code": "StorageController",
+      "name": "存储控制器",
+      "order": 0,
+      "description": "存储设备的核心控制单元，承载前端服务、I/O 调度与主备冗余。",
+      "attributes": { "resource_types": ["CONTROLLER"] }
+    },
+    {
+      "node_id": "ot-block-service",
+      "node_type": "OBJECT_TYPE",
+      "layer": "OBJECT_TYPE",
+      "code": "BlockService",
+      "name": "块服务",
+      "order": 1,
+      "description": "为 LUN 提供块协议接入与主备切换能力。",
+      "attributes": { "resource_types": ["BLOCK_SERVICE"] }
+    },
+    {
+      "node_id": "ot-lun",
+      "node_type": "OBJECT_TYPE",
+      "layer": "OBJECT_TYPE",
+      "code": "LUN",
+      "name": "逻辑单元",
+      "order": 2,
+      "description": "向主机呈现的逻辑卷，是业务访问的直接对象。",
+      "attributes": { "resource_types": ["LUN"] }
+    },
+    {
+      "node_id": "ot-pool",
+      "node_type": "OBJECT_TYPE",
+      "layer": "OBJECT_TYPE",
+      "code": "StoragePool",
+      "name": "存储池",
+      "order": 3,
+      "description": "由物理磁盘组成，为 LUN 提供容量与性能支撑。",
+      "attributes": { "resource_types": ["STORAGE_POOL"] }
+    },
+    {
+      "node_id": "ot-disk",
+      "node_type": "OBJECT_TYPE",
+      "layer": "OBJECT_TYPE",
+      "code": "Disk",
+      "name": "磁盘",
+      "order": 4,
+      "description": "物理存储介质，构成存储池与硬盘域。",
+      "attributes": { "resource_types": ["DISK", "DISK_ENCLOSURE"] }
+    },
+    {
+      "node_id": "ot-fc-port",
+      "node_type": "OBJECT_TYPE",
+      "layer": "OBJECT_TYPE",
+      "code": "FCPort",
+      "name": "FC 端口",
+      "order": 5,
+      "description": "设备前端的 FC 接入端口，承担内外连接锚点。",
+      "attributes": { "resource_types": ["FC_PORT"] }
+    },
+    {
+      "node_id": "ot-san-fabric",
+      "node_type": "OBJECT_TYPE",
+      "layer": "OBJECT_TYPE",
+      "code": "SANFabric",
+      "name": "SAN 网络",
+      "order": 6,
+      "description": "设备外部的 SAN 交换网络，构成冗余访问路径。",
+      "attributes": { "resource_types": ["SAN_FABRIC"] }
+    },
+    {
+      "node_id": "ot-host",
+      "node_type": "OBJECT_TYPE",
+      "layer": "OBJECT_TYPE",
+      "code": "Host",
+      "name": "主机",
+      "order": 7,
+      "description": "通过多路径访问存储的业务主机。",
+      "attributes": { "resource_types": ["HOST"] }
+    },
+    {
+      "node_id": "sym-latency-increase",
+      "node_type": "SYMPTOM",
+      "layer": "SYMPTOM",
+      "code": "LATENCY_INCREASE",
+      "name": "访问时延升高",
+      "order": 0,
+      "description": "业务/LUN 的访问时延显著高于基线，常伴随吞吐下降或抖动。",
+      "attributes": { "object_types": ["LUN", "BlockService", "Host", "SANFabric", "FCPort", "StoragePool", "Disk"] }
+    },
+    {
+      "node_id": "sym-controller-reset",
+      "node_type": "SYMPTOM",
+      "layer": "SYMPTOM",
+      "code": "CONTROLLER_RESET",
+      "name": "控制器复位",
+      "order": 1,
+      "description": "控制器发生复位或重启，可能触发主备切换。",
+      "attributes": { "object_types": ["StorageController"] }
+    },
+    {
+      "node_id": "sym-throughput-drop",
+      "node_type": "SYMPTOM",
+      "layer": "SYMPTOM",
+      "code": "THROUGHPUT_DROP",
+      "name": "吞吐下降",
+      "order": 2,
+      "description": "控制器或服务吞吐量明显下降或归零。",
+      "attributes": { "object_types": ["StorageController"] }
+    },
+    {
+      "node_id": "fm-controller-warm-reset",
+      "node_type": "FAULT_MODE",
+      "layer": "FAULT_MODE",
+      "code": "CONTROLLER_WARM_RESET",
+      "name": "控制器热复位",
+      "order": 0,
+      "description": "控制器未掉电情况下的复位，常由内部异常触发，并可能引发主备切换。",
+      "attributes": { "fault_mode_code": "CONTROLLER_WARM_RESET" }
+    },
+    {
+      "node_id": "fm-watchdog-timeout",
+      "node_type": "FAULT_MODE",
+      "layer": "FAULT_MODE",
+      "code": "WATCHDOG_TIMEOUT",
+      "name": "看门狗超时",
+      "order": 1,
+      "description": "控制器内部看门狗定时器超时，是热复位的常见触发机制。",
+      "attributes": { "fault_mode_code": "WATCHDOG_TIMEOUT" }
+    },
+    {
+      "node_id": "fm-controller-failover",
+      "node_type": "FAULT_MODE",
+      "layer": "FAULT_MODE",
+      "code": "CONTROLLER_FAILOVER",
+      "name": "控制器主备切换",
+      "order": 2,
+      "description": "主控制器异常后，备用控制器接管其服务与 I/O。",
+      "attributes": { "fault_mode_code": "CONTROLLER_FAILOVER" }
+    },
+    {
+      "node_id": "fm-fc-link-flap",
+      "node_type": "FAULT_MODE",
+      "layer": "FAULT_MODE",
+      "code": "FC_LINK_FLAP",
+      "name": "FC 链路抖动",
+      "order": 3,
+      "description": "FC 端口或链路发生抖动、重传或路径切换。",
+      "attributes": { "fault_mode_code": "FC_LINK_FLAP" }
+    },
+    {
+      "node_id": "fm-san-link-fault",
+      "node_type": "FAULT_MODE",
+      "layer": "FAULT_MODE",
+      "code": "SAN_LINK_FAULT",
+      "name": "SAN 交换链路异常",
+      "order": 4,
+      "description": "SAN 交换机端口或链路异常影响块业务访问。",
+      "attributes": { "fault_mode_code": "SAN_LINK_FAULT" }
+    },
+    {
+      "node_id": "fm-pool-bottleneck",
+      "node_type": "FAULT_MODE",
+      "layer": "FAULT_MODE",
+      "code": "POOL_BOTTLENECK",
+      "name": "存储池性能瓶颈",
+      "order": 5,
+      "description": "后端存储池拥塞，可沿 LUN 向上传导为业务变慢。",
+      "attributes": { "fault_mode_code": "POOL_BOTTLENECK" }
+    },
+    {
+      "node_id": "fm-disk-bad-sector",
+      "node_type": "FAULT_MODE",
+      "layer": "FAULT_MODE",
+      "code": "DISK_BAD_SECTOR",
+      "name": "磁盘坏道",
+      "order": 6,
+      "description": "磁盘出现坏道或介质错误，触发重构与性能下降。",
+      "attributes": { "fault_mode_code": "DISK_BAD_SECTOR" }
+    },
+    {
+      "node_id": "mech-watchdog",
+      "node_type": "MECHANISM",
+      "layer": "MECHANISM",
+      "code": "watchdog_timeout_mechanism",
+      "name": "看门狗超时触发复位",
+      "order": 0,
+      "description": "复位前出现 watchdog 超时与复位日志指纹序列。",
+      "attributes": {}
+    },
+    {
+      "node_id": "mech-io-interruption",
+      "node_type": "MECHANISM",
+      "layer": "MECHANISM",
+      "code": "io_path_interruption",
+      "name": "主 I/O 路径短时中断",
+      "order": 1,
+      "description": "主控制器复位造成其前向 I/O 路径短时中断。",
+      "attributes": {}
+    },
+    {
+      "node_id": "mech-failover-switch",
+      "node_type": "MECHANISM",
+      "layer": "MECHANISM",
+      "code": "failover_switch",
+      "name": "主备切换与接管",
+      "order": 2,
+      "description": "备用控制器接管主控服务，吞吐发生切换。",
+      "attributes": {}
+    },
+    {
+      "node_id": "er-reset-alarm",
+      "node_type": "EVIDENCE_RULE",
+      "layer": "EVIDENCE_RULE",
+      "code": "reset_alarm_rule",
+      "name": "复位严重告警证据规则",
+      "order": 0,
+      "description": "命中控制器热复位严重告警，作为直接故障证据。",
+      "attributes": { "evidence_type": "DIRECT" }
+    },
+    {
+      "node_id": "er-watchdog-fp",
+      "node_type": "EVIDENCE_RULE",
+      "layer": "EVIDENCE_RULE",
+      "code": "watchdog_fingerprint_rule",
+      "name": "watchdog 日志指纹证据规则",
+      "order": 1,
+      "description": "命中 watchdog_timeout 与热复位日志指纹，作为触发机制证据。",
+      "attributes": { "evidence_type": "MECHANISM" }
+    },
+    {
+      "node_id": "er-throughput-zero",
+      "node_type": "EVIDENCE_RULE",
+      "layer": "EVIDENCE_RULE",
+      "code": "throughput_zero_rule",
+      "name": "吞吐归零证据规则",
+      "order": 2,
+      "description": "主控制器吞吐降为 0，作为状态变化证据。",
+      "attributes": { "evidence_type": "STATE_CHANGE" }
+    },
+    {
+      "node_id": "er-takeover",
+      "node_type": "EVIDENCE_RULE",
+      "layer": "EVIDENCE_RULE",
+      "code": "takeover_rule",
+      "name": "备用接管证据规则",
+      "order": 3,
+      "description": "备用控制器开始接管且服务切换完成，作为冗余恢复证据。",
+      "attributes": { "evidence_type": "STATE_CHANGE" }
+    },
+    {
+      "node_id": "er-latency-impact",
+      "node_type": "EVIDENCE_RULE",
+      "layer": "EVIDENCE_RULE",
+      "code": "latency_impact_rule",
+      "name": "LUN 时延升高证据规则",
+      "order": 4,
+      "description": "LUN 时延在故障窗口显著升高，作为业务影响证据。",
+      "attributes": { "evidence_type": "IMPACT" }
+    },
+    {
+      "node_id": "er-fc-normal",
+      "node_type": "EVIDENCE_RULE",
+      "layer": "EVIDENCE_RULE",
+      "code": "fc_normal_rule",
+      "name": "FC 链路正常反证规则",
+      "order": 5,
+      "description": "FC 端口在线且 CRC 无增量，用于削弱链路类候选。",
+      "attributes": { "evidence_type": "COUNTER" }
+    },
+    {
+      "node_id": "case-warm-reset-001",
+      "node_type": "CASE",
+      "layer": "CASE",
+      "code": "historical_warm_reset_case",
+      "name": "历史控制器热复位案例",
+      "order": 0,
+      "description": "历史上一例由 watchdog 超时触发的控制器热复位案例，仅作辅助参考。",
+      "attributes": { "case_role": "reference", "similarity": "auxiliary" }
+    }
+  ]
+}

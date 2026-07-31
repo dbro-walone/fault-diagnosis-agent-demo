@@ -1,0 +1,144 @@
+{
+  "schema_name": "dme-fault-case-observations",
+  "schema_version": "1.1.0",
+  "case_id": "controller_warm_reset_001",
+  "data_mode": "mock",
+  "data_disclaimer": "本案例数据用于原型演示，不代表真实环境实测结果",
+  "observations": {
+    "business_mapping": {
+      "query": "DB业务 → LUN mapping",
+      "result": {
+        "business": "db-business-01",
+        "lun": "lun-db01",
+        "host": "db-host-01",
+        "iops_before": 8500,
+        "iops_after": 1200,
+        "latency_before_ms": 2.1,
+        "latency_after_ms": 45.3
+      }
+    },
+    "topology": {
+      "query": "end-to-end access path",
+      "result": {
+        "path": [
+          "db-business-01",
+          "db-host-01",
+          "switch-01",
+          "controller-0a",
+          "lun-db01",
+          "pool-0"
+        ],
+        "redundant_path": [
+          "db-business-01",
+          "db-host-01",
+          "switch-02",
+          "controller-0b",
+          "lun-db01"
+        ]
+      }
+    },
+    "alert": {
+      "query": "alerts in fault window",
+      "result": {
+        "alerts": [
+          {
+            "id": "alert-001",
+            "object": "controller-0a",
+            "type": "WARM_RESET",
+            "message": "Controller-0A warm reset occurred",
+            "timestamp": "2026-07-30T14:32:18+08:00",
+            "severity": "CRITICAL"
+          },
+          {
+            "id": "alert-002",
+            "object": "lun-db01",
+            "type": "LATENCY_SPIKE",
+            "message": "LUN-DB01 average latency exceeded 40ms",
+            "timestamp": "2026-07-30T14:32:20+08:00",
+            "severity": "MAJOR"
+          }
+        ]
+      }
+    },
+    "log": {
+      "query": "controller logs in fault window",
+      "result": {
+        "logs": [
+          {
+            "id": "log-001",
+            "object": "controller-0a",
+            "pattern": "watchdog_timeout",
+            "message": "Watchdog timer expired, initiating warm reset",
+            "timestamp": "2026-07-30T14:32:17+08:00",
+            "level": "FATAL"
+          },
+          {
+            "id": "log-002",
+            "object": "controller-0b",
+            "pattern": "takeover_started",
+            "message": "Controller-0B started takeover for Controller-0A",
+            "timestamp": "2026-07-30T14:32:19+08:00"
+          }
+        ]
+      }
+    },
+    "kpi": {
+      "query": "controller throughput and LUN latency",
+      "result": {
+        "series": [
+          {
+            "object": "controller-0a",
+            "metric": "throughput_iops",
+            "before": 12000,
+            "during": 0,
+            "after": 11500,
+            "zero_duration_s": 8
+          },
+          {
+            "object": "controller-0b",
+            "metric": "throughput_iops",
+            "before": 8000,
+            "during": 18000,
+            "after": 8500
+          },
+          {
+            "object": "lun-db01",
+            "metric": "latency_ms",
+            "before": 2.1,
+            "peak": 48.7,
+            "recovery_s": 35
+          }
+        ]
+      }
+    },
+    "link_health": {
+      "query": "FC link and SAN health",
+      "result": {
+        "links": [
+          {
+            "link": "switch-01→controller-0a",
+            "status": "BRIEF_DEGRADE",
+            "duration_s": 8
+          },
+          {
+            "link": "switch-02→controller-0b",
+            "status": "NORMAL"
+          }
+        ]
+      }
+    },
+    "similar_case": {
+      "query": "similar historical cases",
+      "result": {
+        "matches": [
+          {
+            "case_id": "hist-2024-11-003",
+            "similarity": 0.89,
+            "root_cause": "watchdog_timeout",
+            "object": "controller-0a"
+          }
+        ]
+      }
+    }
+  }
+}

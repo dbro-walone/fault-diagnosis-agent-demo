@@ -1,0 +1,109 @@
+{
+  "schema_name": "dme-fault-projection-config",
+  "schema_version": "1.0.0",
+  "model_id": "storage-fault-projection",
+  "display_name": "3D 双平面投影配置（坐标 / 相机预设 / 显隐规则）",
+  "data_disclaimer": "投影配置只决定呈现，不新增或改写领域事实；坐标为离线配置的半固定坐标。",
+  "planes": {
+    "topology": { "axis": "y", "y": 70, "label": "上层：实例拓扑" },
+    "knowledge": { "axis": "y", "y": -70, "label": "下层：故障知识图谱" },
+    "gap": 140,
+    "note": "双平面共享一个 3d-force-graph 场景、一个相机与一个拾取系统。"
+  },
+  "domain_anchors": {
+    "BUSINESS_COMPUTE": { "x": -205, "z": 0, "name": "业务与计算" },
+    "NETWORK_ACCESS": { "x": -110, "z": 0, "name": "网络与接入" },
+    "CONTROL_SERVICE": { "x": -5, "z": 0, "name": "控制与服务" },
+    "LOGICAL_RESOURCE": { "x": 100, "z": 0, "name": "逻辑资源" },
+    "PHYSICAL_RESOURCE": { "x": 210, "z": 0, "name": "物理资源" }
+  },
+  "knowledge_layer_anchors": {
+    "OBJECT_TYPE": { "x": -150, "name": "对象类型" },
+    "SYMPTOM": { "x": -50, "name": "故障现象" },
+    "FAULT_MODE": { "x": 40, "name": "故障模式" },
+    "MECHANISM": { "x": 75, "name": "触发机制" },
+    "EVIDENCE_RULE": { "x": 150, "name": "证据规则" },
+    "CASE": { "x": 180, "name": "历史案例" }
+  },
+  "node_positions": {
+    "db-business-01": { "x": -235, "y": 70, "z": 0 },
+    "db-host-01": { "x": -175, "y": 70, "z": 0 },
+    "switch-01": { "x": -125, "y": 70, "z": -30 },
+    "switch-02": { "x": -125, "y": 70, "z": 30 },
+    "storage-01": { "x": -10, "y": 70, "z": 0 },
+    "fc-port-a": { "x": -55, "y": 70, "z": -30 },
+    "fc-port-b": { "x": -55, "y": 70, "z": 30 },
+    "controller-0a": { "x": -10, "y": 70, "z": -30 },
+    "controller-0b": { "x": -10, "y": 70, "z": 30 },
+    "block-service-01": { "x": 40, "y": 70, "z": 0 },
+    "lun-db01": { "x": 85, "y": 70, "z": -25 },
+    "pool-0": { "x": 120, "y": 70, "z": 18 },
+    "disk-enclosure-01": { "x": 185, "y": 70, "z": -28 },
+    "disk-group-ssd": { "x": 205, "y": 70, "z": -4 },
+    "bbu-01": { "x": 228, "y": 70, "z": 18 },
+    "power-01": { "x": 228, "y": 70, "z": -18 },
+    "fan-01": { "x": 252, "y": 70, "z": 2 },
+
+    "ot-controller": { "x": -150, "y": -70, "z": -42 },
+    "ot-block-service": { "x": -150, "y": -70, "z": -30 },
+    "ot-lun": { "x": -150, "y": -70, "z": -18 },
+    "ot-pool": { "x": -150, "y": -70, "z": -6 },
+    "ot-disk": { "x": -150, "y": -70, "z": 6 },
+    "ot-fc-port": { "x": -150, "y": -70, "z": 18 },
+    "ot-san-fabric": { "x": -150, "y": -70, "z": 30 },
+    "ot-host": { "x": -150, "y": -70, "z": 42 },
+    "sym-latency-increase": { "x": -50, "y": -70, "z": -22 },
+    "sym-controller-reset": { "x": -50, "y": -70, "z": 0 },
+    "sym-throughput-drop": { "x": -50, "y": -70, "z": 22 },
+    "fm-controller-warm-reset": { "x": 40, "y": -70, "z": -45 },
+    "fm-watchdog-timeout": { "x": 40, "y": -70, "z": -30 },
+    "fm-controller-failover": { "x": 40, "y": -70, "z": -15 },
+    "fm-fc-link-flap": { "x": 40, "y": -70, "z": 0 },
+    "fm-san-link-fault": { "x": 40, "y": -70, "z": 15 },
+    "fm-pool-bottleneck": { "x": 40, "y": -70, "z": 30 },
+    "fm-disk-bad-sector": { "x": 40, "y": -70, "z": 45 },
+    "mech-watchdog": { "x": 80, "y": -70, "z": -30 },
+    "mech-io-interruption": { "x": 80, "y": -70, "z": 0 },
+    "mech-failover-switch": { "x": 80, "y": -70, "z": 30 },
+    "er-reset-alarm": { "x": 150, "y": -70, "z": -42 },
+    "er-watchdog-fp": { "x": 150, "y": -70, "z": -28 },
+    "er-throughput-zero": { "x": 150, "y": -70, "z": -14 },
+    "er-takeover": { "x": 150, "y": -70, "z": 0 },
+    "er-latency-impact": { "x": 150, "y": -70, "z": 14 },
+    "er-fc-normal": { "x": 150, "y": -70, "z": 28 },
+    "case-warm-reset-001": { "x": 182, "y": -70, "z": 0 }
+  },
+  "label_rules": {
+    "topology_always": ["db-business-01", "db-host-01", "storage-01", "controller-0a", "controller-0b", "block-service-01", "lun-db01", "pool-0"],
+    "knowledge_always": ["ot-controller", "sym-latency-increase", "fm-controller-warm-reset", "fm-watchdog-timeout", "er-reset-alarm", "case-warm-reset-001"],
+    "by_zoom": "标签为相机面向的 Sprite，随距离自动缩放；远景仅保留常驻标签，近景显示全部。",
+    "reduce_motion": "尊重 prefers-reduced-motion：关闭粒子动画与入场过场，仅保留静态布局。"
+  },
+  "cross_layer_display": {
+    "default_visible": false,
+    "note": "跨层映射默认隐藏，禁止初始全量发光；选中对象或开启映射开关后展示其直接映射。"
+  },
+  "camera_presets": {
+    "OVERVIEW": {
+      "label": "融合全景",
+      "position": { "x": 0, "y": 150, "z": 540 },
+      "look_at": { "x": 0, "y": 0, "z": 0 }
+    },
+    "TOPOLOGY_ONLY": {
+      "label": "仅实例拓扑",
+      "position": { "x": 0, "y": 215, "z": 360 },
+      "look_at": { "x": 0, "y": 70, "z": 0 }
+    },
+    "KNOWLEDGE_ONLY": {
+      "label": "仅故障知识图谱",
+      "position": { "x": 0, "y": -175, "z": 360 },
+      "look_at": { "x": 0, "y": -70, "z": 0 }
+    },
+    "BUSINESS_PATH": {
+      "label": "端到端业务路径",
+      "position": { "x": -50, "y": 175, "z": 320 },
+      "look_at": { "x": -25, "y": 70, "z": 0 }
+    }
+  },
+  "initial_preset": "OVERVIEW"
+}

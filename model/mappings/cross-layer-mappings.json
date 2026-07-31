@@ -1,0 +1,49 @@
+{
+  "schema_name": "dme-fault-cross-layer-mappings",
+  "schema_version": "1.0.0",
+  "model_id": "storage-fault-cross-layer",
+  "display_name": "实例拓扑 ↔ 故障知识图谱 跨层映射",
+  "data_disclaimer": "跨层映射表达实例与通用知识的既有映射关系，不产生候选、证据或结论；根因确认前不得用高亮跨层线提前指向最终故障模式。",
+  "relation_legend": {
+    "INSTANCE_OF": "实例资源 → 对象类型",
+    "APPLICABLE_FAULT_MODE": "实例/对象类型 → 适用故障模式",
+    "EVIDENCE_MAPPING": "实例/观测事实 → 证据规则",
+    "CASE_MATCH": "标准故障现象 → Case 元数据"
+  },
+  "visibility_policy": {
+    "INSTANCE_OF": "contextual",
+    "APPLICABLE_FAULT_MODE": "hidden",
+    "EVIDENCE_MAPPING": "hidden",
+    "CASE_MATCH": "hidden"
+  },
+  "mappings": [
+    { "mapping_id": "xm-inst-controller-0a", "relation_type": "INSTANCE_OF", "source_layer": "instance", "source_id": "controller-0a", "target_layer": "knowledge", "target_id": "ot-controller", "visibility": "contextual", "description": "Controller-0A 属于对象类型 StorageController" },
+    { "mapping_id": "xm-inst-controller-0b", "relation_type": "INSTANCE_OF", "source_layer": "instance", "source_id": "controller-0b", "target_layer": "knowledge", "target_id": "ot-controller", "visibility": "contextual", "description": "Controller-0B 属于对象类型 StorageController" },
+    { "mapping_id": "xm-inst-block-service", "relation_type": "INSTANCE_OF", "source_layer": "instance", "source_id": "block-service-01", "target_layer": "knowledge", "target_id": "ot-block-service", "visibility": "contextual", "description": "Block Service 属于对象类型 BlockService" },
+    { "mapping_id": "xm-inst-lun-db01", "relation_type": "INSTANCE_OF", "source_layer": "instance", "source_id": "lun-db01", "target_layer": "knowledge", "target_id": "ot-lun", "visibility": "contextual", "description": "LUN-DB01 属于对象类型 LUN" },
+    { "mapping_id": "xm-inst-pool-0", "relation_type": "INSTANCE_OF", "source_layer": "instance", "source_id": "pool-0", "target_layer": "knowledge", "target_id": "ot-pool", "visibility": "contextual", "description": "Pool-0 属于对象类型 StoragePool" },
+    { "mapping_id": "xm-inst-disk-group", "relation_type": "INSTANCE_OF", "source_layer": "instance", "source_id": "disk-group-ssd", "target_layer": "knowledge", "target_id": "ot-disk", "visibility": "contextual", "description": "SSD 磁盘组属于对象类型 Disk" },
+    { "mapping_id": "xm-inst-fc-port-a", "relation_type": "INSTANCE_OF", "source_layer": "instance", "source_id": "fc-port-a", "target_layer": "knowledge", "target_id": "ot-fc-port", "visibility": "contextual", "description": "FC 端口聚合 0A 属于对象类型 FCPort" },
+    { "mapping_id": "xm-inst-fc-port-b", "relation_type": "INSTANCE_OF", "source_layer": "instance", "source_id": "fc-port-b", "target_layer": "knowledge", "target_id": "ot-fc-port", "visibility": "contextual", "description": "FC 端口聚合 0B 属于对象类型 FCPort" },
+    { "mapping_id": "xm-inst-switch-01", "relation_type": "INSTANCE_OF", "source_layer": "instance", "source_id": "switch-01", "target_layer": "knowledge", "target_id": "ot-san-fabric", "visibility": "contextual", "description": "Switch-01 属于对象类型 SANFabric" },
+    { "mapping_id": "xm-inst-switch-02", "relation_type": "INSTANCE_OF", "source_layer": "instance", "source_id": "switch-02", "target_layer": "knowledge", "target_id": "ot-san-fabric", "visibility": "contextual", "description": "Switch-02 属于对象类型 SANFabric" },
+    { "mapping_id": "xm-inst-host-01", "relation_type": "INSTANCE_OF", "source_layer": "instance", "source_id": "db-host-01", "target_layer": "knowledge", "target_id": "ot-host", "visibility": "contextual", "description": "DB-Host-01 属于对象类型 Host" },
+
+    { "mapping_id": "xm-afm-0a-warmreset", "relation_type": "APPLICABLE_FAULT_MODE", "source_layer": "instance", "source_id": "controller-0a", "target_layer": "knowledge", "target_id": "fm-controller-warm-reset", "visibility": "hidden", "description": "Controller-0A 适用故障模式：控制器热复位（候选生成后展示）" },
+    { "mapping_id": "xm-afm-0a-watchdog", "relation_type": "APPLICABLE_FAULT_MODE", "source_layer": "instance", "source_id": "controller-0a", "target_layer": "knowledge", "target_id": "fm-watchdog-timeout", "visibility": "hidden", "description": "Controller-0A 适用故障模式：看门狗超时" },
+    { "mapping_id": "xm-afm-0b-failover", "relation_type": "APPLICABLE_FAULT_MODE", "source_layer": "instance", "source_id": "controller-0b", "target_layer": "knowledge", "target_id": "fm-controller-failover", "visibility": "hidden", "description": "Controller-0B 适用故障模式：主备切换" },
+    { "mapping_id": "xm-afm-fca-flap", "relation_type": "APPLICABLE_FAULT_MODE", "source_layer": "instance", "source_id": "fc-port-a", "target_layer": "knowledge", "target_id": "fm-fc-link-flap", "visibility": "hidden", "description": "FC 端口 0A 适用故障模式：FC 链路抖动" },
+    { "mapping_id": "xm-afm-sw01-fault", "relation_type": "APPLICABLE_FAULT_MODE", "source_layer": "instance", "source_id": "switch-01", "target_layer": "knowledge", "target_id": "fm-san-link-fault", "visibility": "hidden", "description": "Switch-01 适用故障模式：SAN 交换链路异常" },
+    { "mapping_id": "xm-afm-pool-bottleneck", "relation_type": "APPLICABLE_FAULT_MODE", "source_layer": "instance", "source_id": "pool-0", "target_layer": "knowledge", "target_id": "fm-pool-bottleneck", "visibility": "hidden", "description": "Pool-0 适用故障模式：存储池性能瓶颈" },
+    { "mapping_id": "xm-afm-disk-badsector", "relation_type": "APPLICABLE_FAULT_MODE", "source_layer": "instance", "source_id": "disk-group-ssd", "target_layer": "knowledge", "target_id": "fm-disk-bad-sector", "visibility": "hidden", "description": "SSD 磁盘组适用故障模式：磁盘坏道" },
+
+    { "mapping_id": "xm-em-0a-reset", "relation_type": "EVIDENCE_MAPPING", "source_layer": "instance", "source_id": "controller-0a", "target_layer": "knowledge", "target_id": "er-reset-alarm", "visibility": "hidden", "description": "Controller-0A → 复位严重告警证据规则（Evidence 创建后展示）" },
+    { "mapping_id": "xm-em-0a-fp", "relation_type": "EVIDENCE_MAPPING", "source_layer": "instance", "source_id": "controller-0a", "target_layer": "knowledge", "target_id": "er-watchdog-fp", "visibility": "hidden", "description": "Controller-0A → watchdog 日志指纹证据规则" },
+    { "mapping_id": "xm-em-0a-throughput", "relation_type": "EVIDENCE_MAPPING", "source_layer": "instance", "source_id": "controller-0a", "target_layer": "knowledge", "target_id": "er-throughput-zero", "visibility": "hidden", "description": "Controller-0A → 吞吐归零证据规则" },
+    { "mapping_id": "xm-em-0b-takeover", "relation_type": "EVIDENCE_MAPPING", "source_layer": "instance", "source_id": "controller-0b", "target_layer": "knowledge", "target_id": "er-takeover", "visibility": "hidden", "description": "Controller-0B → 备用接管证据规则" },
+    { "mapping_id": "xm-em-lun-latency", "relation_type": "EVIDENCE_MAPPING", "source_layer": "instance", "source_id": "lun-db01", "target_layer": "knowledge", "target_id": "er-latency-impact", "visibility": "hidden", "description": "LUN-DB01 → LUN 时延升高证据规则" },
+    { "mapping_id": "xm-em-fca-normal", "relation_type": "EVIDENCE_MAPPING", "source_layer": "instance", "source_id": "fc-port-a", "target_layer": "knowledge", "target_id": "er-fc-normal", "visibility": "hidden", "description": "FC 端口 0A → FC 链路正常反证规则" },
+
+    { "mapping_id": "xm-cm-latency-case", "relation_type": "CASE_MATCH", "source_layer": "knowledge", "source_id": "sym-latency-increase", "target_layer": "knowledge", "target_id": "case-warm-reset-001", "visibility": "hidden", "description": "标准现象 业务时延升高 → 演示 Case controller_warm_reset_001（Case 路由完成后展示匹配说明）" }
+  ]
+}

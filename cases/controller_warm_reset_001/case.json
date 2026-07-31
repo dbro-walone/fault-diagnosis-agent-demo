@@ -1,0 +1,41 @@
+{
+  "schema_name": "dme-fault-case-package",
+  "schema_version": "1.1.0",
+  "case_id": "controller_warm_reset_001",
+  "title": "Controller-0A 热复位导致数据库业务时延升高",
+  "description": "Controller-0A watchdog 超时触发热复位，导致数据库业务短时时延升高",
+  "fault_domain": "controller",
+  "scenario_tags": ["双SAN", "双控制器", "主备切换", "块业务"],
+  "data_mode": "mock",
+  "data_disclaimer": "本案例数据用于原型演示，不代表真实环境实测结果",
+  "timezone": "Asia/Shanghai",
+  "route_profile": {
+    "case_id": "controller_warm_reset_001",
+    "supported_symptoms": [
+      {
+        "object_type": "BUSINESS",
+        "symptom_code": "BUSINESS_LATENCY_INCREASE",
+        "aliases": [
+          "数据库变慢",
+          "数据库访问时延升高",
+          "DB业务抖动",
+          "交易数据库访问突然变慢",
+          "数据库访问突然变慢"
+        ]
+      }
+    ],
+    "supported_scopes": ["DB业务", "数据库业务"],
+    "required_inputs": ["symptom", "occurred_at"],
+    "priority": 100
+  },
+  "fault_window": {
+    "start": "2026-07-30T14:30:00+08:00",
+    "end": "2026-07-30T14:35:00+08:00"
+  },
+  "ground_truth": {
+    "root_cause": "watchdog_timeout_triggered_warm_reset",
+    "root_object": "controller-0a",
+    "final_conclusion": "ROOT_CAUSE_CONFIRMED",
+    "final_support_score": 92
+  }
+}
