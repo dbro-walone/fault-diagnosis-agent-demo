@@ -1,110 +1,88 @@
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels'
-
-import type { DiagnosisSession, RuntimeEvent } from '../../schemas'
-import { cn } from '@/lib/utils'
-import DiagnosisStatusBar from './DiagnosisStatusBar'
+import type {
+  DiagnosisSession,
+  OntologyScenarioDefinition,
+  RuntimeEvent,
+} from '../../schemas'
 import CandidatePanel from './CandidatePanel'
+import DiagnosisStatusBar from './DiagnosisStatusBar'
 import EventTimeline from './EventTimeline'
-
-/**
- * DiagnosisPanel — 诊断工作台容器
- *
- * Gates the diagnosis UI: when no session is active it renders nothing, so the
- * first screen stays the pure model-exploration state (铁律 #1). Once a Runtime
- * session exists it lays out the three diagnosis surfaces — a status bar across
- * the top, the candidate panel docked to the right, and the event timeline
- * along the bottom — with react-resizable-panels. The central gap is kept
- * transparent (pointer-events-none) so the 3D canvas underneath stays fully
- * explorable while a diagnosis runs.
- */
-export interface DiagnosisPanelProps {
-  /** Active Runtime session, or null while in model-exploration state. */
-  session: DiagnosisSession | null
-  events: RuntimeEvent[]
-  /** Coarse UI phase label forwarded to the status bar. */
-  phase: string
-  totalRounds: number
-  selectedCandidateId: string | null
-  onSelectCandidate: (id: string | null) => void
-  /** Exit the diagnosis workspace and return to model exploration. */
-  onExit?: () => void
-}
-
-/** Vertical resize handle (sits between the status bar / canvas gap / timeline). */
-function VHandle() {
-  return (
-    <PanelResizeHandle
-      className={cn(
-        'group pointer-events-auto relative h-1.5 w-full shrink-0 bg-white/5 transition-colors hover:bg-status-active/30',
-      )}
-    >
-      <span className="absolute left-1/2 top-1/2 h-0.5 w-8 -translate-x-1/2 -translate-y-1/2 rounded bg-white/15 transition-colors group-hover:bg-status-active/60" />
-    </PanelResizeHandle>
-  )
-}
-
-/** Horizontal resize handle (sits between the workspace and the candidate dock). */
-function HHandle() {
-  return (
-    <PanelResizeHandle
-      className={cn(
-        'group pointer-events-auto relative h-full w-1.5 shrink-0 bg-white/5 transition-colors hover:bg-status-active/30',
-      )}
-    >
-      <span className="absolute left-1/2 top-1/2 h-8 w-0.5 -translate-x-1/2 -translate-y-1/2 rounded bg-white/15 transition-colors group-hover:bg-status-active/60" />
-    </PanelResizeHandle>
-  )
-}
 
 export default function DiagnosisPanel({
   session,
-  events,
-  phase,
-  totalRounds,
+  definition,
+  isPlaying,
+  liveEvents,
+  liveHead,
+  isHistorical,
   selectedCandidateId,
   onSelectCandidate,
+  onPlayPause,
+  onStep,
+  onSeek,
+  onReturnCurrent,
   onExit,
-}: DiagnosisPanelProps) {
-  // 铁律 #1: no session → no diagnosis UI; the canvas model view stands alone.
-  if (!session) return null
-
+}: {
+  session: DiagnosisSession | null
+  definition: OntologyScenarioDefinition | null
+  isPlaying: boolean
+  liveEvents: RuntimeEvent[]
+  liveHead: number
+  isHistorical: boolean
+  selectedCandidateId: string | null
+  onSelectCandidate: (id: string | null) => void
+  onPlayPause: () => void
+  onStep: () => void
+  onSeek: (sequence: number) => void
+  onReturnCurrent: () => void
+  onExit: () => void
+}) {
+  if (!session || !definition) return null
   return (
-    <div className="pointer-events-none absolute bottom-3 left-[306px] right-3 top-[60px] z-30 flex">
+    <div className="ontology-diagnosis-panel pointer-events-none absolute bottom-3 left-[308px] right-3 top-[110px] z-30">
       <PanelGroup direction="horizontal">
-        {/* Left region: status bar (top) + transparent canvas gap + timeline (bottom) */}
-        <Panel order={1} minSize={35} className="flex min-w-0 flex-col">
+        <Panel order={1} minSize={42} className="flex min-w-0 flex-col">
           <PanelGroup direction="vertical">
-            <Panel order={1} defaultSize={13} minSize={8} maxSize={22} className="pointer-events-auto overflow-hidden rounded-lg border border-white/10 shadow-2xl">
-              <DiagnosisStatusBar
-                session={session}
-                phase={phase}
-                totalRounds={totalRounds}
-                onExit={onExit}
-              />
+            <Panel
+              order={1}
+              defaultSize={14}
+              minSize={10}
+              maxSize={24}
+              className="pointer-events-auto overflow-hidden rounded-lg border border-white/10 shadow-xl"
+            >
+              <DiagnosisStatusBar session={session} onExit={onExit} />
             </Panel>
-
-            <VHandle />
-
-            {/* Transparent spacer: the 3D canvas shows through and stays interactive. */}
-            <Panel order={2} minSize={28} className="pointer-events-none" />
-
-            <VHandle />
-
-            <Panel order={3} defaultSize={44} minSize={18} className="pointer-events-auto overflow-hidden rounded-lg border border-white/10 shadow-2xl">
-              <EventTimeline events={events} />
+            <PanelResizeHandle className="h-1.5" />
+            <Panel order={2} minSize={34} className="pointer-events-none" />
+            <PanelResizeHandle className="h-1.5 cursor-row-resize bg-white/[0.03]" />
+            <Panel
+              order={3}
+              defaultSize={42}
+              minSize={24}
+              className="pointer-events-auto overflow-hidden rounded-lg border border-white/10 shadow-xl"
+            >
+              <EventTimeline
+                events={liveEvents}
+                totalEvents={definition.events.length}
+                liveHead={liveHead}
+                isHistorical={isHistorical}
+                currentSequence={session.version}
+                isPlaying={isPlaying}
+                onPlayPause={onPlayPause}
+                onStep={onStep}
+                onSeek={onSeek}
+                onReturnCurrent={onReturnCurrent}
+              />
             </Panel>
           </PanelGroup>
         </Panel>
-
-        <HHandle />
-
-        {/* Right dock: candidate panel (full height) */}
+        <PanelResizeHandle className="w-1.5 cursor-col-resize bg-white/[0.03]" />
         <Panel
           order={2}
-          defaultSize={26}
-          minSize={16}
-          maxSize={42}
-          className="pointer-events-auto overflow-hidden rounded-lg border border-white/10 shadow-2xl"
+          defaultSize={25}
+          minSize={18}
+          maxSize={36}
+          className="pointer-events-auto overflow-hidden rounded-lg border border-white/10 shadow-xl"
         >
           <CandidatePanel
             session={session}

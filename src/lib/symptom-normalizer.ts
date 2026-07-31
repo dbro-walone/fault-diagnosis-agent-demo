@@ -10,32 +10,7 @@
 // the match).
 
 import type { NormalizedSymptom } from '../../schemas'
-
-/**
- * A normalization rule: if the free text contains any of `keywords`, the symptom
- * is mapped to `symptomCode` / `objectType`. Add a rule here to teach the
- * normalizer a new standardized symptom; routing still happens through the
- * CaseRouteProfile, so a rule never decides which Case runs.
- */
-interface SymptomRule {
-  symptomCode: string
-  objectType: string
-  keywords: string[]
-  /** Business scope inferred when the rule fires; matched against route scopes. */
-  defaultScope: string
-}
-
-// Keyword → standardized symptom. The baseline case routes on
-// BUSINESS_LATENCY_INCREASE; '数据库' / '变慢' / '时延' / '抖动' are the anchors
-// called out in the spec, with a few safe aliases for robustness.
-const SYMPTOM_RULES: SymptomRule[] = [
-  {
-    symptomCode: 'BUSINESS_LATENCY_INCREASE',
-    objectType: 'BUSINESS',
-    keywords: ['数据库', '变慢', '时延', '抖动', 'db业务', 'db 业务', 'latency'],
-    defaultScope: '数据库业务',
-  },
-]
+import { getRouteProfiles } from './case-loader'
 
 /** Sentinel used when no rule fires — the router turns this into NOT_MATCHED. */
 const UNKNOWN_SYMPTOM_CODE = 'UNKNOWN'
@@ -63,29 +38,48 @@ function nowIso(offsetHours: number = DEFAULT_TZ_OFFSET_HOURS): string {
   return shifted.toISOString().replace('Z', formatOffset(offsetHours))
 }
 
+function normalizeOccurredAt(value: string | undefined): string {
+  if (!value) return nowIso()
+  const trimmed = value.trim()
+  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d{1,3})?)?$/.test(trimmed)) {
+    return `${trimmed}${formatOffset(DEFAULT_TZ_OFFSET_HOURS)}`
+  }
+  return trimmed
+}
+
 /**
  * Normalize a free-text symptom into a structured {@link NormalizedSymptom}.
  *
- * - Matches the text against {@link SYMPTOM_RULES} (case-insensitive substring).
+ * - Matches the text against data-authored Case aliases (case-insensitive
+ *   substring). Adding a Case or alias does not require Runtime/frontend logic.
  * - When no rule fires, returns an UNKNOWN symptom; the router maps that to
  *   NOT_MATCHED / INVALID_INPUT rather than guessing a Case.
  * - `occurred_at` defaults to the current time in `+08:00` (the caller may later
  *   override it from an explicit input field; this function only defaults it).
  */
-export function normalizeSymptom(raw: string): NormalizedSymptom {
+export function normalizeSymptom(
+  raw: string,
+  overrides: { occurredAt?: string; businessScope?: string } = {},
+): NormalizedSymptom {
   const text = (raw ?? '').trim()
   const lower = text.toLowerCase()
 
-  const rule = SYMPTOM_RULES.find((r) =>
-    r.keywords.some((k) => lower.includes(k.toLowerCase())),
+  const rules = getRouteProfiles().flatMap((profile) =>
+    profile.supportedSymptoms.map((symptom) => ({
+      ...symptom,
+      defaultScope: profile.supportedScopes[0] ?? '',
+    })),
+  )
+  const rule = rules.find((candidate) =>
+    candidate.aliases.some((alias) => lower.includes(alias.toLowerCase())),
   )
 
   if (!rule) {
     return {
       objectType: UNKNOWN_OBJECT_TYPE,
       symptomCode: UNKNOWN_SYMPTOM_CODE,
-      occurredAt: nowIso(),
-      businessScope: '',
+      occurredAt: normalizeOccurredAt(overrides.occurredAt),
+      businessScope: overrides.businessScope ?? '',
       description: text,
     }
   }
@@ -93,8 +87,8 @@ export function normalizeSymptom(raw: string): NormalizedSymptom {
   return {
     objectType: rule.objectType,
     symptomCode: rule.symptomCode,
-    occurredAt: nowIso(),
-    businessScope: rule.defaultScope,
+    occurredAt: normalizeOccurredAt(overrides.occurredAt),
+    businessScope: overrides.businessScope || rule.defaultScope,
     description: text,
   }
 }

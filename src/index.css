@@ -20,6 +20,49 @@
   --text-muted: #64748b;
 }
 
+.mobile-viewport-notice {
+  display: none;
+}
+
+@media (max-width: 1023px) {
+  .ontology-interaction-canvas,
+  .ontology-navigator,
+  .ontology-lens-switcher,
+  .ontology-diagnosis-panel,
+  .ontology-object-view,
+  .ontology-diagnosis-entry,
+  .ontology-header {
+    display: none !important;
+  }
+
+  .mobile-viewport-notice {
+    position: absolute;
+    inset: 50% 20px auto;
+    z-index: 100;
+    display: flex;
+    transform: translateY(-50%);
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 14px;
+    background: rgba(17, 20, 28, 0.96);
+    padding: 22px 18px;
+    text-align: center;
+    box-shadow: 0 18px 50px rgba(0, 0, 0, 0.45);
+  }
+
+  .mobile-viewport-notice strong {
+    font-size: 14px;
+  }
+
+  .mobile-viewport-notice span {
+    color: #94a3b8;
+    font-size: 11px;
+    line-height: 1.6;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;

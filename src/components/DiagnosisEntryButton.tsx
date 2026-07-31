@@ -14,11 +14,11 @@ import { cn } from '@/lib/utils'
 /** The business workload scopes a symptom can affect. The baseline case is a
  *  数据库业务 latency spike; the rest cover the typical storage workloads. */
 const BUSINESS_SCOPES = [
-  { value: 'database', label: '数据库业务' },
-  { value: 'virtualization', label: '虚拟化业务' },
-  { value: 'backup', label: '备份业务' },
-  { value: 'file', label: '文件业务' },
-  { value: 'other', label: '其他 / 不确定' },
+  { value: '数据库业务', label: '数据库业务' },
+  { value: '虚拟化业务', label: '虚拟化业务' },
+  { value: '备份业务', label: '备份业务' },
+  { value: '文件业务', label: '文件业务' },
+  { value: '其他', label: '其他 / 不确定' },
 ] as const
 
 export interface DiagnosisEntryPayload {
@@ -83,7 +83,7 @@ export default function DiagnosisEntryButton({
   }
 
   return (
-    <div ref={rootRef} className="pointer-events-auto absolute bottom-6 right-6 z-40">
+    <div ref={rootRef} className="ontology-diagnosis-entry pointer-events-auto absolute bottom-6 right-6 z-40">
       {/* Popover panel (opens upward from the FAB) */}
       {open && (
         <div className="absolute bottom-[68px] right-0 w-[360px] overflow-hidden rounded-xl border border-white/10 bg-[#1a1d27]/95 shadow-2xl backdrop-blur-md">
@@ -91,7 +91,7 @@ export default function DiagnosisEntryButton({
           <div className="flex items-center justify-between border-b border-white/8 px-4 py-3">
             <div className="flex items-center gap-2">
               <Stethoscope className="h-4 w-4 text-status-active" />
-              <span className="text-[13px] font-semibold text-[#e2e8f0]">录入故障现象</span>
+              <span className="text-[13px] font-semibold text-[#e2e8f0]">与诊断 Agent 对话</span>
             </div>
             <button
               type="button"
@@ -107,13 +107,13 @@ export default function DiagnosisEntryButton({
           <div className="space-y-3 px-4 py-3">
             <div>
               <label className="mb-1 block text-[11px] font-medium uppercase tracking-wider text-[#64748b]">
-                故障现象
+                自然语言故障现象
               </label>
               <textarea
                 value={symptom}
                 onChange={(e) => setSymptom(e.target.value)}
                 rows={3}
-                placeholder="例如：数据库业务时延升高，部分 SQL 响应明显变慢"
+                placeholder="例如：数据库访问突然变慢，部分 SQL 响应明显升高…"
                 className="w-full resize-none rounded-md border border-white/10 bg-black/30 px-2.5 py-2 text-[12px] text-[#e2e8f0] placeholder:text-[#64748b] focus:border-status-active/60 focus:outline-none"
               />
             </div>
@@ -175,6 +175,8 @@ export default function DiagnosisEntryButton({
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
+        onDoubleClick={() => setOpen(true)}
+        title="单击或双击展开诊断对话"
         className="flex items-center gap-2 rounded-full border border-white/10 bg-status-active/90 px-4 py-3 text-white shadow-xl shadow-status-active/20 backdrop-blur-md transition-all hover:bg-status-active hover:shadow-status-active/40"
       >
         <Plus className={cn('h-5 w-5 transition-transform', open && 'rotate-45')} />
