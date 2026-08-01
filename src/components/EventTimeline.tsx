@@ -1,228 +1,231 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
 import {
-  Target,
-  RefreshCw,
-  PlayCircle,
-  Loader,
-  CheckCircle2,
-  XCircle,
-  Database,
-  Link2,
-  Gauge,
-  Flag,
-  type LucideIcon,
+  ChevronLeft,
+  ChevronRight,
+  FastForward,
+  Pause,
+  Play,
+  RotateCcw,
 } from 'lucide-react'
-
-import type { RuntimeEvent } from '../../schemas'
-import { EventType } from '../../schemas'
+import {
+  EventType,
+  OntologyObjectType,
+  type JsonValue,
+  type OntologyObject,
+  type RuntimeEvent,
+} from '../../schemas'
 import { cn } from '@/lib/utils'
 
-/**
- * EventTimeline — Runtime 事件时间线（底部面板）
- *
- * Renders the unified Runtime event stream as a scrollable, filterable timeline.
- * Pure presentation: it only formats payloads the Runtime already emitted — it
- * never derives facts / evidence / candidates itself (铁律 #2). Each event is
- * described by its type and color-coded by category.
- */
-export interface EventTimelineProps {
-  events: RuntimeEvent[]
-}
-
-type Category = 'plan' | 'skill' | 'fact' | 'evidence' | 'candidate' | 'conclusion'
-
-interface EventMeta {
-  icon: LucideIcon
-  category: Category
-  /** Tailwind text-color class for the icon + accent. */
-  color: string
-}
-
-/** Per-event-type visual metadata (icon + category + accent color). */
-const EVENT_META: Record<EventType, EventMeta> = {
-  [EventType.PLAN_CREATED]: { icon: Target, category: 'plan', color: 'text-status-active' },
-  [EventType.PLAN_REPLANNED]: { icon: RefreshCw, category: 'plan', color: 'text-status-warning' },
-  [EventType.TASK_SUBMITTED]: { icon: PlayCircle, category: 'skill', color: 'text-status-muted' },
-  [EventType.SKILL_STARTED]: { icon: Loader, category: 'skill', color: 'text-status-muted' },
-  [EventType.SKILL_COMPLETED]: { icon: CheckCircle2, category: 'skill', color: 'text-status-evidence' },
-  [EventType.SKILL_FAILED]: { icon: XCircle, category: 'skill', color: 'text-status-fault' },
-  [EventType.FACT_CREATED]: { icon: Database, category: 'fact', color: 'text-status-evidence' },
-  [EventType.EVIDENCE_CREATED]: { icon: Link2, category: 'evidence', color: 'text-status-evidence' },
-  [EventType.CANDIDATE_UPDATED]: { icon: Gauge, category: 'candidate', color: 'text-status-active' },
-  [EventType.CONCLUSION_REACHED]: { icon: Flag, category: 'conclusion', color: 'text-status-recovered' },
-}
-
-const CATEGORY_LABEL: Record<Category, string> = {
-  plan: '计划',
-  skill: '技能',
-  fact: '事实',
-  evidence: '证据',
-  candidate: '候选',
-  conclusion: '结论',
-}
-
-const SKILL_LABEL: Record<string, string> = {
-  business_mapping: '业务映射',
-  topology: '拓扑路径',
-  alert: '告警查询',
-  log: '日志分析',
-  kpi: 'KPI 指标',
-  link_health: '链路健康',
-  similar_case: '相似案例',
-}
-
-const RELATION_LABEL: Record<string, string> = {
-  SUPPORTS: '支持',
-  WEAKENS: '削弱',
-  CONFLICTS: '冲突',
-  NEUTRAL: '中性',
-}
-
-const CONCLUSION_LABEL: Record<string, string> = {
-  ROOT_CAUSE_CONFIRMED: '根因确认',
-  PROBABLE_CAUSES: '可能根因',
-  INSUFFICIENT_EVIDENCE: '证据不足',
-}
-
-/** Format an ISO timestamp as HH:mm:ss (falls back to the raw string). */
 function formatTime(iso: string): string {
-  const match = /T(\d{2}:\d{2}:\d{2})/.exec(iso)
-  return match ? match[1] : iso
+  return /T(\d{2}:\d{2}:\d{2})/.exec(iso)?.[1] ?? iso
 }
 
-/** Build a one-line human description from an event payload (read-only). */
-function describeEvent(event: RuntimeEvent): string {
-  const p = event.payload ?? {}
-  switch (event.type) {
-    case EventType.PLAN_CREATED:
-      return `目标：${p.goal ?? '—'}${p.taskCount ? `（${p.taskCount} 个任务）` : ''}`
-    case EventType.PLAN_REPLANNED:
-      return `重规划 → ${p.newGoal ?? '—'}`
-    case EventType.TASK_SUBMITTED:
-      return `提交任务：${SKILL_LABEL[p.skillType] ?? p.skillType ?? '—'}`
-    case EventType.SKILL_STARTED:
-      return `启动技能：${SKILL_LABEL[p.skillType] ?? p.skillType ?? '—'}`
-    case EventType.SKILL_COMPLETED:
-      return `${p.success ? '完成' : '失败'}：${SKILL_LABEL[p.skillType] ?? p.skillType ?? '—'}`
-    case EventType.SKILL_FAILED:
-      return `技能失败：${SKILL_LABEL[p.skillType] ?? p.skillType ?? '—'}`
-    case EventType.FACT_CREATED:
-      return `产生事实（${SKILL_LABEL[p.skillType] ?? p.skillType ?? '—'}）`
-    case EventType.EVIDENCE_CREATED:
-      return `${RELATION_LABEL[p.relation] ?? p.relation ?? '关联'}「${p.candidateName ?? '—'}」（权重 ${p.weight ?? 0}）`
-    case EventType.CANDIDATE_UPDATED: {
-      const delta: number = p.delta ?? 0
-      const sign = delta >= 0 ? '+' : ''
-      return `${p.candidateName ?? '—'} ${p.oldScore ?? 0} → ${p.newScore ?? 0}（${sign}${delta}）`
-    }
-    case EventType.CONCLUSION_REACHED:
-      return `${CONCLUSION_LABEL[p.conclusion] ?? p.conclusion ?? '结论'}：${p.rootCause ?? '证据不足'}`
-    default:
-      return event.type
+function eventTone(event: RuntimeEvent): string {
+  if (event.type === EventType.ROOT_CAUSE_CONFIRMED) return 'text-status-recovered'
+  if (event.type === EventType.PLAN_REPLANNED) return 'text-status-warning'
+  if (event.type === EventType.EVIDENCE_CREATED) return 'text-status-evidence'
+  if (event.type === EventType.ACTION_PROPOSED) return 'text-status-warning'
+  return 'text-status-active'
+}
+
+function objectAt(events: RuntimeEvent[], id: string, through: number): OntologyObject | null {
+  let result: OntologyObject | null = null
+  for (const event of events) {
+    if (event.sequence > through) break
+    const created = event.mutation.upsertObjects?.find((object) => object.id === id)
+    if (created) result = { ...created, properties: { ...created.properties } }
+    const patch = event.mutation.patches?.find((value) => value.objectId === id)
+    if (result && patch) result.properties = { ...result.properties, ...patch.properties }
   }
+  return result
 }
 
-export default function EventTimeline({ events }: EventTimelineProps) {
-  const [filter, setFilter] = useState<'ALL' | EventType>('ALL')
-  const scrollRef = useRef<HTMLDivElement>(null)
-
-  // Distinct event types present in the stream, for the filter dropdown.
-  const presentTypes = useMemo(() => {
-    const seen = new Set<EventType>()
-    for (const e of events) seen.add(e.type)
-    return Array.from(seen).sort()
-  }, [events])
-
-  const visible = useMemo(
-    () => (filter === 'ALL' ? events : events.filter((e) => e.type === filter)),
-    [events, filter],
+function PlanDiffCard({ event, events }: { event: RuntimeEvent; events: RuntimeEvent[] }) {
+  const current = event.mutation.upsertObjects?.find(
+    (object) => object.type === OntologyObjectType.PLAN,
   )
-
-  // Auto-scroll to the newest event as the stream grows.
-  useEffect(() => {
-    const el = scrollRef.current
-    if (el) el.scrollTop = el.scrollHeight
-  }, [events.length])
-
+  if (!current) return null
+  const previousId = String(current.properties.previousPlanId ?? '')
+  const previous = previousId ? objectAt(events, previousId, event.sequence) : null
+  const changes = Array.isArray(current.properties.changes)
+    ? current.properties.changes as Array<Record<string, JsonValue>>
+    : []
+  const tasks = (Array.isArray(current.properties.taskIds) ? current.properties.taskIds : [])
+    .map(String)
+    .map((id) => objectAt(events, id, event.sequence))
+    .filter((object): object is OntologyObject => Boolean(object))
   return (
-    <section className="flex h-full w-full flex-col overflow-hidden border-t border-white/8 bg-[#11141c]/95 backdrop-blur-md">
-      {/* Header */}
-      <div className="flex items-center justify-between gap-2 border-b border-white/8 px-3 py-2">
-        <div className="flex items-center gap-2">
-          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-status-active" />
-          <span className="text-[12px] font-semibold text-[#e2e8f0]">推演事件链</span>
-          <span className="rounded-full bg-white/5 px-2 py-0.5 text-[10px] tabular text-[#64748b]">
-            {events.length} 条
+    <div className="mt-2 rounded-md border border-status-warning/15 bg-black/20 p-2 text-[8px]">
+      <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 text-[#94a3b8]">
+        <span>
+          <span className="block text-[#475569]">上一计划</span>
+          {previous?.label ?? previousId}
+        </span>
+        <span className="text-status-warning">→</span>
+        <span>
+          <span className="block text-[#475569]">当前计划</span>
+          {current.label}
+        </span>
+      </div>
+      <div className="mt-2 space-y-1">
+        {changes.map((change, index) => (
+          <div key={`${String(change.type)}:${String(change.taskId)}:${index}`} className="rounded bg-white/[0.035] px-2 py-1.5">
+            <span className="mr-1.5 rounded bg-status-warning/15 px-1 py-0.5 font-semibold text-status-warning">
+              {String(change.type)}
+            </span>
+            <span className="text-[#cbd5e1]">{String(change.taskId)}</span>
+            {change.from !== undefined && change.to !== undefined && (
+              <span className="ml-1 text-[#64748b]">{String(change.from)} → {String(change.to)}</span>
+            )}
+            {change.with !== undefined && (
+              <span className="ml-1 text-[#64748b]">→ {String(change.with)}</span>
+            )}
+            <span className="mt-0.5 block text-[#64748b]">{String(change.reason ?? '')}</span>
+          </div>
+        ))}
+      </div>
+      <div className="mt-2 flex flex-wrap gap-1">
+        {tasks.map((task) => (
+          <span key={task.id} className="rounded border border-white/8 px-1.5 py-1 text-[#94a3b8]">
+            {task.label} · <b className="font-medium text-[#cbd5e1]">{String(task.properties.status)}</b>
           </span>
-        </div>
+        ))}
+      </div>
+    </div>
+  )
+}
 
-        {/* Filter */}
-        <div className="flex items-center gap-1.5">
-          <label className="text-[10px] text-[#64748b]">筛选</label>
-          <select
-            value={filter}
-            onChange={(e) => setFilter(e.target.value as 'ALL' | EventType)}
-            className="rounded-md border border-white/10 bg-black/30 px-2 py-1 text-[11px] text-[#cbd5e1] focus:border-status-active/60 focus:outline-none [color-scheme:dark]"
-          >
-            <option value="ALL">全部类型</option>
-            {presentTypes.map((t) => (
-              <option key={t} value={t}>
-                {CATEGORY_LABEL[EVENT_META[t].category]} · {t}
-              </option>
-            ))}
-          </select>
+export default function EventTimeline({
+  events,
+  totalEvents,
+  liveHead,
+  isHistorical,
+  currentSequence,
+  isPlaying,
+  onPlayPause,
+  onStep,
+  onSeek,
+  onReturnCurrent,
+}: {
+  events: RuntimeEvent[]
+  totalEvents: number
+  liveHead: number
+  isHistorical: boolean
+  currentSequence: number
+  isPlaying: boolean
+  onPlayPause: () => void
+  onStep: () => void
+  onSeek: (sequence: number) => void
+  onReturnCurrent: () => void
+}) {
+  const visibleEvents = isHistorical
+    ? events.filter((event) => event.sequence <= currentSequence)
+    : events
+  return (
+    <section className="flex h-full flex-col overflow-hidden bg-[#11141c]/96 backdrop-blur-md">
+      <div className="flex items-center gap-2 border-b border-white/8 px-3 py-2">
+        {isHistorical && (
+          <span className="rounded bg-status-warning/15 px-2 py-1 text-[9px] text-status-warning">
+            历史回放 · {liveHead - currentSequence} 条新进展
+          </span>
+        )}
+        <button
+          type="button"
+          onClick={onPlayPause}
+          className="flex h-7 w-7 items-center justify-center rounded bg-status-active/15 text-status-active"
+          title={isPlaying ? '暂停' : '播放'}
+        >
+          {isPlaying ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
+        </button>
+        <button
+          type="button"
+          onClick={() => onSeek(Math.max(0, currentSequence - 1))}
+          className="rounded p-1 text-[#64748b] hover:bg-white/5"
+          title="上一步"
+        >
+          <ChevronLeft className="h-4 w-4" />
+        </button>
+        <button
+          type="button"
+          onClick={onStep}
+          disabled={currentSequence >= totalEvents && currentSequence >= liveHead}
+          className="rounded p-1 text-[#64748b] hover:bg-white/5 disabled:opacity-30"
+          title="下一步"
+        >
+          <ChevronRight className="h-4 w-4" />
+        </button>
+        <button
+          type="button"
+          onClick={onReturnCurrent}
+          className="flex items-center gap-1 rounded px-1.5 py-1 text-[9px] text-[#64748b] hover:bg-white/5"
+          title="跳到最新事件"
+        >
+          <FastForward className="h-3.5 w-3.5" />
+          最新
+        </button>
+        <button
+          type="button"
+          onClick={() => onSeek(0)}
+          className="flex items-center gap-1 rounded px-1.5 py-1 text-[9px] text-[#64748b] hover:bg-white/5"
+          title="重置 Scenario"
+        >
+          <RotateCcw className="h-3.5 w-3.5" />
+          重置
+        </button>
+        <div className="ml-auto text-[9px] tabular text-[#64748b]">
+          游标 {currentSequence} · Live {liveHead} / {totalEvents}
         </div>
       </div>
 
-      {/* Scrollable timeline */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto px-3 py-2">
-        {visible.length === 0 ? (
-          <div className="flex h-full items-center justify-center text-[11px] text-[#64748b]">
-            等待 Runtime 事件…
+      <div className="flex-1 overflow-y-auto px-3 py-2">
+        {visibleEvents.length === 0 ? (
+          <div className="flex h-full items-center justify-center text-[10px] text-[#64748b]">
+            等待 Runtime Event…
           </div>
         ) : (
-          <ol className="relative space-y-1.5 before:absolute before:bottom-1 before:left-[11px] before:top-1 before:w-px before:content-[''] before:bg-white/8">
-            {visible.map((event) => {
-              const meta = EVENT_META[event.type] ?? {
-                icon: Flag,
-                category: 'conclusion' as Category,
-                color: 'text-status-muted',
-              }
-              const Icon = meta.icon
+          <ol className="space-y-1.5">
+            {visibleEvents.map((event) => {
               return (
-                <li
-                  key={event.id}
-                  className="relative flex items-start gap-2.5 rounded-md px-1.5 py-1 transition-colors hover:bg-white/[0.03]"
-                >
-                  {/* node dot / icon */}
-                  <span
+                <li key={event.id}>
+                  <button
+                    type="button"
+                    onClick={() => onSeek(event.sequence)}
                     className={cn(
-                      'relative z-10 mt-0.5 flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-full border border-white/10 bg-[#1a1d27]',
-                      meta.color,
+                      'w-full rounded-md border px-2.5 py-2 text-left transition-colors',
+                      event.sequence === currentSequence
+                        ? 'border-status-active/35 bg-status-active/[0.07]'
+                        : 'border-white/[0.05] bg-white/[0.02] hover:bg-white/[0.04]',
                     )}
                   >
-                    <Icon className="h-3 w-3" />
-                  </span>
-
-                  {/* body */}
-                  <div className="min-w-0 flex-1 pt-px">
                     <div className="flex items-center gap-2">
-                      <span className="rounded bg-white/5 px-1.5 py-px text-[9px] font-medium tabular text-[#64748b]">
-                        #{event.seq}
+                      <span className="rounded bg-white/5 px-1.5 py-0.5 text-[8px] tabular text-[#64748b]">
+                        #{event.sequence}
                       </span>
-                      <span className="text-[10px] uppercase tracking-wide text-[#475569]">
-                        {CATEGORY_LABEL[meta.category]}
+                      <span className={cn('text-[9px] font-medium', eventTone(event))}>
+                        {event.type}
                       </span>
-                      <span className="ml-auto text-[10px] tabular text-[#475569]">
-                        {formatTime(event.timestamp)}
+                      <span className="ml-auto text-[8px] tabular text-[#475569]">
+                        {formatTime(event.occurredAt)}
                       </span>
                     </div>
-                    <p className={cn('mt-0.5 text-[11px] leading-snug text-[#cbd5e1]')}>
-                      <span className={cn('font-medium', meta.color)}>{event.type}</span>
-                      <span className="text-[#475569]"> · </span>
-                      {describeEvent(event)}
+                    <div className="mt-1 text-[10px] font-medium text-[#cbd5e1]">
+                      {event.title}
+                    </div>
+                    <p className="mt-0.5 text-[9px] leading-relaxed text-[#64748b]">
+                      {event.detail}
                     </p>
-                  </div>
+                    {event.type === EventType.PLAN_REPLANNED && (
+                      <PlanDiffCard event={event} events={visibleEvents} />
+                    )}
+                  </button>
+                  {(event.type === EventType.FUNCTION_CALL_COMPLETED ||
+                    event.type === EventType.ROOT_CAUSE_CONFIRMED) && (
+                    <details className="mx-2 border-x border-b border-white/[0.05] px-2 py-1.5 text-[8px] text-[#64748b]">
+                      <summary className="cursor-pointer">原始结果 / Event mutation</summary>
+                      <pre className="mt-1 max-h-44 overflow-auto whitespace-pre-wrap text-[8px] leading-relaxed">
+                        {JSON.stringify(event.mutation, null, 2)}
+                      </pre>
+                    </details>
+                  )}
                 </li>
               )
             })}

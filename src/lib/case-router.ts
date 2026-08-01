@@ -31,11 +31,27 @@ interface ProfileMatch {
   reason: string
 }
 
+function isIsoTimestamp(value: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d{1,3})?)?(?:Z|[+-]\d{2}:\d{2})$/.test(value)) {
+    return false
+  }
+  return !Number.isNaN(Date.parse(value))
+}
+
+function missingRequiredInput(profile: CaseRouteProfile, normalized: NormalizedSymptom): string | null {
+  const values: Record<string, string> = {
+    symptom: normalized.description,
+    occurred_at: normalized.occurredAt,
+    business_scope: normalized.businessScope,
+    object_type: normalized.objectType,
+  }
+  return profile.requiredInputs.find((input) => !values[input]?.trim()) ?? null
+}
+
 /**
  * Score a single route profile against the normalized symptom. A profile matches
- * when its symptom code equals the normalized code OR one of its aliases appears
- * in the free-text description. Scope agreement is a tie-breaker bonus, never a
- * requirement (so a scope-less input still routes on symptom/alias).
+ * only when symptom code/alias, object type and an explicitly supplied business
+ * scope are compatible. A scope conflict is a hard mismatch, not a score tweak.
  */
 function scoreProfile(
   profile: CaseRouteProfile,
@@ -48,6 +64,7 @@ function scoreProfile(
   let matched = false
 
   for (const sym of profile.supportedSymptoms) {
+    if (sym.objectType !== normalized.objectType) continue
     if (sym.symptomCode === normalized.symptomCode) {
       matched = true
       score += 10
@@ -62,7 +79,10 @@ function scoreProfile(
     }
   }
 
-  if (matched && scope && profile.supportedScopes.includes(scope)) {
+  if (matched && scope) {
+    if (!profile.supportedScopes.includes(scope)) {
+      return { profile, matched: false, score: 0, reason: `业务范围 ${scope} 不受支持` }
+    }
     score += 3
     reasonParts.push(`业务范围 ${scope} 匹配`)
   }
@@ -91,6 +111,13 @@ export function routeCase(normalized: NormalizedSymptom): RouteResult {
       reason: '无法从输入中识别标准故障现象，请补充更具体的现象描述',
     }
   }
+  if (!normalized.description.trim() || !isIsoTimestamp(normalized.occurredAt)) {
+    return {
+      status: RouteStatus.INVALID_INPUT,
+      caseId: null,
+      reason: '故障现象或 occurredAt 无效；时间必须是带时区的 ISO 8601',
+    }
+  }
 
   const matches = getRouteProfiles()
     .map((p) => scoreProfile(p, normalized))
@@ -101,6 +128,17 @@ export function routeCase(normalized: NormalizedSymptom): RouteResult {
       status: RouteStatus.NOT_MATCHED,
       caseId: null,
       reason: `当前没有 Case 支持故障现象 ${normalized.symptomCode}`,
+    }
+  }
+
+  const missing = matches
+    .map(({ profile }) => missingRequiredInput(profile, normalized))
+    .find((value): value is string => Boolean(value))
+  if (missing) {
+    return {
+      status: RouteStatus.INVALID_INPUT,
+      caseId: null,
+      reason: `缺少已匹配 Case 的路由必填输入：${missing}`,
     }
   }
 

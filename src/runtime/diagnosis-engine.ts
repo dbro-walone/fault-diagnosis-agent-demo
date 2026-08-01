@@ -1,276 +1,368 @@
-import type { Candidate, DiagnosisSession, Evidence, Fact, Plan, RuntimeEvent, PlanTask } from '../../schemas/types'
-import { CandidateStatus, DiagnosisPhase, EventType, TaskStatus } from '../../schemas/enums'
-import { getRoundPlan, TOTAL_ROUNDS, type RoundResult } from './planner'
-import { MockSkillExecutor } from './skill-executor'
-import { buildEvidence } from './evidence-builder'
-import { createInitialCandidates, createWatchdogCandidate, createTakeoverCandidate, applyEvidenceToCandidates } from './candidate-manager'
-import { checkConclusion, type ConclusionResult } from './conclusion-gate'
+import {
+  ActionProposalStatus,
+  EventType,
+  FunctionEffect,
+  OntologyObjectType,
+} from '../../schemas/enums'
+import type {
+  CatalogSnapshot,
+  DiagnosisSession,
+  NormalizedSymptom,
+  OntologyObject,
+  OntologyScenarioDefinition,
+  RuntimeEvent,
+} from '../../schemas/types'
+import { resolveScenarioCatalog } from '../ontology/catalog'
+import { loadOntologyRegistry } from '../ontology/model-adapter'
+import { assertCriticalOntologyObject } from '../ontology/object-guards'
+import {
+  applyRuntimeEvent,
+  createEmptySession,
+  projectSession,
+} from './session-projector'
+import type { RuntimeValidationContext } from './protocol-validator'
 
-/**
- * Diagnosis Engine — 诊断引擎编排器
- * 驱动 Planner→Skill→Fact→Evidence→Candidate→Replan 全流程
- * 生成 RuntimeEvent 序列，支持逐步回放
- */
-
-let eventSeqCounter = 0
-let factIdCounter = 0
-
-function nextEventId(): string {
-  return `event-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
-function nextFactId(): string {
-  factIdCounter++
-  return `fact-${String(factIdCounter).padStart(3, '0')}`
+const SCENARIO_SCHEMA_VERSION = '2.0.0'
+const ISO_TIMESTAMP = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/
+
+function collectIsoTimes(value: unknown, result: number[] = []): number[] {
+  if (typeof value === 'string' && ISO_TIMESTAMP.test(value)) {
+    result.push(Date.parse(value))
+  } else if (Array.isArray(value)) {
+    value.forEach((item) => collectIsoTimes(item, result))
+  } else if (isRecord(value)) {
+    Object.values(value).forEach((item) => collectIsoTimes(item, result))
+  }
+  return result
 }
 
-function makeEvent(type: EventType, payload: Record<string, unknown>): RuntimeEvent {
-  eventSeqCounter++
-  return { id: nextEventId(), seq: eventSeqCounter, type, timestamp: new Date().toISOString(), payload }
+function validateTemporalLineage(definition: OntologyScenarioDefinition): void {
+  const created = new Map<string, { object: OntologyObject; occurredAt: number }>()
+  for (const event of definition.events) {
+    const eventTime = Date.parse(event.occurredAt)
+    for (const object of event.mutation.upsertObjects ?? []) {
+      created.set(object.id, { object, occurredAt: eventTime })
+      if (object.type === OntologyObjectType.FACT) {
+        const factTimes = collectIsoTimes([object.properties.rawResult, object.provenance.observedAt])
+        if (factTimes.some((time) => time > eventTime)) {
+          throw new Error(`[scenario] Fact ${object.id} time is later than its materialization Event`)
+        }
+      }
+    }
+  }
+  for (const event of definition.events) {
+    const eventTime = Date.parse(event.occurredAt)
+    for (const object of event.mutation.upsertObjects ?? []) {
+      if (object.type === OntologyObjectType.EVIDENCE) {
+        const fact = created.get(String(object.properties.factId))?.object
+        if (fact?.type === OntologyObjectType.FACT) {
+          const times = collectIsoTimes([fact.properties.rawResult, fact.provenance.observedAt])
+          if (times.some((time) => time > eventTime)) {
+            throw new Error(`[scenario] Fact ${fact.id} time is later than Evidence ${object.id}`)
+          }
+        }
+      }
+      if (object.type === OntologyObjectType.DECISION) {
+        for (const id of Array.isArray(object.properties.lineageObjectIds)
+          ? object.properties.lineageObjectIds.map(String)
+          : []) {
+          const lineage = created.get(id)?.object
+          if (lineage?.type !== OntologyObjectType.FACT) continue
+          const times = collectIsoTimes([lineage.properties.rawResult, lineage.provenance.observedAt])
+          if (times.some((time) => time > eventTime)) {
+            throw new Error(`[scenario] Fact ${lineage.id} time is later than Decision ${object.id}`)
+          }
+        }
+      }
+    }
+  }
 }
 
-export interface EngineStep {
-  events: RuntimeEvent[]
-  sessionSnapshot: DiagnosisSession
-  isTerminal: boolean
+function contextFor(
+  definition: OntologyScenarioDefinition,
+  catalog: CatalogSnapshot = resolveScenarioCatalog(definition),
+): RuntimeValidationContext {
+  return { catalog, base: loadOntologyRegistry().baseSnapshot() }
+}
+
+/** Runtime JSON entry validation plus a full production-path protocol preflight. */
+export function validateScenarioDefinition(
+  value: unknown,
+): asserts value is OntologyScenarioDefinition {
+  if (
+    !isRecord(value) || typeof value.scenarioId !== 'string' || !value.scenarioId.trim() ||
+    typeof value.caseId !== 'string' || !value.caseId.trim() ||
+    typeof value.label !== 'string' || !value.label.trim() ||
+    value.schemaVersion !== SCENARIO_SCHEMA_VERSION || !Array.isArray(value.events)
+  ) {
+    throw new Error('[scenario] scenarioId, caseId and events are required')
+  }
+  if (
+    !isRecord(value.catalog) || !Array.isArray(value.catalog.functionIds) ||
+    !Array.isArray(value.catalog.skillIds) || !Array.isArray(value.catalog.actionIds) ||
+    [...value.catalog.functionIds, ...value.catalog.skillIds, ...value.catalog.actionIds]
+      .some((id) => typeof id !== 'string' || !id.trim())
+  ) throw new Error('[scenario] catalog reference is required')
+  const definition = value as unknown as OntologyScenarioDefinition
+  const catalog = resolveScenarioCatalog(definition)
+  const eventIds = new Set<string>()
+  let previousOccurredAt = Number.NEGATIVE_INFINITY
+  definition.events.forEach((event, index) => {
+    if (!isRecord(event) || event.sequence !== index + 1 || typeof event.id !== 'string') {
+      throw new Error(`[scenario] non-contiguous or malformed event at sequence ${index + 1}`)
+    }
+    if (!Object.values(EventType).includes(event.type)) {
+      throw new Error(`[scenario] Event ${event.id} has unknown type ${event.type}`)
+    }
+    if (Number.isNaN(Date.parse(event.occurredAt))) {
+      throw new Error(`[scenario] Event ${event.id} has invalid occurredAt`)
+    }
+    const occurredAt = Date.parse(event.occurredAt)
+    if (occurredAt < previousOccurredAt) {
+      throw new Error(`[scenario] Event ${event.id} occurredAt is not monotonic`)
+    }
+    previousOccurredAt = occurredAt
+    if (eventIds.has(event.id)) throw new Error(`[scenario] duplicate event id ${event.id}`)
+    for (const causeId of event.causedByEventIds) {
+      if (!eventIds.has(causeId)) {
+        throw new Error(`[scenario] event ${event.id} references future/unknown cause ${causeId}`)
+      }
+    }
+    eventIds.add(event.id)
+    for (const object of event.mutation.upsertObjects ?? []) {
+      if (object.scenarioId !== definition.scenarioId) {
+        throw new Error(`[scenario] ${object.id} escapes Scenario isolation`)
+      }
+      assertCriticalOntologyObject(object)
+      if (
+        object.type === OntologyObjectType.FUNCTION_CALL &&
+        object.properties.effect !== FunctionEffect.READ_ONLY
+      ) {
+        throw new Error(`[scenario] Function Call ${object.id} must be READ_ONLY`)
+      }
+      if (
+        object.type === OntologyObjectType.ACTION_PROPOSAL &&
+        object.properties.status !== ActionProposalStatus.APPROVAL_REQUIRED
+      ) {
+        throw new Error(`[scenario] Action Proposal ${object.id} must require approval`)
+      }
+    }
+    for (const link of event.mutation.upsertLinks ?? []) {
+      if (link.scenarioId !== definition.scenarioId) {
+        throw new Error(`[scenario] ${link.id} escapes Scenario isolation`)
+      }
+    }
+  })
+  const scenarioObject = definition.events.flatMap((event) => event.mutation.upsertObjects ?? [])
+    .find((object) => object.type === OntologyObjectType.SCENARIO)
+  if (!scenarioObject || scenarioObject.id !== definition.scenarioId) {
+    throw new Error('[scenario] Scenario object/id mismatch')
+  }
+  for (const fn of catalog.functions) {
+    if (fn.effect !== FunctionEffect.READ_ONLY) {
+      throw new Error(`[scenario] Function ${fn.id} is not read-only`)
+    }
+  }
+  for (const boundary of catalog.skills) {
+    if (!catalog.functions.some((fn) => fn.id === boundary.functionId)) {
+      throw new Error(`[scenario] Skill ${boundary.skillId} references unknown Function`)
+    }
+    if (boundary.ontologyWrites.length > 0) {
+      throw new Error(`[scenario] Skill ${boundary.skillId} may not write ontology objects`)
+    }
+  }
+
+  const context = contextFor(definition, catalog)
+  definition.events.reduce(
+    (session, event) => applyRuntimeEvent(session, event, context),
+    createEmptySession(definition.caseId, definition.scenarioId),
+  )
+  validateTemporalLineage(definition)
+}
+
+function shiftIsoTimes(value: unknown, deltaMs: number): void {
+  if (Array.isArray(value)) {
+    for (let index = 0; index < value.length; index++) {
+      const item = value[index]
+      if (typeof item === 'string' && ISO_TIMESTAMP.test(item)) {
+        value[index] = new Date(Date.parse(item) + deltaMs).toISOString()
+      } else {
+        shiftIsoTimes(item, deltaMs)
+      }
+    }
+    return
+  }
+  if (!isRecord(value)) return
+  for (const [key, item] of Object.entries(value)) {
+    if (typeof item === 'string' && ISO_TIMESTAMP.test(item)) {
+      value[key] = new Date(Date.parse(item) + deltaMs).toISOString()
+    } else {
+      shiftIsoTimes(item, deltaMs)
+    }
+  }
+}
+
+function instantiateScenario(
+  definition: OntologyScenarioDefinition,
+  input?: NormalizedSymptom,
+): OntologyScenarioDefinition {
+  if (!input) return definition
+  const instantiated = structuredClone(definition)
+  const first = instantiated.events[0]
+  if (!first || first.type !== EventType.DIAGNOSIS_INITIALIZED) {
+    throw new Error('[scenario] first event must initialize the normalized symptom')
+  }
+  const scenario = first.mutation.upsertObjects?.find(
+    (object) => object.type === OntologyObjectType.SCENARIO,
+  )
+  if (!scenario) throw new Error('[scenario] initialization event has no Scenario object')
+  const deltaMs = Date.parse(input.occurredAt) - Date.parse(first.occurredAt)
+  if (!Number.isFinite(deltaMs)) throw new Error('[scenario] invalid instantiation occurredAt')
+  // Scenario payloads contain only current-Case timestamps. Static knowledge is
+  // held in the base Registry, so the explicit static-time whitelist is empty.
+  shiftIsoTimes(instantiated.events, deltaMs)
+  scenario.properties = {
+    ...scenario.properties,
+    symptomCode: input.symptomCode,
+    normalizedDescription: input.description,
+    objectType: input.objectType,
+    occurredAt: input.occurredAt,
+    businessScope: input.businessScope,
+  }
+  first.occurredAt = input.occurredAt
+  return instantiated
 }
 
 export interface DiagnosisEngine {
-  session: DiagnosisSession
-  events: RuntimeEvent[]
-  currentRound: number
-  skillExecutor: MockSkillExecutor
-  candidates: Candidate[]
-  hasWatchdogCandidate: boolean
-  hasTakeoverCandidate: boolean
+  readonly definition: OntologyScenarioDefinition
+  readonly catalog: CatalogSnapshot
+  readonly session: DiagnosisSession
+  readonly liveHead: number
+  readonly replayCursor: number
+  /** Backward-compatible alias for the replay cursor. */
+  readonly cursor: number
+  readonly complete: boolean
+  readonly isHistorical: boolean
+  readonly liveEvents: RuntimeEvent[]
+  advance(): DiagnosisEngine
+  seek(sequence: number): DiagnosisEngine
+  returnLive(): DiagnosisEngine
+  reset(): DiagnosisEngine
 }
 
-export function createDiagnosisEngine(caseId: string, observations: Record<string, unknown>): DiagnosisEngine {
-  eventSeqCounter = 0
-  factIdCounter = 0
+class ScenarioDiagnosisEngine implements DiagnosisEngine {
+  constructor(
+    readonly definition: OntologyScenarioDefinition,
+    readonly catalog: CatalogSnapshot,
+    private readonly liveSession: DiagnosisSession,
+    readonly replayCursor: number,
+  ) {}
 
-  const session: DiagnosisSession = {
-    id: `session-${Date.now()}`,
-    caseId,
-    status: DiagnosisPhase.SESSION_INITIALIZING,
-    currentRound: 0,
-    candidates: [],
-    evidence: [],
-    facts: [],
-    plans: [],
-    events: [],
-    conclusion: null,
-    rootCause: null,
-    startedAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
+  private get context(): RuntimeValidationContext {
+    return contextFor(this.definition, this.catalog)
   }
 
-  return {
-    session,
-    events: [],
-    currentRound: 0,
-    skillExecutor: new MockSkillExecutor(observations as any),
-    candidates: [],
-    hasWatchdogCandidate: false,
-    hasTakeoverCandidate: false,
-  }
-}
-
-/**
- * 执行一轮诊断，返回该轮产生的事件
- */
-export function runRound(engine: EngineContext): RuntimeEvent[] {
-  const roundEvents: RuntimeEvent[] = []
-  engine.currentRound++
-
-  if (engine.currentRound > TOTAL_ROUNDS) {
-    return roundEvents
+  get liveHead(): number {
+    return this.liveSession.version
   }
 
-  const roundResult = getRoundPlan(engine.currentRound)
-  if (!roundResult) return roundEvents
-
-  // 终态轮
-  if (roundResult.isTerminal) {
-    const conclusion = checkConclusion(engine.session)
-    engine.session.conclusion = conclusion.type
-    engine.session.rootCause = conclusion.rootCause
-    engine.session.status = DiagnosisPhase.DIAGNOSIS_REVIEW
-    roundEvents.push(makeEvent(EventType.CONCLUSION_REACHED, {
-      conclusion: conclusion.type,
-      rootCause: conclusion.rootCause,
-      rootCandidateId: conclusion.rootCandidateId,
-      reason: conclusion.reason,
-      evidenceChainCount: conclusion.evidenceChainCount,
-    }))
-    return roundEvents
+  get cursor(): number {
+    return this.replayCursor
   }
 
-  const plan = roundResult.plan
-
-  // 重规划事件
-  if (roundResult.isReplan) {
-    roundEvents.push(makeEvent(EventType.PLAN_REPLANNED, {
-      oldRound: engine.currentRound - 1,
-      newRound: engine.currentRound,
-      triggerEvidenceId: roundResult.triggerEvidenceId,
-      changes: roundResult.replanChanges,
-      newGoal: plan.goal,
-      newSelectionReason: plan.selectionReason,
-    }))
+  get isHistorical(): boolean {
+    return this.replayCursor < this.liveHead
   }
 
-  // 计划创建事件
-  roundEvents.push(makeEvent(EventType.PLAN_CREATED, {
-    planId: plan.id,
-    round: plan.round,
-    goal: plan.goal,
-    selectionReason: plan.selectionReason,
-    taskCount: plan.tasks.length,
-    isReplan: roundResult.isReplan || false,
-  }))
-
-  engine.session.plans.push(plan)
-  engine.session.currentRound = engine.currentRound
-
-  // 执行每个 Task
-  for (const task of plan.tasks) {
-    // TASK_SUBMITTED
-    task.status = TaskStatus.RUNNING
-    roundEvents.push(makeEvent(EventType.TASK_SUBMITTED, {
-      taskId: task.id, skillType: task.skillType, targetObjectIds: task.targetObjectIds, reason: task.reason,
-    }))
-
-    // SKILL_STARTED
-    roundEvents.push(makeEvent(EventType.SKILL_STARTED, {
-      taskId: task.id, skillType: task.skillType,
-    }))
-
-    // 执行 Skill
-    const skillResult = engine.skillExecutor.execute(task)
-
-    // SKILL_COMPLETED
-    task.status = skillResult.success ? TaskStatus.COMPLETED : TaskStatus.FAILED
-    roundEvents.push(makeEvent(EventType.SKILL_COMPLETED, {
-      taskId: task.id, skillType: task.skillType, success: skillResult.success, skillId: skillResult.skillId,
-    }))
-
-    if (!skillResult.success) continue
-
-    // FACT_CREATED
-    const fact: Fact = {
-      id: nextFactId(),
-      taskId: task.id,
-      skillId: skillResult.skillId,
-      objectIds: task.targetObjectIds,
-      rawResult: skillResult.data,
-      structuredData: skillResult.data,
-      timestamp: new Date().toISOString(),
-      source: `mock-skill:${task.skillType}`,
-    }
-    engine.session.facts.push(fact)
-    roundEvents.push(makeEvent(EventType.FACT_CREATED, {
-      factId: fact.id, taskId: task.id, skillType: task.skillType, data: skillResult.data,
-    }))
-
-    // 按需创建隐藏候选
-    if (!engine.hasWatchdogCandidate && task.skillType === 'log') {
-      const watchdog = createWatchdogCandidate()
-      engine.candidates.push(watchdog)
-      engine.session.candidates.push(watchdog)
-      engine.hasWatchdogCandidate = true
-    }
-    if (!engine.hasTakeoverCandidate && task.skillType === 'log') {
-      const takeover = createTakeoverCandidate()
-      engine.candidates.push(takeover)
-      engine.session.candidates.push(takeover)
-      engine.hasTakeoverCandidate = true
-    }
-
-    // EVIDENCE_CREATED
-    const evidences = buildEvidence(fact)
-    for (const ev of evidences) {
-      engine.session.evidence.push(ev)
-      roundEvents.push(makeEvent(EventType.EVIDENCE_CREATED, {
-        evidenceId: ev.id, factId: fact.id, candidateName: ev.candidateName, relation: ev.relation, weight: ev.weight, explanation: ev.explanation,
-      }))
-
-      // CANDIDATE_UPDATED
-      const prevScores: Record<string, number> = {}
-      engine.session.candidates.forEach(c => { prevScores[c.id] = c.supportScore })
-
-      engine.session.candidates = applyEvidenceToCandidates(engine.session.candidates, ev)
-
-      // 为每个分数变化的候选发出 CANDIDATE_UPDATED 事件
-      engine.session.candidates.forEach(c => {
-        if (c.supportScore !== prevScores[c.id]) {
-          const delta = c.supportScore - prevScores[c.id]
-          roundEvents.push(makeEvent(EventType.CANDIDATE_UPDATED, {
-            candidateId: c.id, candidateName: c.name, oldScore: prevScores[c.id], newScore: c.supportScore, delta,
-            status: c.status, triggerEvidenceId: ev.id,
-          }))
-        }
-      })
-    }
+  get liveEvents(): RuntimeEvent[] {
+    return this.liveSession.eventLog
   }
 
-  // 第二轮后生成初始候选
-  if (roundResult.generateCandidates && engine.candidates.length === 0) {
-    const initials = createInitialCandidates()
-    engine.candidates.push(...initials)
-    engine.session.candidates.push(...initials)
-    for (const c of initials) {
-      roundEvents.push(makeEvent(EventType.CANDIDATE_UPDATED, {
-        candidateId: c.id, candidateName: c.name, oldScore: 0, newScore: c.supportScore, delta: c.supportScore,
-        status: c.status, triggerEvidenceId: null,
-      }))
-    }
+  get session(): DiagnosisSession {
+    if (!this.isHistorical) return this.liveSession
+    return projectSession(
+      this.liveSession.eventLog,
+      this.definition.caseId,
+      this.definition.scenarioId,
+      this.replayCursor,
+      this.context,
+    )
   }
 
-  // 更新 session 状态
-  engine.session.status = DiagnosisPhase.DIAGNOSING
-  engine.session.updatedAt = new Date().toISOString()
+  get complete(): boolean {
+    return this.liveHead >= this.definition.events.length
+  }
 
-  // 累积事件
-  engine.events.push(...roundEvents)
-  engine.session.events = [...engine.events]
+  advance(): DiagnosisEngine {
+    if (this.complete) return this
+    const wasLive = !this.isHistorical
+    const event = this.definition.events[this.liveHead]
+    const nextLive = applyRuntimeEvent(this.liveSession, event, this.context)
+    return new ScenarioDiagnosisEngine(
+      this.definition,
+      this.catalog,
+      nextLive,
+      wasLive ? nextLive.version : this.replayCursor,
+    )
+  }
 
-  return roundEvents
-}
+  seek(sequence: number): DiagnosisEngine {
+    const replayCursor = Math.max(0, Math.min(sequence, this.liveHead))
+    return new ScenarioDiagnosisEngine(
+      this.definition,
+      this.catalog,
+      this.liveSession,
+      replayCursor,
+    )
+  }
 
-// 使用可变上下文对象
-export interface EngineContext {
-  session: DiagnosisSession
-  events: RuntimeEvent[]
-  currentRound: number
-  skillExecutor: MockSkillExecutor
-  candidates: Candidate[]
-  hasWatchdogCandidate: boolean
-  hasTakeoverCandidate: boolean
-}
+  returnLive(): DiagnosisEngine {
+    return this.seek(this.liveHead)
+  }
 
-export function createContextFromEngine(engine: DiagnosisEngine): EngineContext {
-  return {
-    session: engine.session,
-    events: engine.events,
-    currentRound: engine.currentRound,
-    skillExecutor: engine.skillExecutor,
-    candidates: engine.candidates,
-    hasWatchdogCandidate: engine.hasWatchdogCandidate,
-    hasTakeoverCandidate: engine.hasTakeoverCandidate,
+  reset(): DiagnosisEngine {
+    return createDiagnosisEngine(this.definition)
   }
 }
 
-/**
- * 运行全部轮次，返回所有事件和最终 Session
- */
-export function runAllRounds(caseId: string, observations: Record<string, unknown>): { events: RuntimeEvent[], session: DiagnosisSession } {
-  const engine = createDiagnosisEngine(caseId, observations)
-  const ctx = createContextFromEngine(engine)
+export function createDiagnosisEngine(
+  source: OntologyScenarioDefinition,
+  input?: NormalizedSymptom,
+): DiagnosisEngine {
+  validateScenarioDefinition(source)
+  const definition = instantiateScenario(source, input)
+  validateScenarioDefinition(definition)
+  const catalog = resolveScenarioCatalog(definition)
+  return new ScenarioDiagnosisEngine(
+    definition,
+    catalog,
+    createEmptySession(definition.caseId, definition.scenarioId),
+    0,
+  )
+}
 
-  for (let i = 0; i < TOTAL_ROUNDS; i++) {
-    runRound(ctx)
-  }
+export function replayEvents(
+  definition: OntologyScenarioDefinition,
+  throughSequence: number = definition.events.length,
+): DiagnosisSession {
+  validateScenarioDefinition(definition)
+  const catalog = resolveScenarioCatalog(definition)
+  return projectSession(
+    definition.events,
+    definition.caseId,
+    definition.scenarioId,
+    throughSequence,
+    contextFor(definition, catalog),
+  )
+}
 
-  return { events: ctx.events, session: ctx.session }
+export function eventAt(
+  definition: OntologyScenarioDefinition,
+  sequence: number,
+): RuntimeEvent | null {
+  return definition.events.find((event) => event.sequence === sequence) ?? null
 }

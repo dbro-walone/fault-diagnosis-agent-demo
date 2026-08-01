@@ -1,189 +1,62 @@
-// Model loader: turns the JSON model assets (instance topology, fault knowledge
-// graph, cross-layer mappings, projection config) into a single graph-data shape
-// that 3d-force-graph can render directly.
-//
-// Design notes (see docs/实例拓扑视图展示与交互规格_V1.0.md):
-//   - Both planes share ONE 3d-force-graph scene. The topology plane sits at the
-//     configured upper Y, the knowledge graph at the lower Y. Coordinates come
-//     from projection-config.json's `node_positions` (the authoritative,
-//     offline-baked "半固定坐标"); a deterministic fallback is computed from the
-//     domain / layer anchors if a position is ever missing.
-//   - Positions are pinned (fx/fy/fz) so the force simulation never disturbs the
-//     contract layout — local anti-overlap is handled by the offline coordinates.
-//   - Cross-layer mappings: INSTANCE_OF is structural ("Controller-0A is a
-//     StorageController") and non-diagnosis-revealing, so it is shown faintly as a
-//     baseline mapping. APPLICABLE_FAULT_MODE / EVIDENCE_MAPPING / CASE_MATCH are
-//     hidden by default (they would leak the root cause) and surface only via the
-//     navigator's cross-layer toggle. This honors 铁律 #4 (no early root-cause leak)
-//     and §8.1 (少量基线映射, 禁止初始全量发光).
-
-import type { NodeObject, LinkObject } from '3d-force-graph'
-
-// The model JSON lives at the project root (model/), while this module sits in
-// src/lib — so reach it with a root-relative path rather than the `@/` alias
-// (which maps to src/).
-import topologyJson from '../../model/topology/instances.json'
-import kgNodesJson from '../../model/knowledge-graph/nodes.json'
-import kgEdgesJson from '../../model/knowledge-graph/edges.json'
-import mappingsJson from '../../model/mappings/cross-layer-mappings.json'
+import type { LinkObject, NodeObject } from '3d-force-graph'
 import projectionJson from '../../model/projection/projection-config.json'
+import {
+  LensId,
+  OntologyLinkType,
+  OntologyObjectType,
+} from '../../schemas/enums'
+import type {
+  OntologyLink,
+  OntologyObject,
+  ScenarioOverlay,
+} from '../../schemas/types'
+import { LENS_DEFINITIONS } from '../ontology/lenses'
+import { loadOntologyRegistry } from '../ontology/model-adapter'
+import type { OntologyRegistry } from '../ontology/registry'
+import { LINK_COLORS, PLANE_COLORS, STATUS_COLORS } from './utils'
 
-import { PLANE_COLORS, LINK_COLORS } from './utils'
-
-// ---------------------------------------------------------------------------
-// Raw JSON shapes (only the fields the loader consumes; extra fields are ignored)
-// ---------------------------------------------------------------------------
-
-interface RawSpatialDomain {
-  code: string
-  name: string
-  order: number
-  location: 'external' | 'internal'
-}
-interface RawTopologyResource {
-  resource_id: string
-  resource_type: string
-  name: string
-  display_name: string
-  health_status: string
-  parent_id: string | null
-  device_id: string | null
-  cluster_id: string | null
-  spatial_domain: string
-  internal_zone: string | null
-  aggregation_key: string | null
-  order: number
-  attributes?: Record<string, unknown>
-  display?: { label?: string; default_expanded?: boolean; aggregate_group?: string | null }
-}
-interface RawTopologyEdge {
-  edge_id: string
-  source_id: string
-  target_id: string
-  relation_type: string
-  direction: string
-  path_group: string | null
-  redundancy_group: string | null
-  state: string
-}
-interface RawTopology {
-  spatial_domains: RawSpatialDomain[]
-  resources: RawTopologyResource[]
-  edges: RawTopologyEdge[]
-}
-interface RawKgLayer {
-  code: string
-  name: string
-  order: number
-}
-interface RawKgNode {
-  node_id: string
-  node_type: string
-  layer: string
-  code: string
-  name: string
-  order: number
-  description?: string
-  attributes?: Record<string, unknown>
-}
-interface RawKgEdge {
-  edge_id: string
-  source_id: string
-  target_id: string
-  relation_type: string
-  direction: string
-  weight?: number
-}
-interface RawKgNodes {
-  layers: RawKgLayer[]
-  nodes: RawKgNode[]
-}
-interface RawKgEdges {
-  edges: RawKgEdge[]
-}
-type CrossRelationType =
-  | 'INSTANCE_OF'
-  | 'APPLICABLE_FAULT_MODE'
-  | 'EVIDENCE_MAPPING'
-  | 'CASE_MATCH'
-interface RawMapping {
-  mapping_id: string
-  relation_type: CrossRelationType
-  source_layer: 'instance' | 'knowledge'
-  source_id: string
-  target_layer: 'instance' | 'knowledge'
-  target_id: string
-  visibility: 'contextual' | 'hidden'
-  description?: string
-}
-interface RawMappings {
-  visibility_policy: Record<CrossRelationType, 'contextual' | 'hidden'>
-  mappings: RawMapping[]
-}
-interface RawPoint {
+interface Point {
   x: number
   y: number
   z: number
 }
-interface CameraPreset {
-  label: string
-  position: RawPoint
-  look_at: RawPoint
-}
-interface RawProjection {
+interface ProjectionConfig {
   planes: {
     topology: { y: number; label: string }
     knowledge: { y: number; label: string }
   }
-  domain_anchors: Record<string, { x: number; z?: number; name: string }>
-  knowledge_layer_anchors: Record<string, { x: number; name: string }>
-  node_positions: Record<string, RawPoint>
-  label_rules: {
-    topology_always: string[]
-    knowledge_always: string[]
-  }
-  camera_presets: Record<string, CameraPreset>
+  node_positions: Record<string, Point>
+  camera_presets: Record<
+    string,
+    { label: string; position: Point; look_at: Point }
+  >
   initial_preset: string
+  label_rules: { topology_always: string[]; knowledge_always: string[] }
 }
 
-const topology = topologyJson as RawTopology
-const kgNodes = kgNodesJson as RawKgNodes
-const kgEdges = kgEdgesJson as RawKgEdges
-const mappings = mappingsJson as RawMappings
-const projection = projectionJson as RawProjection
-
-// ---------------------------------------------------------------------------
-// Graph data shapes (what 3d-force-graph consumes)
-// ---------------------------------------------------------------------------
+const projection = projectionJson as ProjectionConfig
 
 export type Plane = 'topology' | 'knowledge'
+export type LinkCategory =
+  | 'topology'
+  | 'knowledge'
+  | 'cross'
+  | 'diagnosis'
+  | 'impact'
+  | 'audit'
 
-export type CrossRelation = CrossRelationType
-
-/**
- * A renderable node. Extends three-forcegraph's NodeObject so it can be passed
- * straight to 3d-force-graph. `fx/fy/fz` pin the position.
- */
 export interface GraphNode extends NodeObject {
   id: string
-  /** Human-readable label shown on the sphere / in lists. */
+  object: OntologyObject
   label: string
   plane: Plane
-  /** spatial_domain (topology) or layer (knowledge). Drives filtering. */
   group: string
-  /** Human name of the group (domain name / layer name). */
   groupName: string
-  /** resource_type (topology) or node_type (knowledge). */
   kind: string
-  description?: string
   healthStatus?: string
-  /** Node size weight in [1, ~3]; bigger for key objects. */
   val: number
-  /** Base neutral color (blue/purple) — diagnosis overlays override later. */
   color: string
-  /** Whether the label is always visible regardless of zoom. */
   alwaysLabel: boolean
-  // Position (pinned)
   x: number
   y: number
   z: number
@@ -192,22 +65,13 @@ export interface GraphNode extends NodeObject {
   fz: number
 }
 
-export type LinkCategory = 'topology' | 'knowledge' | 'cross'
-
 export interface GraphLink extends LinkObject<GraphNode> {
-  /** Source node id (string until 3d-force-graph binds it). */
+  id: string
   source: string
   target: string
+  ontologyLink: OntologyLink
   category: LinkCategory
-  /** Relation type within the source model (ACCESSES, CAUSED_BY, …). */
   relation: string
-  /** Only present on cross-layer links. */
-  crossRelation?: CrossRelation
-  /** visibility policy from the mapping (contextual | hidden). */
-  crossVisibility?: 'contextual' | 'hidden'
-  /** Human description (cross-layer mappings carry one). */
-  description?: string
-  /** Topology path_group (e.g. block-path-a) used by the business-path view. */
   pathGroup?: string | null
   weight?: number
 }
@@ -230,19 +94,20 @@ export interface LayerInfo {
 export interface PresetInfo {
   key: string
   label: string
-  position: RawPoint
-  lookAt: RawPoint
+  position: Point
+  lookAt: Point
 }
 
-/** Options passed to {@link buildActiveGraph} to filter the visible subgraph. */
 export interface GraphFilter {
+  lens: LensId
+  overlay?: ScenarioOverlay
   layerTopology: boolean
   layerKnowledge: boolean
-  /** visibleDomains[code] / visibleKgLayers[code] === true → keep. */
   visibleDomains: Record<string, boolean>
   visibleKgLayers: Record<string, boolean>
-  /** Master toggle: when true, every cross-layer mapping is drawn. */
   showCrossLayer: boolean
+  /** Optional Object Set / Search Around restriction. */
+  objectIds?: Set<string>
 }
 
 export interface ActiveGraph {
@@ -251,11 +116,10 @@ export interface ActiveGraph {
 }
 
 export interface ModelData {
+  registry: OntologyRegistry
   nodes: GraphNode[]
   links: GraphLink[]
   nodesById: Map<string, GraphNode>
-  /** id → neighbor ids across ALL links (used for hover/selection highlight). */
-  adjacency: Map<string, Set<string>>
   domains: DomainInfo[]
   kgLayers: LayerInfo[]
   presets: PresetInfo[]
@@ -263,261 +127,285 @@ export interface ModelData {
   counts: { topology: number; knowledge: number; cross: number }
 }
 
-// ---------------------------------------------------------------------------
-// Transform helpers
-// ---------------------------------------------------------------------------
-
-/** Resource types rendered larger because they carry the scene's focal weight. */
-const BIG_KINDS = new Set(['STORAGE_DEVICE', 'CONTROLLER', 'BUSINESS', 'BLOCK_SERVICE'])
-const MID_KINDS = new Set([
-  'LUN',
-  'STORAGE_POOL',
-  'HOST',
-  'SAN_FABRIC',
-  'OBJECT_TYPE',
-  'SYMPTOM',
-  'FAULT_MODE',
-])
-
-function nodeWeight(plane: Plane, kind: string): number {
-  if (BIG_KINDS.has(kind)) return 2.6
-  if (MID_KINDS.has(kind)) return 1.9
-  if (plane === 'knowledge' && (kind === 'CASE' || kind === 'EVIDENCE_RULE')) return 1.5
-  return 1.3
+const TYPE_COLOR: Record<OntologyObjectType, string> = {
+  [OntologyObjectType.ASSET]: PLANE_COLORS.topology,
+  [OntologyObjectType.KNOWLEDGE]: PLANE_COLORS.knowledge,
+  [OntologyObjectType.OBSERVATION]: '#38bdf8',
+  [OntologyObjectType.FACT]: STATUS_COLORS.evidence,
+  [OntologyObjectType.CANDIDATE]: STATUS_COLORS.warning,
+  [OntologyObjectType.EVIDENCE]: '#2dd4bf',
+  [OntologyObjectType.PLAN]: '#60a5fa',
+  [OntologyObjectType.TASK]: '#818cf8',
+  [OntologyObjectType.FUNCTION_CALL]: '#22d3ee',
+  [OntologyObjectType.ACTION_PROPOSAL]: '#f59e0b',
+  [OntologyObjectType.DECISION]: STATUS_COLORS.recovered,
+  [OntologyObjectType.SCENARIO]: '#c084fc',
 }
 
-/** Resolve a node's 3D position: prefer the baked coordinates, else anchor-based. */
-function resolveTopologyPosition(res: RawTopologyResource): RawPoint {
-  const baked = projection.node_positions[res.resource_id]
-  if (baked) return baked
-  const anchor = projection.domain_anchors[res.spatial_domain]
-  const baseX = anchor?.x ?? 0
-  const z = (res.order ?? 0) * 26 - 30
-  return { x: baseX, y: projection.planes.topology.y, z }
+const TYPE_X: Partial<Record<OntologyObjectType, number>> = {
+  [OntologyObjectType.SCENARIO]: -220,
+  [OntologyObjectType.PLAN]: -160,
+  [OntologyObjectType.TASK]: -105,
+  [OntologyObjectType.FUNCTION_CALL]: -45,
+  [OntologyObjectType.OBSERVATION]: -10,
+  [OntologyObjectType.FACT]: 20,
+  [OntologyObjectType.EVIDENCE]: 80,
+  [OntologyObjectType.CANDIDATE]: 135,
+  [OntologyObjectType.DECISION]: 205,
+  [OntologyObjectType.ACTION_PROPOSAL]: 255,
 }
 
-function resolveKnowledgePosition(node: RawKgNode): RawPoint {
-  const baked = projection.node_positions[node.node_id]
-  if (baked) return baked
-  const anchor = projection.knowledge_layer_anchors[node.layer]
-  const baseX = anchor?.x ?? 0
-  const z = (node.order ?? 0) * 22 - 20
-  return { x: baseX, y: projection.planes.knowledge.y, z }
+function stringProperty(object: OntologyObject, key: string, fallback = ''): string {
+  const value = object.properties[key]
+  return typeof value === 'string' ? value : fallback
 }
 
-function buildTopologyNodes(): GraphNode[] {
-  const domainByName = new Map(topology.spatial_domains.map((d) => [d.code, d]))
-  const alwaysSet = new Set(projection.label_rules.topology_always)
-  return topology.resources.map((res): GraphNode => {
-    const pos = resolveTopologyPosition(res)
-    const domain = domainByName.get(res.spatial_domain)
-    return {
-      id: res.resource_id,
-      label: res.display?.label ?? res.display_name ?? res.name,
-      plane: 'topology',
-      group: res.spatial_domain,
-      groupName: domain?.name ?? res.spatial_domain,
-      kind: res.resource_type,
-      description: undefined,
-      healthStatus: res.health_status,
-      val: nodeWeight('topology', res.resource_type),
-      color: PLANE_COLORS.topology,
-      alwaysLabel: alwaysSet.has(res.resource_id),
-      x: pos.x,
-      y: pos.y,
-      z: pos.z,
-      fx: pos.x,
-      fy: pos.y,
-      fz: pos.z,
-    }
-  })
+function numberProperty(object: OntologyObject, key: string, fallback = 0): number {
+  const value = object.properties[key]
+  return typeof value === 'number' ? value : fallback
 }
 
-function buildKnowledgeNodes(): GraphNode[] {
-  const layerByName = new Map(kgNodes.layers.map((l) => [l.code, l]))
-  const alwaysSet = new Set(projection.label_rules.knowledge_always)
-  return kgNodes.nodes.map((node): GraphNode => {
-    const pos = resolveKnowledgePosition(node)
-    const layer = layerByName.get(node.layer)
-    return {
-      id: node.node_id,
-      label: node.name,
-      plane: 'knowledge',
-      group: node.layer,
-      groupName: layer?.name ?? node.layer,
-      kind: node.node_type,
-      description: node.description,
-      val: nodeWeight('knowledge', node.node_type),
-      color: PLANE_COLORS.knowledge,
-      alwaysLabel: alwaysSet.has(node.node_id),
-      x: pos.x,
-      y: pos.y,
-      z: pos.z,
-      fx: pos.x,
-      fy: pos.y,
-      fz: pos.z,
-    }
-  })
+function hash(value: string): number {
+  let result = 0
+  for (const char of value) result = (result * 31 + char.charCodeAt(0)) | 0
+  return Math.abs(result)
 }
 
-function buildTopologyLinks(): GraphLink[] {
-  return topology.edges.map(
-    (e): GraphLink => ({
-      source: e.source_id,
-      target: e.target_id,
-      category: 'topology',
-      relation: e.relation_type,
-      pathGroup: e.path_group,
-    }),
-  )
+function positionFor(object: OntologyObject): Point {
+  const configured = projection.node_positions[object.id]
+  if (configured) return configured
+  const x = TYPE_X[object.type] ?? 0
+  const z = (hash(object.id) % 180) - 90
+  return { x, y: projection.planes.knowledge.y, z }
 }
 
-function buildKnowledgeLinks(): GraphLink[] {
-  return kgEdges.edges.map(
-    (e): GraphLink => ({
-      source: e.source_id,
-      target: e.target_id,
-      category: 'knowledge',
-      relation: e.relation_type,
-      weight: e.weight,
-    }),
-  )
+function nodeWeight(object: OntologyObject): number {
+  if (object.type === OntologyObjectType.DECISION) return 3.2
+  if (object.type === OntologyObjectType.CANDIDATE) {
+    return 1.8 + numberProperty(object, 'supportScore', 0) / 100
+  }
+  if (
+    object.type === OntologyObjectType.ASSET &&
+    ['BUSINESS', 'STORAGE_DEVICE', 'CONTROLLER', 'BLOCK_SERVICE'].includes(
+      stringProperty(object, 'assetType'),
+    )
+  ) {
+    return 2.6
+  }
+  return 1.45
 }
 
-function buildCrossLinks(): GraphLink[] {
-  return mappings.mappings.map(
-    (m): GraphLink => ({
-      source: m.source_id,
-      target: m.target_id,
-      category: 'cross',
-      relation: m.relation_type,
-      crossRelation: m.relation_type,
-      crossVisibility: m.visibility,
-      description: m.description,
-    }),
-  )
+function toGraphNode(object: OntologyObject): GraphNode {
+  const position = positionFor(object)
+  const plane: Plane =
+    object.type === OntologyObjectType.ASSET ? 'topology' : 'knowledge'
+  const group =
+    plane === 'topology'
+      ? stringProperty(object, 'spatialDomain', 'SCENARIO')
+      : stringProperty(object, 'layer', object.type)
+  return {
+    id: object.id,
+    object,
+    label: object.label,
+    plane,
+    group,
+    groupName: group,
+    kind:
+      stringProperty(object, 'assetType') ||
+      stringProperty(object, 'knowledgeKind') ||
+      object.type,
+    healthStatus: stringProperty(object, 'healthStatus') || undefined,
+    val: nodeWeight(object),
+    color: TYPE_COLOR[object.type],
+    alwaysLabel:
+      object.type === OntologyObjectType.DECISION ||
+      object.type === OntologyObjectType.CANDIDATE ||
+      projection.label_rules.topology_always.includes(object.id) ||
+      projection.label_rules.knowledge_always.includes(object.id),
+    x: position.x,
+    y: position.y,
+    z: position.z,
+    fx: position.x,
+    fy: position.y,
+    fz: position.z,
+  }
 }
 
-// ---------------------------------------------------------------------------
-// Public API
-// ---------------------------------------------------------------------------
+function linkCategory(link: OntologyLink): LinkCategory {
+  const plane = link.properties.plane
+  if (plane === 'topology') return 'topology'
+  if (plane === 'knowledge') return 'knowledge'
+  if (plane === 'cross') return 'cross'
+  if (
+    link.type === OntologyLinkType.IMPACTS ||
+    link.type === OntologyLinkType.RECOVERS_VIA
+  ) {
+    return 'impact'
+  }
+  if (
+    link.type === OntologyLinkType.BASED_ON ||
+    link.type === OntologyLinkType.SUPERSEDES ||
+    link.type === OntologyLinkType.PROPOSES
+  ) {
+    return 'audit'
+  }
+  return 'diagnosis'
+}
+
+function toGraphLink(link: OntologyLink): GraphLink {
+  return {
+    id: link.id,
+    source: link.sourceId,
+    target: link.targetId,
+    ontologyLink: link,
+    category: linkCategory(link),
+    relation: link.type,
+    pathGroup:
+      typeof link.properties.pathGroup === 'string'
+        ? link.properties.pathGroup
+        : null,
+    weight:
+      typeof link.properties.weight === 'number' ? link.properties.weight : undefined,
+  }
+}
+
+function buildNodesAndLinks(objects: OntologyObject[], links: OntologyLink[]) {
+  return {
+    nodes: objects.map(toGraphNode),
+    links: links.map(toGraphLink),
+  }
+}
 
 let cached: ModelData | null = null
 
-/**
- * Load and transform the model assets into graph data. Pure and synchronous
- * (the JSON is imported at module time by the bundler), so the result is cached
- * for the lifetime of the app.
- */
 export function loadModelData(): ModelData {
   if (cached) return cached
+  const registry = loadOntologyRegistry()
+  const base = registry.baseSnapshot()
+  const graph = buildNodesAndLinks(base.objects, base.links)
+  const nodesById = new Map(graph.nodes.map((node) => [node.id, node]))
 
-  const nodes = [...buildTopologyNodes(), ...buildKnowledgeNodes()]
-  const links = [...buildTopologyLinks(), ...buildKnowledgeLinks(), ...buildCrossLinks()]
+  const domainOrder = [
+    ['BUSINESS_COMPUTE', '业务与计算', 'external'],
+    ['NETWORK_ACCESS', '网络与接入', 'external'],
+    ['CONTROL_SERVICE', '控制与服务', 'internal'],
+    ['LOGICAL_RESOURCE', '逻辑资源', 'internal'],
+    ['PHYSICAL_RESOURCE', '物理资源', 'internal'],
+  ] as const
+  const domains = domainOrder.map(([code, name, location], order) => ({
+    code,
+    name,
+    order,
+    location,
+    count: graph.nodes.filter((node) => node.group === code).length,
+  }))
 
-  const nodesById = new Map(nodes.map((n) => [n.id, n]))
-
-  // Adjacency across every link (neighbor lookup for highlight).
-  const adjacency = new Map<string, Set<string>>()
-  for (const n of nodes) adjacency.set(n.id, new Set())
-  for (const l of links) {
-    if (!nodesById.has(l.source) || !nodesById.has(l.target)) continue
-    adjacency.get(l.source)!.add(l.target)
-    adjacency.get(l.target)!.add(l.source)
-  }
-
-  const domains: DomainInfo[] = topology.spatial_domains
-    .map((d) => ({
-      code: d.code,
-      name: d.name,
-      order: d.order,
-      location: d.location,
-      count: nodes.filter((n) => n.plane === 'topology' && n.group === d.code).length,
-    }))
-    .sort((a, b) => a.order - b.order)
-
-  // Preserve the configured knowledge-layer order; MECHANISM shares order 2 with
-  // FAULT_MODE in the source, so we keep file order via a stable secondary key.
-  const layerOrder = new Map(kgNodes.layers.map((l, i) => [l.code, i]))
-  const kgLayers: LayerInfo[] = kgNodes.layers
-    .map((l) => ({
-      code: l.code,
-      name: l.name,
-      order: l.order,
-      count: nodes.filter((n) => n.plane === 'knowledge' && n.group === l.code).length,
-    }))
-    .sort((a, b) => (layerOrder.get(a.code) ?? 0) - (layerOrder.get(b.code) ?? 0))
-
-  const presets: PresetInfo[] = Object.entries(projection.camera_presets).map(
-    ([key, p]) => ({
-      key,
-      label: p.label,
-      position: p.position,
-      lookAt: p.look_at,
-    }),
-  )
+  const layers = ['OBJECT_TYPE', 'SYMPTOM', 'FAULT_MODE', 'MECHANISM', 'EVIDENCE_RULE', 'CASE']
+  const kgLayers = layers.map((code, order) => ({
+    code,
+    name: code,
+    order,
+    count: graph.nodes.filter((node) => node.group === code).length,
+  }))
 
   cached = {
-    nodes,
-    links,
+    registry,
+    ...graph,
     nodesById,
-    adjacency,
     domains,
     kgLayers,
-    presets,
+    presets: Object.entries(projection.camera_presets).map(([key, preset]) => ({
+      key,
+      label: preset.label,
+      position: preset.position,
+      lookAt: preset.look_at,
+    })),
     initialPreset: projection.initial_preset,
     counts: {
-      topology: nodes.filter((n) => n.plane === 'topology').length,
-      knowledge: nodes.filter((n) => n.plane === 'knowledge').length,
-      cross: links.filter((l) => l.category === 'cross').length,
+      topology: graph.nodes.filter((node) => node.plane === 'topology').length,
+      knowledge: graph.nodes.filter((node) => node.plane === 'knowledge').length,
+      cross: graph.links.filter((link) => link.category === 'cross').length,
     },
   }
   return cached
 }
 
-/**
- * Project the full model through a {@link GraphFilter} into the subgraph that
- * should currently render. Returns shallow clones so 3d-force-graph may bind
- * link source/target to node objects without mutating the cached master data.
- */
-export function buildActiveGraph(model: ModelData, filter: GraphFilter): ActiveGraph {
-  const nodeVisible = (n: GraphNode): boolean => {
-    if (n.plane === 'topology') {
-      return filter.layerTopology && filter.visibleDomains[n.group] !== false
-    }
-    return filter.layerKnowledge && filter.visibleKgLayers[n.group] !== false
+function visibleByDomain(node: GraphNode, filter: GraphFilter): boolean {
+  if (node.plane === 'topology') {
+    return (
+      filter.layerTopology &&
+      filter.visibleDomains[node.group] !== false
+    )
   }
-
-  const visibleNodes = model.nodes.filter(nodeVisible)
-  const visibleIds = new Set(visibleNodes.map((n) => n.id))
-
-  const linkVisible = (l: GraphLink): boolean => {
-    if (!visibleIds.has(l.source) || !visibleIds.has(l.target)) return false
-    if (l.category === 'cross') {
-      // Baseline structural INSTANCE_OF mappings stay faint; everything else
-      // (fault mode / evidence / case) is gated behind the master toggle so the
-      // root cause is never leaked before diagnosis.
-      if (l.crossRelation === 'INSTANCE_OF' && l.crossVisibility === 'contextual') {
-        return true
-      }
-      return filter.showCrossLayer
-    }
-    return true
-  }
-
-  return {
-    // Clone so fixed-position fields are pristine on every filter change.
-    nodes: visibleNodes.map((n) => ({ ...n })),
-    links: model.links.filter(linkVisible).map((l) => ({ ...l })),
-  }
+  if (!filter.layerKnowledge) return false
+  if (node.object.type !== OntologyObjectType.KNOWLEDGE) return true
+  return filter.visibleKgLayers[node.group] !== false
 }
 
-/** Resolve the CSS link color for a link given the current view context. */
+export function buildActiveGraph(model: ModelData, filter: GraphFilter): ActiveGraph {
+  const snapshot = model.registry.project(filter.lens, filter.overlay)
+  const graph = buildNodesAndLinks(snapshot.objects, snapshot.links)
+  const objectById = new Map(snapshot.objects.map((object) => [object.id, object]))
+  const rootObjectIds = new Set(
+    snapshot.objects
+      .filter((object) => object.type === OntologyObjectType.DECISION)
+      .map((object) => object.properties.rootObjectId)
+      .filter((id): id is string => typeof id === 'string'),
+  )
+  const candidateTargetIds = new Set(
+    snapshot.links
+      .filter((link) => {
+        if (link.type !== OntologyLinkType.TARGETS) return false
+        const source = objectById.get(link.sourceId)
+        return (
+          source?.type === OntologyObjectType.CANDIDATE &&
+          source.properties.status !== 'WEAKENED'
+        )
+      })
+      .map((link) => link.targetId),
+  )
+  const impactedIds = new Set(
+    snapshot.links
+      .filter((link) => link.type === OntologyLinkType.IMPACTS)
+      .flatMap((link) => [link.sourceId, link.targetId]),
+  )
+  const recoveredIds = new Set(
+    snapshot.links
+      .filter((link) => link.type === OntologyLinkType.RECOVERS_VIA)
+      .flatMap((link) => [link.sourceId, link.targetId]),
+  )
+
+  const nodes = graph.nodes.map((node) => {
+    if (rootObjectIds.has(node.id)) return { ...node, color: STATUS_COLORS.fault }
+    if (filter.lens === LensId.IMPACT && recoveredIds.has(node.id)) {
+      return { ...node, color: STATUS_COLORS.recovered }
+    }
+    if (impactedIds.has(node.id)) return { ...node, color: STATUS_COLORS.warning }
+    if (candidateTargetIds.has(node.id)) return { ...node, color: STATUS_COLORS.warning }
+    return node
+  }).filter((node) => {
+    if (!visibleByDomain(node, filter)) return false
+    if (!filter.objectIds?.size) return true
+    return filter.objectIds.has(node.id)
+  })
+  const visibleIds = new Set(nodes.map((node) => node.id))
+  const links = graph.links.filter((link) => {
+    if (!visibleIds.has(link.source) || !visibleIds.has(link.target)) return false
+    // Hidden cross-layer truth has already been removed by the Lens projector;
+    // a hidden link that survived was explicitly activated by Session lineage.
+    return true
+  })
+  return { nodes, links }
+}
+
 export function linkColorFor(
   link: GraphLink,
-  ctx: { showCrossLayer: boolean; businessPath: boolean },
+  ctx: { showCrossLayer: boolean; businessPath: boolean; lens?: LensId },
 ): string {
-  if (ctx.businessPath && link.pathGroup && link.pathGroup.startsWith('block-path')) {
+  if (
+    ctx.businessPath &&
+    link.pathGroup?.startsWith('block-path')
+  ) {
     return LINK_COLORS.businessPath
   }
   switch (link.category) {
@@ -527,5 +415,15 @@ export function linkColorFor(
       return LINK_COLORS.knowledge
     case 'cross':
       return ctx.showCrossLayer ? LINK_COLORS.crossActive : LINK_COLORS.crossBaseline
+    case 'impact':
+      return link.relation === OntologyLinkType.RECOVERS_VIA
+        ? STATUS_COLORS.recovered
+        : STATUS_COLORS.fault
+    case 'audit':
+      return 'rgba(192,132,252,0.78)'
+    case 'diagnosis':
+      return 'rgba(45,212,191,0.62)'
   }
 }
+
+export { LENS_DEFINITIONS }

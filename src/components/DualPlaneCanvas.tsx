@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import * as THREE from 'three'
 
 import {
   type ActiveGraph,
@@ -38,6 +39,34 @@ function nodeLabelHtml(node: GraphNode): string {
   return `${node.label}<br/><span style="font-size:10px;opacity:0.7">${plane} · ${node.kind} · ${node.groupName}${health}</span>`
 }
 
+/** A lightweight canvas label attached to the same Three.js scene as the node. */
+function labelSprite(node: GraphNode): THREE.Sprite {
+  const canvas = document.createElement('canvas')
+  const context = canvas.getContext('2d')!
+  const ratio = Math.min(window.devicePixelRatio || 1, 2)
+  const fontSize = node.alwaysLabel ? 24 : 20
+  context.font = `600 ${fontSize * ratio}px system-ui, sans-serif`
+  const width = Math.ceil(context.measureText(node.label).width + 20 * ratio)
+  canvas.width = width
+  canvas.height = 36 * ratio
+  context.font = `600 ${fontSize * ratio}px system-ui, sans-serif`
+  context.fillStyle = 'rgba(15, 17, 23, 0.78)'
+  context.roundRect(0, 0, canvas.width, canvas.height, 8 * ratio)
+  context.fill()
+  context.fillStyle = '#e2e8f0'
+  context.textBaseline = 'middle'
+  context.fillText(node.label, 10 * ratio, canvas.height / 2)
+  const texture = new THREE.CanvasTexture(canvas)
+  texture.colorSpace = THREE.SRGBColorSpace
+  const sprite = new THREE.Sprite(
+    new THREE.SpriteMaterial({ map: texture, transparent: true, depthWrite: false }),
+  )
+  const scale = 0.16
+  sprite.scale.set(canvas.width * scale, canvas.height * scale, 1)
+  sprite.position.set(0, 12 + node.val * 2, 0)
+  return sprite
+}
+
 // ---------------------------------------------------------------------------
 // Link styling helpers (view context is passed in so accessors stay pure)
 // ---------------------------------------------------------------------------
@@ -49,7 +78,7 @@ function isBusinessPath(link: GraphLink, businessPath: boolean): boolean {
 function linkWidthFor(link: GraphLink, businessPath: boolean): number {
   if (isBusinessPath(link, businessPath)) return 2.4
   if (link.category === 'knowledge') return 0.7 + (link.weight ?? 0.5) * 0.5
-  if (link.category === 'cross') return link.crossRelation === 'INSTANCE_OF' ? 0.5 : 1.1
+  if (link.category === 'cross') return link.relation === 'INSTANCE_OF' ? 0.5 : 1.1
   return 1.1
 }
 
@@ -68,8 +97,8 @@ export interface DualPlaneCanvasProps {
   model: ModelData
   /** Active camera preset key. */
   activePreset: string
-  /** Node id to fly the camera to (search & focus). */
-  focusNodeId: string | null
+  /** Current projected node to fly the camera to (search & focus). */
+  focusNode: GraphNode | null
   /** Currently selected node id (drives selection visuals). */
   selectedNodeId: string | null
   /** Whether the cross-layer master toggle is on. */
@@ -87,14 +116,14 @@ export default function DualPlaneCanvas(props: DualPlaneCanvasProps) {
   // Latest-value refs so the once-created graph instance never captures stale state.
   const selectedRef = useRef<string | null>(props.selectedNodeId)
   const hoverRef = useRef<string | null>(null)
-  const focusRef = useRef<string | null>(props.focusNodeId)
+  const focusRef = useRef<string | null>(props.focusNode?.id ?? null)
   const showCrossLayerRef = useRef<boolean>(props.showCrossLayer)
   const businessPathRef = useRef<boolean>(props.businessPath)
   const onSelectRef = useRef(props.onNodeSelect)
   const onHoverRef = useRef(props.onNodeHover)
 
   selectedRef.current = props.selectedNodeId
-  focusRef.current = props.focusNodeId
+  focusRef.current = props.focusNode?.id ?? null
   showCrossLayerRef.current = props.showCrossLayer
   businessPathRef.current = props.businessPath
   onSelectRef.current = props.onNodeSelect
@@ -152,6 +181,10 @@ export default function DualPlaneCanvas(props: DualPlaneCanvasProps) {
         .nodeOpacity(0.85)
         .nodeColor((node: GraphNode) => nodeColorFor(node))
         .nodeLabel((node: GraphNode) => nodeLabelHtml(node))
+        .nodeThreeObject((node: GraphNode) =>
+          node.alwaysLabel ? labelSprite(node) : new THREE.Group(),
+        )
+        .nodeThreeObjectExtend(true)
         .linkOpacity(0.9)
         .linkCurvature((l: GraphLink) => (l.category === 'cross' ? 0.18 : 0))
         .linkDirectionalParticleWidth(0.8)
@@ -248,9 +281,8 @@ export default function DualPlaneCanvas(props: DualPlaneCanvasProps) {
 
   useEffect(() => {
     const graph = graphRef.current
-    if (!graph || !props.focusNodeId) return
-    const node = props.model.nodesById.get(props.focusNodeId)
-    if (!node) return
+    if (!graph || !props.focusNode) return
+    const node = props.focusNode
     const distance = 130
     graph.cameraPosition(
       { x: node.fx, y: node.fy + 30, z: node.fz + distance },
@@ -258,7 +290,7 @@ export default function DualPlaneCanvas(props: DualPlaneCanvasProps) {
       900,
     )
     refreshNodeColors()
-  }, [props.focusNodeId, props.model.nodesById])
+  }, [props.focusNode])
 
   // --- selection visuals --------------------------------------------------
 
@@ -285,5 +317,5 @@ export default function DualPlaneCanvas(props: DualPlaneCanvasProps) {
       )
   }, [props.showCrossLayer, props.businessPath])
 
-  return <div ref={containerRef} className="absolute inset-0" />
+  return <div ref={containerRef} className="ontology-interaction-canvas absolute inset-0" />
 }

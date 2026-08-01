@@ -1,164 +1,205 @@
-import type { DiagnosisSession, RuntimeEvent, Candidate, Evidence, Fact, Plan } from '../../schemas/types'
-import { CandidateStatus, ConclusionType, DiagnosisPhase, EvidenceRelation, EventType, TaskStatus } from '../../schemas/enums'
+import {
+  DiagnosisPhase,
+  EventType,
+  OntologyObjectType,
+} from '../../schemas/enums'
+import type {
+  DiagnosisSession,
+  OntologyLink,
+  OntologyObject,
+  RuntimeEvent,
+  ScenarioOverlay,
+} from '../../schemas/types'
+import { BASE_CATALOG } from '../ontology/catalog'
+import { loadOntologyRegistry } from '../ontology/model-adapter'
+import {
+  validateRuntimeTransition,
+  type RuntimeValidationContext,
+} from './protocol-validator'
 
-/**
- * Session Projector — 确定性 Reducer
- * 纯函数：RuntimeEvent[] → DiagnosisSession
- * 同一事件序列始终得到完全相同的 Session 快照
- */
+function cloneObject(object: OntologyObject): OntologyObject {
+  return { ...object, properties: { ...object.properties }, provenance: { ...object.provenance } }
+}
 
-export function createEmptySession(caseId: string): DiagnosisSession {
+function cloneLink(link: OntologyLink): OntologyLink {
+  return { ...link, properties: { ...link.properties }, provenance: { ...link.provenance } }
+}
+
+function cloneOverlay(overlay: ScenarioOverlay): ScenarioOverlay {
   return {
-    id: `session-projected-${Date.now()}`,
+    scenarioId: overlay.scenarioId,
+    objects: overlay.objects.map(cloneObject),
+    links: overlay.links.map(cloneLink),
+  }
+}
+
+export function createEmptySession(
+  caseId: string,
+  scenarioId: string,
+  sessionId: string = `session:${scenarioId}`,
+): DiagnosisSession {
+  return {
+    id: sessionId,
+    scenarioId,
     caseId,
-    status: DiagnosisPhase.SESSION_INITIALIZING,
-    currentRound: 0,
-    candidates: [],
-    evidence: [],
-    facts: [],
-    plans: [],
-    events: [],
-    conclusion: null,
-    rootCause: null,
-    startedAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
+    version: 0,
+    phase: DiagnosisPhase.MODEL_OVERVIEW,
+    summary: '模型探索态：尚未创建诊断 Scenario',
+    overlay: { scenarioId, objects: [], links: [] },
+    eventLog: [],
+    appliedEventIds: [],
+    currentPlanId: null,
+    currentActivityId: null,
+    conclusionDecisionId: null,
   }
 }
 
-export function projectSession(events: RuntimeEvent[], caseId: string = 'unknown'): DiagnosisSession {
-  const session = createEmptySession(caseId)
+function assertScenarioObject(object: OntologyObject, scenarioId: string): void {
+  if (object.scenarioId !== scenarioId) {
+    throw new Error(`[runtime] object ${object.id} is not isolated to ${scenarioId}`)
+  }
+}
 
-  for (const event of events) {
-    session.events.push(event)
+function assertScenarioLink(link: OntologyLink, scenarioId: string): void {
+  if (link.scenarioId !== scenarioId) {
+    throw new Error(`[runtime] link ${link.id} is not isolated to ${scenarioId}`)
+  }
+}
 
-    switch (event.type) {
-      case EventType.PLAN_CREATED: {
-        const p = event.payload
-        const plan: Plan = {
-          id: p.planId,
-          round: p.round,
-          goal: p.goal,
-          selectionReason: p.selectionReason,
-          tasks: [],
-          createdAt: event.timestamp,
-        }
-        session.plans.push(plan)
-        session.currentRound = p.round
-        session.status = DiagnosisPhase.DIAGNOSING
-        break
-      }
+function validateMutationBoundary(event: RuntimeEvent): void {
+  const addedTypes = new Set(event.mutation.upsertObjects?.map((object) => object.type) ?? [])
+  if (
+    event.type === EventType.FUNCTION_CALL_REQUESTED &&
+    [...addedTypes].some((type) => type !== OntologyObjectType.FUNCTION_CALL)
+  ) {
+    throw new Error('[runtime] Function Call request may only create FUNCTION_CALL objects')
+  }
+  if (
+    event.type === EventType.ACTION_PROPOSED &&
+    [...addedTypes].some(
+      (type) =>
+        type !== OntologyObjectType.ACTION_PROPOSAL && type !== OntologyObjectType.TASK,
+    )
+  ) {
+    throw new Error('[runtime] Action event may only create ACTION_PROPOSAL/TASK objects')
+  }
+  if (
+    event.type === EventType.ROOT_CAUSE_CONFIRMED &&
+    !addedTypes.has(OntologyObjectType.DECISION)
+  ) {
+    throw new Error('[runtime] root-cause confirmation must materialize a Decision')
+  }
+}
 
-      case EventType.PLAN_REPLANNED: {
-        // 重规划信息附加到 session events 已有记录
-        // 前端可通过 PLAN_REPLANNED 事件类型过滤展示
-        break
-      }
+/** Apply exactly one event. Re-applying an event id is idempotent. */
+export function applyRuntimeEvent(
+  previous: DiagnosisSession,
+  event: RuntimeEvent,
+  context: RuntimeValidationContext = {
+    catalog: BASE_CATALOG,
+    base: loadOntologyRegistry().baseSnapshot(),
+  },
+): DiagnosisSession {
+  if (previous.appliedEventIds.includes(event.id)) return previous
+  const expectedSequence = previous.version + 1
+  if (event.sequence !== expectedSequence) {
+    throw new Error(
+      `[runtime] sequence gap: expected ${expectedSequence}, received ${event.sequence}`,
+    )
+  }
+  validateMutationBoundary(event)
+  validateRuntimeTransition(previous, event, context)
 
-      case EventType.TASK_SUBMITTED: {
-        const p = event.payload
-        const currentPlan = session.plans[session.plans.length - 1]
-        if (currentPlan) {
-          currentPlan.tasks.push({
-            id: p.taskId,
-            skillType: p.skillType,
-            targetObjectIds: p.targetObjectIds || [],
-            reason: p.reason || '',
-            expectedEvidence: '',
-            status: TaskStatus.RUNNING,
-          })
-        }
-        break
-      }
+  const overlay = cloneOverlay(previous.overlay)
+  const objectById = new Map(overlay.objects.map((object) => [object.id, object]))
+  const linkById = new Map(overlay.links.map((link) => [link.id, link]))
 
-      case EventType.SKILL_COMPLETED: {
-        const p = event.payload
-        const currentPlan = session.plans[session.plans.length - 1]
-        if (currentPlan) {
-          const task = currentPlan.tasks[currentPlan.tasks.length - 1]
-          if (task) {
-            task.status = p.success ? TaskStatus.COMPLETED : TaskStatus.FAILED
-          }
-        }
-        break
-      }
-
-      case EventType.FACT_CREATED: {
-        const p = event.payload
-        const fact: Fact = {
-          id: p.factId,
-          taskId: p.taskId,
-          skillId: '',
-          objectIds: [],
-          rawResult: p.data,
-          structuredData: p.data,
-          timestamp: event.timestamp,
-          source: `skill:${p.skillType}`,
-        }
-        session.facts.push(fact)
-        break
-      }
-
-      case EventType.EVIDENCE_CREATED: {
-        const p = event.payload
-        const evidence: Evidence = {
-          id: p.evidenceId,
-          factId: p.factId,
-          candidateId: '',
-          candidateName: p.candidateName,
-          relation: p.relation,
-          explanation: p.explanation,
-          weight: p.weight,
-          timestamp: event.timestamp,
-        }
-        session.evidence.push(evidence)
-        break
-      }
-
-      case EventType.CANDIDATE_UPDATED: {
-        const p = event.payload
-        const existing = session.candidates.find(c => c.id === p.candidateId)
-        if (existing) {
-          existing.supportScore = p.newScore
-          existing.status = p.status
-          if (p.triggerEvidenceId && !existing.evidenceIds.includes(p.triggerEvidenceId)) {
-            existing.evidenceIds.push(p.triggerEvidenceId)
-          }
-          existing.updatedAt = event.timestamp
-        } else {
-          const candidate: Candidate = {
-            id: p.candidateId,
-            name: p.candidateName,
-            description: '',
-            supportScore: p.newScore,
-            status: p.status,
-            evidenceIds: p.triggerEvidenceId ? [p.triggerEvidenceId] : [],
-            createdAt: event.timestamp,
-            updatedAt: event.timestamp,
-          }
-          session.candidates.push(candidate)
-        }
-        break
-      }
-
-      case EventType.CONCLUSION_REACHED: {
-        const p = event.payload
-        session.conclusion = p.conclusion
-        session.rootCause = p.rootCause
-        session.status = DiagnosisPhase.DIAGNOSIS_REVIEW
-        break
-      }
+  for (const object of event.mutation.upsertObjects ?? []) {
+    assertScenarioObject(object, previous.scenarioId)
+    const existing = objectById.get(object.id)
+    if (existing) {
+      existing.label = object.label
+      existing.properties = { ...existing.properties, ...object.properties }
+    } else {
+      const copy = cloneObject(object)
+      overlay.objects.push(copy)
+      objectById.set(copy.id, copy)
     }
-
-    session.updatedAt = event.timestamp
   }
 
-  return session
+  for (const patch of event.mutation.patches ?? []) {
+    const object = objectById.get(patch.objectId)
+    if (!object) {
+      throw new Error(`[runtime] event ${event.id} patches unknown Scenario object ${patch.objectId}`)
+    }
+    object.properties = { ...object.properties, ...patch.properties }
+    if (patch.label) object.label = patch.label
+  }
+
+  for (const link of event.mutation.upsertLinks ?? []) {
+    assertScenarioLink(link, previous.scenarioId)
+    const existing = linkById.get(link.id)
+    if (existing) {
+      existing.properties = { ...existing.properties, ...link.properties }
+    } else {
+      const copy = cloneLink(link)
+      overlay.links.push(copy)
+      linkById.set(copy.id, copy)
+    }
+  }
+
+  const validObjectIds = new Set([
+    ...context.base.objects.map((object) => object.id),
+    ...overlay.objects.map((object) => object.id),
+  ])
+  for (const link of overlay.links) {
+    if (!validObjectIds.has(link.sourceId) || !validObjectIds.has(link.targetId)) {
+      throw new Error(`[runtime] dangling Scenario Link ${link.id}: ${link.sourceId} -> ${link.targetId}`)
+    }
+  }
+
+  return {
+    ...previous,
+    version: event.sequence,
+    phase: event.mutation.phase ?? previous.phase,
+    summary: event.mutation.summary ?? previous.summary,
+    overlay,
+    eventLog: [...previous.eventLog, event],
+    appliedEventIds: [...previous.appliedEventIds, event.id],
+    currentPlanId:
+      event.mutation.currentPlanId === undefined
+        ? previous.currentPlanId
+        : event.mutation.currentPlanId,
+    currentActivityId:
+      event.mutation.currentActivityId === undefined
+        ? previous.currentActivityId
+        : event.mutation.currentActivityId,
+    conclusionDecisionId:
+      event.mutation.conclusionDecisionId === undefined
+        ? previous.conclusionDecisionId
+        : event.mutation.conclusionDecisionId,
+  }
 }
 
-/**
- * 投影到指定事件序号的历史快照（用于回放）
- */
-export function projectUpToSeq(events: RuntimeEvent[], seq: number, caseId: string = 'unknown'): DiagnosisSession {
-  const filtered = events.filter(e => e.seq <= seq)
-  return projectSession(filtered, caseId)
+export function projectSession(
+  events: RuntimeEvent[],
+  caseId: string,
+  scenarioId: string,
+  throughSequence: number = Number.POSITIVE_INFINITY,
+  context?: RuntimeValidationContext,
+): DiagnosisSession {
+  return events
+    .filter((event) => event.sequence <= throughSequence)
+    .sort((a, b) => a.sequence - b.sequence)
+    .reduce(
+      (session, event) => applyRuntimeEvent(session, event, context),
+      createEmptySession(caseId, scenarioId),
+    )
+}
+
+export function selectScenarioObjects(
+  session: DiagnosisSession,
+  type: OntologyObjectType,
+): OntologyObject[] {
+  return session.overlay.objects.filter((object) => object.type === type)
 }

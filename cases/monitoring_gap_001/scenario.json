@@ -1,0 +1,233 @@
+{
+  "scenarioId": "scenario.monitoring-gap.001",
+  "caseId": "monitoring_gap_001",
+  "label": "业务卡顿观测缺失场景",
+  "schemaVersion": "2.0.0",
+  "catalog": {
+    "functionIds": ["fn.observation-query"],
+    "skillIds": ["kpi_query"],
+    "actionIds": []
+  },
+  "events": [
+    {
+      "id": "gap-evt-001",
+      "sequence": 1,
+      "type": "DIAGNOSIS_INITIALIZED",
+      "occurredAt": "2026-07-30T15:00:00.000+08:00",
+      "source": "ROUTER",
+      "causedByEventIds": [],
+      "title": "Scenario 已隔离创建",
+      "detail": "只注入标准化业务现象。",
+      "mutation": {
+        "phase": "SESSION_INITIALIZING",
+        "summary": "已创建观测缺失诊断会话",
+        "upsertObjects": [
+          {
+            "id": "scenario.monitoring-gap.001",
+            "type": "SCENARIO",
+            "label": "业务卡顿观测缺失场景",
+            "properties": {
+              "symptomCode": "BUSINESS_IO_STALL",
+              "businessObjectId": "db-business-01",
+              "occurredAt": "2026-07-30T15:00:00.000+08:00",
+              "businessScope": "虚拟化业务",
+              "isolation": "OVERLAY"
+            },
+            "provenance": { "source": "SCENARIO", "sourceRef": "cases/monitoring_gap_001/scenario.json" },
+            "scenarioId": "scenario.monitoring-gap.001"
+          }
+        ],
+        "upsertLinks": [
+          {
+            "id": "gap-link-scenario-target",
+            "type": "TARGETS",
+            "sourceId": "scenario.monitoring-gap.001",
+            "targetId": "db-business-01",
+            "properties": { "role": "INITIAL_SYMPTOM" },
+            "provenance": { "source": "RUNTIME", "sourceRef": "gap-evt-001" },
+            "scenarioId": "scenario.monitoring-gap.001"
+          }
+        ]
+      }
+    },
+    {
+      "id": "gap-evt-002",
+      "sequence": 2,
+      "type": "PLAN_CREATED",
+      "occurredAt": "2026-07-30T15:00:00.100+08:00",
+      "source": "PLANNER",
+      "causedByEventIds": ["gap-evt-001"],
+      "title": "Plan · 查询业务 KPI",
+      "detail": "通过只读 Function 检查业务故障窗口。",
+      "mutation": {
+        "phase": "EVIDENCE_COLLECTION",
+        "currentPlanId": "gap-plan-1",
+        "upsertObjects": [
+          {
+            "id": "gap-plan-1",
+            "type": "PLAN",
+            "label": "Plan · 观测检查",
+            "properties": {
+              "round": 1,
+              "goal": "获得可验证 KPI",
+              "selectionReason": "当前只有业务现象",
+              "expectedEvidence": ["故障窗口 KPI"],
+              "taskIds": ["gap-task-kpi"],
+              "previousPlanId": null,
+              "changes": []
+            },
+            "provenance": { "source": "RUNTIME", "sourceRef": "gap-evt-002" },
+            "scenarioId": "scenario.monitoring-gap.001"
+          },
+          {
+            "id": "gap-task-kpi",
+            "type": "TASK",
+            "label": "查询业务 KPI",
+            "properties": {
+              "planId": "gap-plan-1",
+              "operationKind": "FUNCTION_CALL",
+              "operationId": "gap-call-kpi",
+              "goal": "获取业务故障窗口 KPI",
+              "selectionReason": "需要把现象转化为事实",
+              "expectedEvidence": ["时延或吞吐异常"],
+              "targetObjectIds": ["db-business-01"],
+              "targetCandidateIds": [],
+              "status": "READY",
+              "priority": 100
+            },
+            "provenance": { "source": "RUNTIME", "sourceRef": "gap-evt-002" },
+            "scenarioId": "scenario.monitoring-gap.001"
+          }
+        ],
+        "upsertLinks": [
+          {
+            "id": "gap-link-plan-task",
+            "type": "CONTAINS",
+            "sourceId": "gap-plan-1",
+            "targetId": "gap-task-kpi",
+            "properties": {},
+            "provenance": { "source": "RUNTIME", "sourceRef": "gap-evt-002" },
+            "scenarioId": "scenario.monitoring-gap.001"
+          }
+        ]
+      }
+    },
+    {
+      "id": "gap-evt-003",
+      "sequence": 3,
+      "type": "FUNCTION_CALL_REQUESTED",
+      "occurredAt": "2026-07-30T15:00:00.200+08:00",
+      "source": "PLANNER",
+      "causedByEventIds": ["gap-evt-002"],
+      "title": "Function Call · KPI",
+      "detail": "只读查询。",
+      "mutation": {
+        "currentActivityId": "gap-call-kpi",
+        "upsertObjects": [
+          {
+            "id": "gap-call-kpi",
+            "type": "FUNCTION_CALL",
+            "label": "调用 KPI 查询",
+            "properties": {
+              "functionId": "fn.observation-query",
+              "skillId": "kpi_query",
+              "taskId": "gap-task-kpi",
+              "effect": "READ_ONLY",
+              "targetObjectIds": ["db-business-01"],
+              "status": "RUNNING",
+              "rawResult": null
+            },
+            "provenance": { "source": "RUNTIME", "sourceRef": "gap-evt-003" },
+            "scenarioId": "scenario.monitoring-gap.001"
+          }
+        ],
+        "patches": [{ "objectId": "gap-task-kpi", "properties": { "status": "RUNNING" } }],
+        "upsertLinks": [
+          {
+            "id": "gap-link-task-call",
+            "type": "CONTAINS",
+            "sourceId": "gap-task-kpi",
+            "targetId": "gap-call-kpi",
+            "properties": {},
+            "provenance": { "source": "RUNTIME", "sourceRef": "gap-evt-003" },
+            "scenarioId": "scenario.monitoring-gap.001"
+          }
+        ]
+      }
+    },
+    {
+      "id": "gap-evt-004",
+      "sequence": 4,
+      "type": "FUNCTION_CALL_COMPLETED",
+      "occurredAt": "2026-07-30T15:00:00.300+08:00",
+      "source": "FUNCTION",
+      "causedByEventIds": ["gap-evt-003"],
+      "title": "KPI 数据缺失",
+      "detail": "查询成功但故障窗口无可用采样，不能解释为正常。",
+      "mutation": {
+        "currentActivityId": null,
+        "patches": [
+          { "objectId": "gap-call-kpi", "properties": { "status": "DATA_MISSING", "rawResult": null } },
+          { "objectId": "gap-task-kpi", "properties": { "status": "DATA_MISSING" } }
+        ]
+      }
+    },
+    {
+      "id": "gap-evt-005",
+      "sequence": 5,
+      "type": "DECISION_RECORDED",
+      "occurredAt": "2026-07-30T15:00:00.400+08:00",
+      "source": "RUNTIME",
+      "causedByEventIds": ["gap-evt-004"],
+      "title": "Decision · 证据不足",
+      "detail": "关键 KPI 缺失，不能确认或排列可能根因。",
+      "mutation": {
+        "phase": "DIAGNOSIS_REVIEW",
+        "summary": "证据不足：需要补充故障窗口 KPI",
+        "conclusionDecisionId": "gap-decision",
+        "upsertObjects": [
+          {
+            "id": "gap-decision",
+            "type": "DECISION",
+            "label": "证据不足",
+            "properties": {
+              "conclusion": "INSUFFICIENT_EVIDENCE",
+              "rootCandidateId": null,
+              "rootObjectId": null,
+              "probableCandidateIds": [],
+              "missingEvidence": ["故障窗口 KPI"],
+              "blockingTaskIds": ["gap-task-kpi"],
+              "lineageObjectIds": ["gap-plan-1", "gap-task-kpi", "gap-call-kpi"],
+              "impactPath": [],
+              "recoveryPath": []
+            },
+            "provenance": { "source": "RUNTIME", "sourceRef": "gap-evt-005" },
+            "scenarioId": "scenario.monitoring-gap.001"
+          }
+        ],
+        "upsertLinks": [
+          {
+            "id": "gap-link-decision-call",
+            "type": "BASED_ON",
+            "sourceId": "gap-decision",
+            "targetId": "gap-call-kpi",
+            "properties": {},
+            "provenance": { "source": "RUNTIME", "sourceRef": "gap-evt-005" },
+            "scenarioId": "scenario.monitoring-gap.001"
+          }
+        ]
+      }
+    },
+    {
+      "id": "gap-evt-006",
+      "sequence": 6,
+      "type": "DIAGNOSIS_COMPLETED",
+      "occurredAt": "2026-07-30T15:00:00.500+08:00",
+      "source": "RUNTIME",
+      "causedByEventIds": ["gap-evt-005"],
+      "title": "诊断完成",
+      "detail": "以证据不足终态完成。",
+      "mutation": { "phase": "DIAGNOSIS_REVIEW" }
+    }
+  ]
+}
