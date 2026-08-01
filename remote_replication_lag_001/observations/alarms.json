@@ -1,0 +1,6 @@
+{
+  "alarms":[
+    {"alarm_id":"alm-rs01-degraded-301","alarm_code":"REPLICATION_SESSION_DEGRADED","name":"远程复制会话同步滞后","object_id":"replication-session-rs01","severity":"major","occurred_at":"2026-08-01T16:05:30.000+08:00","cleared_at":"2026-08-01T16:14:00.000+08:00","status":"cleared","raw_fields":{"rpo_seconds":720,"backlog_gb":96,"target_rpo_seconds":60}},
+    {"alarm_id":"alm-wan-loss-302","alarm_code":"REPLICATION_NETWORK_PACKET_LOSS","name":"复制网络丢包率过高","object_id":"wan-path-01","severity":"major","occurred_at":"2026-08-01T16:03:30.000+08:00","cleared_at":"2026-08-01T16:10:00.000+08:00","status":"cleared","raw_fields":{"packet_loss_pct":4.8,"threshold_pct":1.0,"path":"Replication-WAN-01"}}
+  ]
+}

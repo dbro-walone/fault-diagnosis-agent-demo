@@ -1,0 +1,10 @@
+{
+  "diagnosis_id":"diag-remote-replication-lag-001","status":"confirmed","completed_at":"2026-08-01T16:14:13.000+08:00",
+  "root_cause":{"candidate_id":"cand-repl-network-congestion","object_id":"wan-path-01","fault_mode_code":"REMOTE_REPLICATION_NETWORK_CONGESTION","confidence":0.97},
+  "root_cause_chain":["wan-path-01","replication-session-rs01"],"impact_chain":["replication-session-rs01","lun-dr","storage-b"],"recovery_chain":["wan-path-01","replication-session-rs01","lun-dr"],
+  "excluded_candidates":["cand-source-bottleneck","cand-target-bottleneck","cand-session-config","cand-repl-port-fault"],
+  "diagnosis_summary":"Replication-WAN-01丢包率由0.01%升至4.8%，使RS01重传由20/s升至3,200/s、有效吞吐由2.4GB/s降至0.35GB/s，待复制数据积压至96GB并使RPO升至720s。源端、远端和会话配置正常；网络恢复后RPO收敛。",
+  "key_evidence_refs":["ev-packet-loss-high","ev-retransmits-high","ev-throughput-collapse","ev-rpo-backlog-impact","ev-network-recovery"],
+  "business_impact":{"object_id":"replication-session-rs01","level":"protection_degraded","duration_ms":510000,"description":"本地生产I/O未明显受影响，但容灾恢复点目标失守，容灾保护能力下降"},
+  "current_capability_boundary":"diagnosis_completed","repair":{"status":"future_capability","display_mode":"dimmed","items":["切换备用复制链路","协调WAN扩容与拥塞治理","审批与执行","验证RPO收敛"]}
+}

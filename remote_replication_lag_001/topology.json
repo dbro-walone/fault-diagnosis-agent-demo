@@ -1,0 +1,17 @@
+{
+  "edges":[
+    {"edge_id":"e-business-prod-lun","source_id":"prod-business","target_id":"lun-prod","relation_type":"ACCESSES","direction":"directed","path_group":"production-io","redundancy_group":null,"state":"normal","valid_from":null,"valid_to":null},
+    {"edge_id":"e-lun-prod-pool-a","source_id":"lun-prod","target_id":"pool-a","relation_type":"BACKED_BY","direction":"directed","path_group":"source-backend","redundancy_group":null,"state":"normal","valid_from":null,"valid_to":null},
+    {"edge_id":"e-lun-prod-session","source_id":"lun-prod","target_id":"replication-session-rs01","relation_type":"SOURCE_OF","direction":"directed","path_group":"replication-path","redundancy_group":null,"state":"normal","valid_from":null,"valid_to":null},
+    {"edge_id":"e-session-port-a","source_id":"replication-session-rs01","target_id":"repl-port-a","relation_type":"SENDS_VIA","direction":"directed","path_group":"replication-path","redundancy_group":null,"state":"normal","valid_from":null,"valid_to":null},
+    {"edge_id":"e-port-a-router-a","source_id":"repl-port-a","target_id":"wan-router-a","relation_type":"PHYSICAL_CONNECTS","direction":"directed","path_group":"replication-path","redundancy_group":null,"state":"normal","valid_from":null,"valid_to":null},
+    {"edge_id":"e-router-a-wan","source_id":"wan-router-a","target_id":"wan-path-01","relation_type":"ROUTES_THROUGH","direction":"directed","path_group":"replication-path","redundancy_group":null,"state":"degraded","valid_from":"2026-08-01T16:03:00.000+08:00","valid_to":"2026-08-01T16:10:00.000+08:00"},
+    {"edge_id":"e-wan-router-b","source_id":"wan-path-01","target_id":"wan-router-b","relation_type":"ROUTES_THROUGH","direction":"directed","path_group":"replication-path","redundancy_group":null,"state":"degraded","valid_from":"2026-08-01T16:03:00.000+08:00","valid_to":"2026-08-01T16:10:00.000+08:00"},
+    {"edge_id":"e-router-b-port-b","source_id":"wan-router-b","target_id":"repl-port-b","relation_type":"PHYSICAL_CONNECTS","direction":"directed","path_group":"replication-path","redundancy_group":null,"state":"normal","valid_from":null,"valid_to":null},
+    {"edge_id":"e-port-b-session","source_id":"repl-port-b","target_id":"replication-session-rs01","relation_type":"RECEIVES_FOR","direction":"directed","path_group":"replication-path","redundancy_group":null,"state":"normal","valid_from":null,"valid_to":null},
+    {"edge_id":"e-session-lun-dr","source_id":"replication-session-rs01","target_id":"lun-dr","relation_type":"REPLICATES_TO","direction":"directed","path_group":"replication-path","redundancy_group":null,"state":"degraded","valid_from":"2026-08-01T16:03:00.000+08:00","valid_to":"2026-08-01T16:14:00.000+08:00"},
+    {"edge_id":"e-lun-dr-pool-b","source_id":"lun-dr","target_id":"pool-b","relation_type":"BACKED_BY","direction":"directed","path_group":"target-backend","redundancy_group":null,"state":"normal","valid_from":null,"valid_to":null},
+    {"edge_id":"e-storage-a-session","source_id":"storage-a","target_id":"replication-session-rs01","relation_type":"OWNS","direction":"directed","path_group":"replication-service","redundancy_group":null,"state":"normal","valid_from":null,"valid_to":null},
+    {"edge_id":"e-session-storage-b","source_id":"replication-session-rs01","target_id":"storage-b","relation_type":"TARGETS","direction":"directed","path_group":"replication-service","redundancy_group":null,"state":"normal","valid_from":null,"valid_to":null}
+  ]
+}

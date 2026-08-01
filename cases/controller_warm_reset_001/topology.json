@@ -1,0 +1,18 @@
+{
+  "edges": [
+    {"edge_id":"e-business-host","source_id":"db-business-01","target_id":"db-host-01","relation_type":"ACCESSES","direction":"directed","path_group":"business-path","redundancy_group":null,"state":"normal","valid_from":null,"valid_to":null},
+    {"edge_id":"e-host-san-a","source_id":"db-host-01","target_id":"san-fabric-a","relation_type":"ACCESSES","direction":"directed","path_group":"block-path-a","redundancy_group":"dual-san","state":"normal","valid_from":null,"valid_to":null},
+    {"edge_id":"e-host-san-b","source_id":"db-host-01","target_id":"san-fabric-b","relation_type":"ACCESSES","direction":"directed","path_group":"block-path-b","redundancy_group":"dual-san","state":"normal","valid_from":null,"valid_to":null},
+    {"edge_id":"e-san-a-fc-a","source_id":"san-fabric-a","target_id":"fc-port-0a","relation_type":"PHYSICAL_CONNECTS","direction":"directed","path_group":"block-path-a","redundancy_group":"dual-san","state":"normal","valid_from":null,"valid_to":null},
+    {"edge_id":"e-san-b-fc-b","source_id":"san-fabric-b","target_id":"fc-port-0b","relation_type":"PHYSICAL_CONNECTS","direction":"directed","path_group":"block-path-b","redundancy_group":"dual-san","state":"normal","valid_from":null,"valid_to":null},
+    {"edge_id":"e-fc-a-controller-a","source_id":"fc-port-0a","target_id":"controller-0a","relation_type":"DEPENDS_ON","direction":"directed","path_group":"block-path-a","redundancy_group":"controller-ha-01","state":"normal","valid_from":null,"valid_to":null},
+    {"edge_id":"e-fc-b-controller-b","source_id":"fc-port-0b","target_id":"controller-0b","relation_type":"DEPENDS_ON","direction":"directed","path_group":"block-path-b","redundancy_group":"controller-ha-01","state":"normal","valid_from":null,"valid_to":null},
+    {"edge_id":"e-controller-a-block","source_id":"controller-0a","target_id":"block-service-01","relation_type":"PROVIDES_SERVICE","direction":"directed","path_group":"block-path-a","redundancy_group":"controller-ha-01","state":"normal","valid_from":null,"valid_to":null},
+    {"edge_id":"e-controller-b-block","source_id":"controller-0b","target_id":"block-service-01","relation_type":"PROVIDES_SERVICE","direction":"directed","path_group":"block-path-b","redundancy_group":"controller-ha-01","state":"standby","valid_from":null,"valid_to":"2026-07-30T14:32:18.350+08:00"},
+    {"edge_id":"e-controller-ha","source_id":"controller-0a","target_id":"controller-0b","relation_type":"PRIMARY_BACKUP_OF","direction":"directed","path_group":null,"redundancy_group":"controller-ha-01","state":"normal","valid_from":null,"valid_to":null},
+    {"edge_id":"e-failover-a-b","source_id":"controller-0a","target_id":"controller-0b","relation_type":"FAILOVER_TO","direction":"directed","path_group":null,"redundancy_group":"controller-ha-01","state":"event","valid_from":"2026-07-30T14:32:18.350+08:00","valid_to":"2026-07-30T14:32:22.900+08:00"},
+    {"edge_id":"e-block-lun","source_id":"block-service-01","target_id":"lun-db01","relation_type":"PROVIDES_SERVICE","direction":"directed","path_group":"business-path","redundancy_group":null,"state":"normal","valid_from":null,"valid_to":null},
+    {"edge_id":"e-lun-pool","source_id":"lun-db01","target_id":"storage-pool-01","relation_type":"BACKED_BY","direction":"directed","path_group":"storage-backend","redundancy_group":null,"state":"normal","valid_from":null,"valid_to":null},
+    {"edge_id":"e-pool-disks","source_id":"storage-pool-01","target_id":"disk-group-01","relation_type":"BACKED_BY","direction":"directed","path_group":"storage-backend","redundancy_group":null,"state":"normal","valid_from":null,"valid_to":null}
+  ]
+}

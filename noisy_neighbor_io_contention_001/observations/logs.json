@@ -1,0 +1,10 @@
+{
+  "logs":[
+    {"log_id":"nn-log-001","timestamp":"2026-08-01T10:15:00.120+08:00","object_id":"host-a","level":"INFO","component":"batch_scheduler","message":"batch workload started, job=daily_settlement, host=Host-A, expected_parallelism=64","fingerprint_id":"fp-batch-start-001"},
+    {"log_id":"nn-log-002","timestamp":"2026-08-01T10:15:31.480+08:00","object_id":"lun-a","level":"INFO","component":"io_monitor","message":"workload surge detected, lun=LUN-A, iops=165000, throughput_gbps=9.4","fingerprint_id":"fp-workload-surge-002"},
+    {"log_id":"nn-log-003","timestamp":"2026-08-01T10:16:05.000+08:00","object_id":"controller-0a","level":"WARN","component":"queue_manager","message":"shared queue pressure high, controller=0A, depth=186, threshold=120","fingerprint_id":"fp-shared-queue-pressure-003"},
+    {"log_id":"nn-log-004","timestamp":"2026-08-01T10:16:10.000+08:00","object_id":"storage-pool-01","level":"WARN","component":"backend_scheduler","message":"backend bandwidth saturated, pool=StoragePool-01, utilization_pct=97.0","fingerprint_id":"fp-pool-saturation-004"},
+    {"log_id":"nn-log-005","timestamp":"2026-08-01T10:19:00.150+08:00","object_id":"host-a","level":"INFO","component":"batch_scheduler","message":"batch workload completed, job=daily_settlement, host=Host-A","fingerprint_id":"fp-batch-complete-005"},
+    {"log_id":"nn-log-006","timestamp":"2026-08-01T10:19:40.000+08:00","object_id":"storage-pool-01","level":"INFO","component":"backend_scheduler","message":"backend bandwidth recovered, pool=StoragePool-01, utilization_pct=54.0","fingerprint_id":"fp-pool-recovered-006"}
+  ]
+}

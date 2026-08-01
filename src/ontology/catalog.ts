@@ -48,6 +48,7 @@ export const BASE_SKILLS: SkillBoundary[] = [
   ['log_fingerprint_query', 'fn.observation-query', [OntologyObjectType.ASSET, OntologyObjectType.OBSERVATION]],
   ['kpi_query', 'fn.observation-query', [OntologyObjectType.ASSET, OntologyObjectType.OBSERVATION]],
   ['link_health_query', 'fn.observation-query', [OntologyObjectType.ASSET, OntologyObjectType.OBSERVATION]],
+  ['similar_case_query', 'fn.knowledge-search', [OntologyObjectType.KNOWLEDGE]],
 ].map(([skillId, functionId, ontologyReads]) => ({
   skillId: skillId as string,
   functionId: functionId as string,

@@ -1,0 +1,10 @@
+{
+  "fingerprints":[
+    {"fingerprint_id":"fp-batch-start-001","name":"批处理任务启动","template":"batch workload started, job=<*>, host=<*>, expected_parallelism=<NUM>","fault_mode_codes":["NOISY_NEIGHBOR_IO_CONTENTION"],"window":{"start":"2026-08-01T10:15:00.000+08:00","end":"2026-08-01T10:15:01.000+08:00"},"hit_count":1,"matched_log_ids":["nn-log-001"]},
+    {"fingerprint_id":"fp-workload-surge-002","name":"LUN工作负载突增","template":"workload surge detected, lun=<*>, iops=<NUM>, throughput_gbps=<NUM>","fault_mode_codes":["NOISY_NEIGHBOR_IO_CONTENTION"],"window":{"start":"2026-08-01T10:15:30.000+08:00","end":"2026-08-01T10:15:32.000+08:00"},"hit_count":1,"matched_log_ids":["nn-log-002"]},
+    {"fingerprint_id":"fp-shared-queue-pressure-003","name":"共享控制器队列压力","template":"shared queue pressure high, controller=<*>, depth=<NUM>, threshold=<NUM>","fault_mode_codes":["NOISY_NEIGHBOR_IO_CONTENTION"],"window":{"start":"2026-08-01T10:16:00.000+08:00","end":"2026-08-01T10:16:10.000+08:00"},"hit_count":1,"matched_log_ids":["nn-log-003"]},
+    {"fingerprint_id":"fp-pool-saturation-004","name":"存储池带宽饱和","template":"backend bandwidth saturated, pool=<*>, utilization_pct=<NUM>","fault_mode_codes":["NOISY_NEIGHBOR_IO_CONTENTION"],"window":{"start":"2026-08-01T10:16:00.000+08:00","end":"2026-08-01T10:16:15.000+08:00"},"hit_count":1,"matched_log_ids":["nn-log-004"]},
+    {"fingerprint_id":"fp-batch-complete-005","name":"批处理任务完成","template":"batch workload completed, job=<*>, host=<*>","fault_mode_codes":["NOISY_NEIGHBOR_IO_CONTENTION"],"window":{"start":"2026-08-01T10:19:00.000+08:00","end":"2026-08-01T10:19:01.000+08:00"},"hit_count":1,"matched_log_ids":["nn-log-005"]},
+    {"fingerprint_id":"fp-pool-recovered-006","name":"存储池带宽恢复","template":"backend bandwidth recovered, pool=<*>, utilization_pct=<NUM>","fault_mode_codes":["NOISY_NEIGHBOR_IO_CONTENTION"],"window":{"start":"2026-08-01T10:19:35.000+08:00","end":"2026-08-01T10:19:45.000+08:00"},"hit_count":1,"matched_log_ids":["nn-log-006"]}
+  ]
+}

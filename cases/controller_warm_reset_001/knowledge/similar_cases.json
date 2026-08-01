@@ -1,0 +1,6 @@
+{
+  "similar_cases": [
+    {"similar_case_id":"case-20260618-023","title":"双控存储控制器Watchdog超时热复位","similarity":0.914,"historical_root_cause":{"fault_mode_code":"CONTROLLER_WARM_RESET","object_type":"CONTROLLER"},"matched_features":["watchdog_timeout","warm_reset","active throughput zero","standby takeover"],"resolution_summary":"控制器恢复后保持备用状态，业务由对端控制器承载；历史处置仅作参考。"},
+    {"similar_case_id":"case-20260402-011","title":"FC端口瞬时离线导致路径切换","similarity":0.463,"historical_root_cause":{"fault_mode_code":"FC_LINK_FLAP","object_type":"FC_PORT"},"matched_features":["LUN latency high","path switch"],"mismatched_features":["CRC increment absent","no FC link alarm"]}
+  ]
+}

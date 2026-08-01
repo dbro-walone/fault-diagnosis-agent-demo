@@ -1,0 +1,6 @@
+{
+  "similar_cases":[
+    {"similar_case_id":"case-20260708-014","title":"月结批处理占满共享池导致在线交易抖动","similarity":0.893,"historical_root_cause":{"fault_mode_code":"NOISY_NEIGHBOR_IO_CONTENTION","object_type":"HOST"},"matched_features":["sibling LUN IOPS surge","shared queue pressure","victim latency high","recovery after batch completed"],"resolution_summary":"对批处理主机配置QoS并错峰执行；历史处置仅作参考。"},
+    {"similar_case_id":"case-20260521-006","title":"FC链路CRC增长导致单主机时延升高","similarity":0.322,"historical_root_cause":{"fault_mode_code":"FC_LINK_FAULT","object_type":"FC_PORT"},"matched_features":["victim LUN latency high"],"mismatched_features":["CRC delta is zero","shared pressure present"]}
+  ]
+}

@@ -4,51 +4,36 @@ import { AlertTriangle, Database, Eye, Radar, X } from 'lucide-react'
 import DiagnosisEntryButton, {
   type DiagnosisEntryPayload,
 } from '@/components/DiagnosisEntryButton'
-import DiagnosisPanel from '@/components/DiagnosisPanel'
 import DualPlaneCanvas from '@/components/DualPlaneCanvas'
+import LuiPanel from '@/components/LuiPanel'
 import LensSwitcher from '@/components/LensSwitcher'
 import ModelNavigator, { type LayerVisibility } from '@/components/ModelNavigator'
 import ObjectViewPanel from '@/components/ObjectViewPanel'
-import { loadCase } from '@/lib/case-loader'
-import { routeCase } from '@/lib/case-router'
 import {
   buildActiveGraph,
   loadModelData,
-  type GraphNode,
 } from '@/lib/model-loader'
-import { normalizeSymptom } from '@/lib/symptom-normalizer'
-import { returnToLive, stepPlayback } from '@/lib/playback-controller'
+import { routeToCase, type RouteCandidate } from '@/lib/v2-case-router'
+import { LensId } from '../schemas'
 import {
-  createDiagnosisEngine,
-  type DiagnosisEngine,
-} from '@/runtime/diagnosis-engine'
-import {
-  DiagnosisPhase,
-  LensId,
-  RouteStatus,
-  type ObjectSet,
-} from '../schemas'
+  listCases,
+  createDiagnosisRuntime,
+  ProjectionStore,
+  type DiagnosisRuntime,
+} from './v2'
 
-const DATA_VERSION = '2.0.0'
-const EVENT_CADENCE_MS = 650
+const DATA_VERSION = '2.0'
+const EVENT_CADENCE_MS = 700
 
-const PHASE_LABEL: Record<DiagnosisPhase, string> = {
-  [DiagnosisPhase.MODEL_OVERVIEW]: '模型探索态',
-  [DiagnosisPhase.SESSION_INITIALIZING]: 'Scenario 初始化',
-  [DiagnosisPhase.SCOPE_LOCALIZATION]: '范围定位',
-  [DiagnosisPhase.CANDIDATE_GENERATION]: '候选生成',
-  [DiagnosisPhase.EVIDENCE_COLLECTION]: '证据取证',
-  [DiagnosisPhase.COMPETING_EXPLANATION]: '竞争解释检查',
-  [DiagnosisPhase.CONCLUSION_CHECK]: '终态门控',
-  [DiagnosisPhase.DIAGNOSIS_REVIEW]: '诊断复盘',
-}
+// ─────────────────────────────────────────────────────────────────────────────
+// App
+// ─────────────────────────────────────────────────────────────────────────────
 
 export default function App() {
   const [model] = useState(loadModelData)
   const [activeLens, setActiveLens] = useState(LensId.TOPOLOGY)
   const [activePreset, setActivePreset] = useState(model.initialPreset)
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
-  const [focusNodeId, setFocusNodeId] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [objectSetFilter, setObjectSetFilter] = useState(false)
   const [aroundRootId, setAroundRootId] = useState<string | null>(null)
@@ -56,6 +41,7 @@ export default function App() {
     topology: true,
     knowledge: true,
   })
+  const [expandedDevices, setExpandedDevices] = useState<Record<string, boolean>>({})
   const [visibleDomains, setVisibleDomains] = useState<Record<string, boolean>>(() =>
     Object.fromEntries(model.domains.map((domain) => [domain.code, true])),
   )
@@ -64,30 +50,35 @@ export default function App() {
   )
   const [showCrossLayer, setShowCrossLayer] = useState(false)
 
-  const [engine, setEngine] = useState<DiagnosisEngine | null>(null)
-  const engineRef = useRef<DiagnosisEngine | null>(null)
+  // V2 runtime + projection state.
+  const [runtime, setRuntime] = useState<DiagnosisRuntime | null>(null)
+  const runtimeRef = useRef<DiagnosisRuntime | null>(null)
+  runtimeRef.current = runtime
   const [isPlaying, setIsPlaying] = useState(false)
+  const [playbackSpeed, setPlaybackSpeed] = useState(1)
   const [routeError, setRouteError] = useState<string | null>(null)
+  const [routeNote, setRouteNote] = useState<string | null>(null)
+  const [routeCandidates, setRouteCandidates] = useState<RouteCandidate[] | null>(null)
+
+  // user_selection (Projection-only; never written by Runtime).
   const [selectedCandidateId, setSelectedCandidateId] = useState<string | null>(null)
+  const [selectedFactId, setSelectedFactId] = useState<string | null>(null)
+  // userExploring: user has taken the camera; new agent events must not grab it.
+  const [userExploring, setUserExploring] = useState(false)
 
-  engineRef.current = engine
-  const session = engine?.session ?? null
-  const overlay = session?.overlay
+  const snapshot = runtime?.snapshot ?? null
+  const agentFocus = snapshot?.session.agent_focus
 
-  const objectSet = useMemo<ObjectSet>(
-    () =>
-      model.registry.objectSet(
-        { text: searchQuery, lens: activeLens },
-        overlay,
-      ),
-    [activeLens, model.registry, overlay, searchQuery],
+  const objectSet = useMemo(
+    () => model.registry.objectSet({ text: searchQuery, lens: activeLens }, undefined),
+    [activeLens, model.registry, searchQuery],
   )
 
   const restrictedObjectIds = useMemo(() => {
     if (aroundRootId) {
       return new Set(
         model.registry
-          .searchAround(aroundRootId, 1, activeLens, overlay)
+          .searchAround(aroundRootId, 1, activeLens, undefined)
           .objects.map((object) => object.id),
       )
     }
@@ -101,31 +92,45 @@ export default function App() {
     model.registry,
     objectSet.objects,
     objectSetFilter,
-    overlay,
     searchQuery,
   ])
+
+  // D3 关键对象保留：agent_focus ∪ 根因（docs/05 §6 DETACHED_CRITICAL）。
+  // 仅依赖 snapshot，避免与 graphData 形成循环依赖。
+  const criticalObjectIds = useMemo(() => {
+    const ids = new Set<string>(agentFocus?.object_refs ?? [])
+    const c = snapshot?.conclusion
+    if (c) {
+      if (c.root_cause?.object_id) ids.add(c.root_cause.object_id)
+      for (const id of c.root_cause_chain ?? []) ids.add(id)
+    }
+    return ids
+  }, [agentFocus, snapshot?.conclusion])
 
   const graphData = useMemo(
     () =>
       buildActiveGraph(model, {
         lens: activeLens,
-        overlay,
+        overlay: undefined,
         layerTopology: layerVisibility.topology,
         layerKnowledge: layerVisibility.knowledge,
         visibleDomains,
         visibleKgLayers,
         showCrossLayer,
         objectIds: restrictedObjectIds,
+        expandedDeviceIds: new Set(Object.keys(expandedDevices).filter((k) => expandedDevices[k])),
+        criticalObjectIds,
       }),
     [
       activeLens,
       layerVisibility,
       model,
-      overlay,
       restrictedObjectIds,
       showCrossLayer,
       visibleDomains,
       visibleKgLayers,
+      expandedDevices,
+      criticalObjectIds,
     ],
   )
 
@@ -134,22 +139,54 @@ export default function App() {
     [graphData.nodes],
   )
 
-  const selectedObjectView = selectedNodeId
-    ? model.registry.objectView(selectedNodeId, activeLens, overlay, engine?.catalog)
+  const selectedObjectView = selectedNodeId && !runtime
+    ? model.registry.objectView(selectedNodeId, activeLens, undefined, undefined)
     : null
 
+  // agent_focus → canvas node ids (Runtime-driven highlight).
+  const agentFocusIds = useMemo(() => {
+    const refs = agentFocus?.object_refs ?? []
+    return new Set(refs.filter((id) => graphNodesById.has(id)))
+  }, [agentFocus, graphNodesById])
+
+  // Runtime conclusion → 画布节点状态叠加集（docs/04 §8 ROOT_CAUSE / IMPACTED）。
+  const rootCauseIds = useMemo(() => {
+    const ids = new Set<string>()
+    const c = snapshot?.conclusion
+    if (c) {
+      if (c.root_cause?.object_id) ids.add(c.root_cause.object_id)
+      for (const id of c.root_cause_chain ?? []) ids.add(id)
+    }
+    return ids
+  }, [snapshot?.conclusion])
+
+  const impactedIds = useMemo(() => {
+    const ids = new Set<string>()
+    for (const id of snapshot?.conclusion?.impact_chain ?? []) ids.add(id)
+    return ids
+  }, [snapshot?.conclusion])
+
+  // Camera target: user node while exploring, agent node otherwise. App owns
+  // this decision so DualPlaneCanvas never grabs the camera on agent events
+  // while the user is browsing (docs/04 §5).
+  const agentFocusPrimaryId = useMemo(() => {
+    const refs = agentFocus?.object_refs ?? []
+    return refs.find((id) => graphNodesById.has(id)) ?? null
+  }, [agentFocus, graphNodesById])
+  const focusNodeId = userExploring ? selectedNodeId : agentFocusPrimaryId
+
+  // LIVE auto-advance. advance() appends the next authored Runtime Event — the
+  // sole diagnosis-state write.
   useEffect(() => {
-    if (!isPlaying || !engine || engine.complete) {
-      if (engine?.complete) setIsPlaying(false)
+    if (!isPlaying || !runtime || runtime.complete) {
+      if (runtime?.complete) setIsPlaying(false)
       return
     }
-    // The timer controls playback cadence only. `advance()` appends the next
-    // authored Runtime Event, which remains the sole diagnosis-state write.
     const timer = window.setTimeout(() => {
-      setEngine((current) => (current ? current.advance() : current))
-    }, EVENT_CADENCE_MS)
+      setRuntime((current) => (current ? current.advance() : current))
+    }, EVENT_CADENCE_MS / playbackSpeed)
     return () => window.clearTimeout(timer)
-  }, [engine, isPlaying])
+  }, [runtime, isPlaying, playbackSpeed])
 
   const handleLensChange = (lens: LensId) => {
     setActiveLens(lens)
@@ -160,64 +197,107 @@ export default function App() {
     else setActivePreset('OVERVIEW')
   }
 
-  const handleStartDiagnosis = async (payload: DiagnosisEntryPayload) => {
-    setRouteError(null)
-    const normalized = normalizeSymptom(payload.symptom, {
-      occurredAt: payload.occurred_at,
-      businessScope: payload.business_scope,
-    })
-    const route = routeCase(normalized)
-    if (route.status !== RouteStatus.MATCHED || !route.caseId) {
-      setRouteError(route.reason)
-      return
-    }
+  const startSession = (caseId: string, note: string | null) => {
     try {
-      const bundle = await loadCase(route.caseId)
-      const created = createDiagnosisEngine(bundle.scenario, normalized).advance()
-      setEngine(created)
+      const created = createDiagnosisRuntime(caseId).advance()
+      setRuntime(created)
       setSelectedCandidateId(null)
+      setSelectedFactId(null)
+      setSelectedNodeId(null)
+      setUserExploring(false)
       setActiveLens(LensId.DIAGNOSIS)
       setActivePreset('OVERVIEW')
       setIsPlaying(true)
+      setRouteCandidates(null)
+      setRouteError(null)
+      setRouteNote(note)
     } catch (error) {
       setRouteError(
-        `Scenario 初始化失败：${error instanceof Error ? error.message : String(error)}`,
+        `诊断会话初始化失败：${error instanceof Error ? error.message : String(error)}`,
       )
     }
   }
 
+  const handleStartDiagnosis = (payload: DiagnosisEntryPayload) => {
+    setRouteError(null)
+    setRouteNote(null)
+    setRouteCandidates(null)
+    const route = routeToCase(payload.symptom, payload.business_scope)
+    if (route.status === 'UNIQUE_MATCH' && route.caseId) {
+      startSession(route.caseId, null)
+    } else if (route.status === 'AMBIGUOUS') {
+      // 现象可匹配多个 Case：交由用户选择，不猜测（docs/13 §9.4）。
+      setRouteCandidates(route.candidates)
+    } else {
+      setRouteError(route.error_code ? `[${route.error_code}] ${route.reason}` : route.reason)
+    }
+  }
+
+  const handleSelectRoutedCase = (caseId: string) => {
+    startSession(caseId, '由用户在歧义路由中显式选择')
+  }
+
   const handleExitDiagnosis = () => {
     setIsPlaying(false)
-    setEngine(null)
+    setRuntime(null)
     setSelectedCandidateId(null)
-    setActiveLens(LensId.TOPOLOGY)
+    setSelectedFactId(null)
     setSelectedNodeId(null)
-    setAroundRootId(null)
+    setUserExploring(false)
+    setActiveLens(LensId.TOPOLOGY)
   }
 
   const handleSeek = useCallback((sequence: number) => {
     setIsPlaying(false)
-    setEngine((current) => (current ? current.seek(sequence) : current))
+    setRuntime((current) => (current ? current.seek(sequence) : current))
   }, [])
 
-  const handleReturnCurrent = () => {
-    const current = engineRef.current
-    if (!current) return
-    setEngine(returnToLive(current))
-  }
+  const handleReturnLive = useCallback(() => {
+    setRuntime((current) => (current ? current.returnLive() : current))
+  }, [])
+
+  const handlePlayPause = useCallback(() => {
+    // Resuming from a historical cursor snaps back to live first.
+    const current = runtimeRef.current
+    if (current && current.isHistorical) {
+      setRuntime(current.returnLive())
+    }
+    setIsPlaying((value) => !value)
+  }, [])
+
+  const handleSpeedChange = useCallback((speed: number) => {
+    setPlaybackSpeed(speed)
+  }, [])
+
+  const handleStep = useCallback(() => {
+    setRuntime((current) => (current ? current.advance() : current))
+  }, [])
 
   const handleCandidateSelect = (id: string | null) => {
     setSelectedCandidateId(id)
     if (id) {
-      setSelectedNodeId(id)
-      setFocusNodeId(id)
-      setActiveLens(LensId.DIAGNOSIS)
+      // Selecting a candidate is a user browse action → exploration on.
+      setUserExploring(true)
+    }
+  }
+
+  // Canvas / navigator node selection is a pure user_selection update.
+  const handleNodeSelect = (id: string | null) => {
+    setSelectedNodeId(id)
+    setUserExploring(true)
+    // D3 设备级聚合：点击设备聚合节点切换展开/收起（成员局部显露，不重新洗牌）。
+    if (id && model.deviceGroups.some((g) => g.deviceId === id)) {
+      setExpandedDevices((cur) => ({ ...cur, [id]: !cur[id] }))
     }
   }
 
   const handleSearchSelect = (id: string) => {
     setSelectedNodeId(id)
-    setFocusNodeId(id)
+    setUserExploring(true)
+  }
+
+  const handleReturnAgentView = () => {
+    setUserExploring(false)
   }
 
   const handleSearchAround = () => {
@@ -231,8 +311,35 @@ export default function App() {
     setObjectSetFilter(false)
   }
 
-  const phase = session?.phase ?? DiagnosisPhase.MODEL_OVERVIEW
   const businessPath = activePreset === 'BUSINESS_PATH' || activeLens === LensId.IMPACT
+
+  // Derived session display state.
+  const isHistorical = runtime?.isHistorical ?? false
+  const liveHead = runtime?.liveHead ?? 0
+  const cursor = runtime?.cursor ?? 0
+  const totalEvents = runtime?.events.length ?? 0
+  const displayMode: 'LIVE' | 'PAUSED' | 'REPLAY' = isHistorical
+    ? 'REPLAY'
+    : isPlaying
+      ? 'LIVE'
+      : 'PAUSED'
+  const phaseLabel = snapshot?.session.phase
+    ? phaseLabelOf(snapshot.session.phase)
+    : '模型探索态'
+
+  // Projection store → View Models (read-only consumption of the snapshot).
+  const vms = useMemo(() => {
+    if (!snapshot) return null
+    const store = new ProjectionStore()
+    store.bind(snapshot)
+    return {
+      store,
+      knowledge: store.knowledgeSnapshot(),
+      action: store.currentAction(),
+      candidates: store.candidateList(),
+      timeline: store.timeline(),
+    }
+  }, [snapshot])
 
   return (
     <div className="relative h-screen w-screen overflow-hidden bg-[#0f1117] text-[#e2e8f0]">
@@ -245,11 +352,14 @@ export default function App() {
         graphData={graphData}
         model={model}
         activePreset={activePreset}
-        focusNode={focusNodeId ? graphNodesById.get(focusNodeId) ?? null : null}
+        focusNodeId={focusNodeId}
+        agentFocusIds={agentFocusIds}
+        rootCauseIds={rootCauseIds}
+        impactedIds={impactedIds}
         selectedNodeId={selectedNodeId}
         showCrossLayer={showCrossLayer}
         businessPath={businessPath}
-        onNodeSelect={setSelectedNodeId}
+        onNodeSelect={handleNodeSelect}
         onNodeHover={() => undefined}
       />
 
@@ -294,11 +404,11 @@ export default function App() {
           <span className="h-4 w-px bg-white/10" />
           <span className="flex items-center gap-1.5 text-[10px] text-[#94a3b8]">
             <Database className="h-3 w-3" />
-            Registry v{DATA_VERSION}
+            Runtime v{DATA_VERSION}
           </span>
           <span className="flex items-center gap-1.5 rounded bg-status-active/15 px-2 py-1 text-[10px]">
             <Eye className="h-3 w-3 text-status-active" />
-            {PHASE_LABEL[phase]}
+            {phaseLabel}
           </span>
         </div>
       </header>
@@ -324,23 +434,85 @@ export default function App() {
         </div>
       )}
 
-      <DiagnosisPanel
-        session={session}
-        definition={engine?.definition ?? null}
-        liveEvents={engine?.liveEvents ?? []}
-        liveHead={engine?.liveHead ?? 0}
-        isHistorical={engine?.isHistorical ?? false}
-        isPlaying={isPlaying}
-        selectedCandidateId={selectedCandidateId}
-        onSelectCandidate={handleCandidateSelect}
-        onPlayPause={() => setIsPlaying((value) => !value)}
-        onStep={() => setEngine((current) => (current ? stepPlayback(current) : current))}
-        onSeek={handleSeek}
-        onReturnCurrent={handleReturnCurrent}
-        onExit={handleExitDiagnosis}
-      />
+      {routeCandidates && (
+        <div className="absolute left-1/2 top-[118px] z-50 flex max-w-md -translate-x-1/2 flex-col gap-1.5 rounded-lg border border-status-active/30 bg-[#11141c]/95 px-3 py-2.5 text-[12px] shadow-xl">
+          <div className="flex items-center gap-2 text-[#cbd5e1]">
+            <AlertTriangle className="h-4 w-4 shrink-0 text-status-warning" />
+            <span className="flex-1">现象可匹配多个故障场景，请选择最接近的一个：</span>
+            <button
+              type="button"
+              onClick={() => setRouteCandidates(null)}
+              aria-label="关闭"
+              className="text-[#64748b] transition-colors hover:text-[#cbd5e1]"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+          {routeCandidates.map((c) => (
+            <button
+              key={c.caseId}
+              type="button"
+              onClick={() => handleSelectRoutedCase(c.caseId)}
+              className="flex items-center justify-between rounded-md border border-white/10 bg-white/5 px-3 py-2 text-left transition-colors hover:border-status-active/50 hover:bg-status-active/10"
+            >
+              <span className="flex-1">
+                <span className="block text-[12px] font-medium text-[#e2e8f0]">{c.name}</span>
+                <span className="block text-[10px] text-[#64748b]">
+                  route_score {c.score} · {c.explanation}
+                </span>
+              </span>
+              <span className="ml-2 shrink-0 text-[10px] text-status-active">选择 →</span>
+            </button>
+          ))}
+        </div>
+      )}
 
-      {!engine && <DiagnosisEntryButton onStartDiagnosis={handleStartDiagnosis} />}
+      {runtime && vms && snapshot && (
+        <LuiPanel
+          knowledge={vms.knowledge}
+          action={vms.action}
+          candidates={vms.candidates}
+          snapshot={snapshot}
+          store={vms.store}
+          timelineEvents={vms.timeline}
+          replayBookmarks={snapshot?.replay_bookmarks ?? []}
+          selectedCandidateId={selectedCandidateId}
+          onSelectCandidate={handleCandidateSelect}
+          selectedFactId={selectedFactId}
+          onSelectFact={setSelectedFactId}
+          mode={displayMode}
+          cursor={cursor}
+          liveHead={liveHead}
+          totalEvents={totalEvents}
+          isPlaying={isPlaying}
+          caseEntry={listCases().find((c) => c.caseId === runtime.caseId) ?? null}
+          onPlayPause={handlePlayPause}
+          onStep={handleStep}
+          onSpeedChange={handleSpeedChange}
+          playbackSpeed={playbackSpeed}
+          onSeek={handleSeek}
+          onReturnLive={handleReturnLive}
+          onReturnAgentView={handleReturnAgentView}
+          onExit={handleExitDiagnosis}
+          routeNote={routeNote}
+        />
+      )}
+
+      {!runtime && <DiagnosisEntryButton onStartDiagnosis={handleStartDiagnosis} />}
     </div>
   )
+}
+
+function phaseLabelOf(phase: string): string {
+  const map: Record<string, string> = {
+    INPUT_COMPLETION: '输入补全',
+    SYMPTOM_VALIDATION: '现象校验',
+    SCOPE_LOCALIZATION: '范围定位',
+    CANDIDATE_GENERATION: '候选生成',
+    CANDIDATE_EVIDENCE: '候选取证',
+    COMPETING_EXPLANATION: '竞争解释',
+    CONCLUSION_CHECK: '终态门控',
+    SUPPLEMENTARY_PLANNING: '补充规划',
+  }
+  return map[phase] ?? phase
 }

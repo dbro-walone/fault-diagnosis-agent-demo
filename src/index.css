@@ -31,7 +31,8 @@
   .ontology-diagnosis-panel,
   .ontology-object-view,
   .ontology-diagnosis-entry,
-  .ontology-header {
+  .ontology-header,
+  .ontology-lui {
     display: none !important;
   }
 

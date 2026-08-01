@@ -1,0 +1,169 @@
+{
+  "schema_version": "2.0",
+  "session": {
+    "session_id": "session-controller-001",
+    "case_id": "controller_warm_reset_001",
+    "version": 10,
+    "last_sequence": 10,
+    "mode": "LIVE",
+    "phase": "CONCLUSION_CHECK",
+    "terminal_status": "ROOT_CAUSE_CONFIRMED",
+    "agent_focus": {
+      "source_type": "candidate",
+      "source_id": "cand-controller-warm-reset",
+      "object_refs": ["controller-0a", "controller-0b", "lun-db01"],
+      "path_refs": ["path-controller-to-lun"]
+    }
+  },
+  "facts": [
+    {
+      "fact_id": "fact-reset-alarm",
+      "fact_type": "ALARM",
+      "object_refs": ["controller-0a"],
+      "occurred_at": "2026-07-30T14:32:17.842+08:00",
+      "created_sequence": 3,
+      "source": {
+        "execution_id": "exec-alarm-001",
+        "skill_id": "alarm_query",
+        "source_refs": ["alm-0a-78421"]
+      },
+      "payload": {
+        "alarm_name": "控制器发生热复位",
+        "severity": "CRITICAL",
+        "reason": "watchdog_timeout",
+        "cleared_at": "2026-07-30T14:32:23.106+08:00"
+      }
+    },
+    {
+      "fact_id": "fact-watchdog-log",
+      "fact_type": "LOG",
+      "object_refs": ["controller-0a"],
+      "occurred_at": "2026-07-30T14:32:17.302+08:00",
+      "created_sequence": 4,
+      "source": {
+        "execution_id": "exec-log-001",
+        "skill_id": "log_fingerprint_query",
+        "source_refs": ["log-00015"]
+      },
+      "payload": {
+        "level": "ERROR",
+        "component": "watchdog",
+        "raw_line": "watchdog timeout detected, controller=0A, timeout_ms=3000",
+        "timeout_ms": 3000
+      }
+    },
+    {
+      "fact_id": "fact-impact-window",
+      "fact_type": "KPI_WINDOW",
+      "object_refs": ["controller-0a", "controller-0b", "lun-db01"],
+      "occurred_at": "2026-07-30T14:32:18.000+08:00",
+      "created_sequence": 5,
+      "source": {
+        "execution_id": "exec-kpi-001",
+        "skill_id": "kpi_query",
+        "source_refs": ["kpi-controller-0a-throughput", "kpi-controller-0b-throughput", "kpi-lun-db01-latency"]
+      },
+      "payload": {
+        "controller_0a_gbps": 0,
+        "controller_0b_gbps": 15.6,
+        "lun_latency_ms": 38.6,
+        "lun_latency_baseline_ms": 1.8
+      }
+    },
+    {
+      "fact_id": "fact-fc-crc-normal",
+      "fact_type": "KPI_WINDOW",
+      "object_refs": ["fc-port-0a"],
+      "created_sequence": 6,
+      "source": {
+        "execution_id": "exec-fc-001",
+        "skill_id": "link_health_query",
+        "source_refs": ["kpi-fc-port-0a-crc"]
+      },
+      "payload": {"metric_name": "FC CRC错误增量", "value": 0, "unit": "count"}
+    }
+  ],
+  "evidences": [
+    {
+      "evidence_id": "ev-direct-reset",
+      "evidence_type": "DIRECT_FAULT",
+      "fact_refs": ["fact-reset-alarm"],
+      "created_sequence": 4,
+      "effects": [
+        {
+          "candidate_id": "cand-controller-warm-reset",
+          "effect": "STRONG_SUPPORT",
+          "score_delta": 30,
+          "explanation": "热复位告警与候选对象和故障窗口一致"
+        }
+      ]
+    },
+    {
+      "evidence_id": "ev-mechanism-impact",
+      "evidence_type": "MECHANISM_AND_IMPACT",
+      "fact_refs": ["fact-watchdog-log", "fact-impact-window"],
+      "created_sequence": 6,
+      "effects": [
+        {
+          "candidate_id": "cand-controller-warm-reset",
+          "effect": "STRONG_SUPPORT",
+          "score_delta": 24,
+          "explanation": "watchdog机制与0A归零、0B接管、LUN时延同窗闭环"
+        }
+      ]
+    },
+    {
+      "evidence_id": "ev-fc-weaken",
+      "evidence_type": "COUNTER_EVIDENCE",
+      "fact_refs": ["fact-fc-crc-normal"],
+      "created_sequence": 7,
+      "effects": [
+        {
+          "candidate_id": "cand-fc-link-flap",
+          "effect": "WEAKEN",
+          "score_delta": -15,
+          "explanation": "完整窗口内CRC增量为0且端口保持Up"
+        }
+      ]
+    }
+  ],
+  "candidates": [
+    {
+      "candidate_id": "cand-controller-warm-reset",
+      "object_id": "controller-0a",
+      "fault_mode_code": "CONTROLLER_WARM_RESET",
+      "diagnosis_support_score": 96,
+      "status": "CONFIRMED"
+    },
+    {
+      "candidate_id": "cand-fc-link-flap",
+      "object_id": "fc-port-0a",
+      "fault_mode_code": "FC_LINK_FLAP",
+      "diagnosis_support_score": 13,
+      "status": "WEAKENED"
+    }
+  ],
+  "minimum_evidence_chain": {
+    "candidate_id": "cand-controller-warm-reset",
+    "items": [
+      {"requirement_id": "direct_fault", "required": true, "status": "SATISFIED", "evidence_refs": ["ev-direct-reset"]},
+      {"requirement_id": "mechanism", "required": true, "status": "SATISFIED", "evidence_refs": ["ev-mechanism-impact"]},
+      {"requirement_id": "affected_path", "required": true, "status": "SATISFIED", "evidence_refs": ["ev-mechanism-impact"]},
+      {"requirement_id": "time_alignment", "required": true, "status": "SATISFIED", "evidence_refs": ["ev-direct-reset", "ev-mechanism-impact"]},
+      {"requirement_id": "impact", "required": true, "status": "SATISFIED", "evidence_refs": ["ev-mechanism-impact"]},
+      {"requirement_id": "competitor_check", "required": true, "status": "SATISFIED", "evidence_refs": ["ev-fc-weaken"]}
+    ]
+  },
+  "events": [
+    {"event_id": "evt-001", "session_id": "session-controller-001", "sequence": 1, "event_type": "DIAGNOSIS_SESSION_CREATED", "payload": {}},
+    {"event_id": "evt-002", "session_id": "session-controller-001", "sequence": 2, "event_type": "CANDIDATES_GENERATED", "payload": {"candidate_refs": ["cand-controller-warm-reset", "cand-fc-link-flap"]}},
+    {"event_id": "evt-003", "session_id": "session-controller-001", "sequence": 3, "event_type": "FACT_DISCOVERED", "payload": {"fact_ref": "fact-reset-alarm"}},
+    {"event_id": "evt-004", "session_id": "session-controller-001", "sequence": 4, "event_type": "EVIDENCE_CREATED", "payload": {"evidence_ref": "ev-direct-reset"}},
+    {"event_id": "evt-005", "session_id": "session-controller-001", "sequence": 5, "event_type": "FACT_DISCOVERED", "payload": {"fact_refs": ["fact-watchdog-log", "fact-impact-window"]}},
+    {"event_id": "evt-006", "session_id": "session-controller-001", "sequence": 6, "event_type": "EVIDENCE_CREATED", "payload": {"evidence_ref": "ev-mechanism-impact"}},
+    {"event_id": "evt-007", "session_id": "session-controller-001", "sequence": 7, "event_type": "FACT_DISCOVERED", "payload": {"fact_ref": "fact-fc-crc-normal"}},
+    {"event_id": "evt-008", "session_id": "session-controller-001", "sequence": 8, "event_type": "EVIDENCE_CREATED", "payload": {"evidence_ref": "ev-fc-weaken"}},
+    {"event_id": "evt-009", "session_id": "session-controller-001", "sequence": 9, "event_type": "MINIMUM_CHAIN_UPDATED", "payload": {"candidate_ref": "cand-controller-warm-reset", "evidence_refs": ["ev-direct-reset", "ev-mechanism-impact", "ev-fc-weaken"]}},
+    {"event_id": "evt-010", "session_id": "session-controller-001", "sequence": 10, "event_type": "ROOT_CAUSE_CONFIRMED", "payload": {"candidate_ref": "cand-controller-warm-reset"}}
+  ]
+}

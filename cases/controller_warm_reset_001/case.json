@@ -1,32 +1,24 @@
 {
-  "schema_name": "dme-fault-case-package",
-  "schema_version": "1.1.0",
   "case_id": "controller_warm_reset_001",
-  "title": "数据库业务短时时延升高诊断",
-  "description": "从数据库业务时延升高现象出发，基于对象关系和可查询观测逐步形成诊断决策",
-  "scenario_tags": ["数据库", "块业务", "时延升高"],
+  "name": "Controller-0A 热复位导致块业务时延突增",
+  "description": "双 SAN、双控制器场景下，Controller-0A 因 watchdog 超时发生热复位，Block Service 切换至 Controller-0B，LUN-DB01 时延短时升高后恢复。",
+  "fault_domain": "controller",
+  "fault_mode_code": "CONTROLLER_WARM_RESET",
+  "severity": "critical",
+  "scenario_tags": ["双SAN", "双控制器", "主备切换", "块业务", "full_data", "multi_evidence"],
   "data_mode": "mock",
   "data_disclaimer": "本案例数据用于原型演示，不代表真实环境实测结果",
-  "timezone": "Asia/Shanghai",
-  "route_profile": {
-    "case_id": "controller_warm_reset_001",
-    "supported_symptoms": [
-      {
-        "object_type": "BUSINESS",
-        "symptom_code": "BUSINESS_LATENCY_INCREASE",
-        "aliases": [
-          "数据库变慢",
-          "数据库业务延迟升高",
-          "数据库业务时延升高",
-          "数据库访问时延升高",
-          "DB业务抖动",
-          "交易数据库访问突然变慢",
-          "数据库访问突然变慢"
-        ]
-      }
-    ],
-    "supported_scopes": ["DB业务", "数据库业务"],
-    "required_inputs": ["symptom", "occurred_at"],
-    "priority": 100
-  }
+  "time_origin": "2026-07-30T14:32:00.000+08:00",
+  "observation_window": {
+    "start": "2026-07-30T14:31:50.000+08:00",
+    "end": "2026-07-30T14:32:35.000+08:00"
+  },
+  "trigger": {
+    "type": "kpi_anomaly",
+    "object_id": "lun-db01",
+    "symptom_id": "sym-lun-latency-high"
+  },
+  "expected_duration_ms": 96000,
+  "supported_capabilities": ["topology_playback", "candidate_reasoning", "evidence_drilldown", "diagnosis_report"],
+  "future_capabilities": ["repair_plan", "approval", "repair_execution", "effect_verification", "rollback"]
 }

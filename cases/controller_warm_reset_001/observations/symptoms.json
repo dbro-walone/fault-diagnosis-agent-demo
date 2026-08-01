@@ -1,0 +1,7 @@
+{
+  "symptoms": [
+    {"symptom_id":"sym-business-slow","source":"user","raw_description":"数据库业务访问变慢","normalized_type":"BUSINESS_LATENCY_HIGH","object_id":"db-business-01","detected_at":"2026-07-30T14:32:18.200+08:00","value":null,"unit":null,"baseline":null},
+    {"symptom_id":"sym-lun-latency-high","source":"kpi","raw_description":"LUN-DB01平均时延超过关键阈值","normalized_type":"LUN_LATENCY_HIGH","object_id":"lun-db01","detected_at":"2026-07-30T14:32:18.120+08:00","value":38.6,"unit":"ms","baseline":1.8}
+  ],
+  "normalization_chain": ["数据库业务访问变慢", "LUN读写时延升高", "块业务路径异常"]
+}

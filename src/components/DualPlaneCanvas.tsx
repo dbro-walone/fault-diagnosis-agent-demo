@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import * as THREE from 'three'
 
 import {
@@ -8,7 +8,7 @@ import {
   type ModelData,
   linkColorFor,
 } from '@/lib/model-loader'
-import { formatHealthStatus } from '@/lib/utils'
+import { STATUS_COLORS, formatHealthStatus } from '@/lib/utils'
 
 // ---------------------------------------------------------------------------
 // Visual tuning constants
@@ -67,6 +67,120 @@ function labelSprite(node: GraphNode): THREE.Sprite {
   return sprite
 }
 
+// Agent-focus halo: a reusable additive ring sprite (docs/04 §8 — combine shape
+// + glow, never color alone). Cached so we don't reallocate a texture per node.
+let haloTexture: THREE.CanvasTexture | null = null
+function getHaloTexture(): THREE.CanvasTexture {
+  if (haloTexture) return haloTexture
+  const canvas = document.createElement('canvas')
+  canvas.width = 128
+  canvas.height = 128
+  const ctx = canvas.getContext('2d')!
+  ctx.shadowBlur = 18
+  ctx.shadowColor = STATUS_COLORS.active
+  ctx.lineWidth = 7
+  ctx.strokeStyle = 'rgba(59,130,246,0.95)'
+  ctx.beginPath()
+  ctx.arc(64, 64, 50, 0, Math.PI * 2)
+  ctx.stroke()
+  const tex = new THREE.CanvasTexture(canvas)
+  tex.colorSpace = THREE.SRGBColorSpace
+  haloTexture = tex
+  return tex
+}
+
+function haloSprite(node: GraphNode): THREE.Sprite {
+  const sprite = new THREE.Sprite(
+    new THREE.SpriteMaterial({
+      map: getHaloTexture(),
+      transparent: true,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+    }),
+  )
+  const scale = 16 + node.val * 4
+  sprite.scale.set(scale, scale, 1)
+  sprite.position.set(0, 0, 0)
+  return sprite
+}
+
+// Root-cause halo: a stronger double-ring (docs/04 §8 ROOT_CAUSE tier — shape +
+// glow, never color alone). Confirmed root stands out from mere agent_focus.
+let rootHaloTexture: THREE.CanvasTexture | null = null
+function getRootHaloTexture(): THREE.CanvasTexture {
+  if (rootHaloTexture) return rootHaloTexture
+  const canvas = document.createElement('canvas')
+  canvas.width = 128
+  canvas.height = 128
+  const ctx = canvas.getContext('2d')!
+  ctx.shadowBlur = 22
+  ctx.shadowColor = STATUS_COLORS.fault
+  ctx.lineWidth = 8
+  ctx.strokeStyle = 'rgba(248,113,113,0.95)'
+  ctx.beginPath()
+  ctx.arc(64, 64, 46, 0, Math.PI * 2)
+  ctx.stroke()
+  ctx.lineWidth = 3
+  ctx.strokeStyle = 'rgba(248,113,113,0.55)'
+  ctx.beginPath()
+  ctx.arc(64, 64, 60, 0, Math.PI * 2)
+  ctx.stroke()
+  const tex = new THREE.CanvasTexture(canvas)
+  tex.colorSpace = THREE.SRGBColorSpace
+  rootHaloTexture = tex
+  return tex
+}
+
+// Impacted ring: a dashed amber ring (docs/04 §8 IMPACTED tier).
+let impactedRingTexture: THREE.CanvasTexture | null = null
+function getImpactedRingTexture(): THREE.CanvasTexture {
+  if (impactedRingTexture) return impactedRingTexture
+  const canvas = document.createElement('canvas')
+  canvas.width = 128
+  canvas.height = 128
+  const ctx = canvas.getContext('2d')!
+  ctx.shadowBlur = 14
+  ctx.shadowColor = STATUS_COLORS.warning
+  ctx.lineWidth = 5
+  ctx.strokeStyle = 'rgba(251,146,60,0.85)'
+  ctx.setLineDash([10, 6])
+  ctx.beginPath()
+  ctx.arc(64, 64, 52, 0, Math.PI * 2)
+  ctx.stroke()
+  const tex = new THREE.CanvasTexture(canvas)
+  tex.colorSpace = THREE.SRGBColorSpace
+  impactedRingTexture = tex
+  return tex
+}
+
+function rootHaloSprite(node: GraphNode): THREE.Sprite {
+  const sprite = new THREE.Sprite(
+    new THREE.SpriteMaterial({
+      map: getRootHaloTexture(),
+      transparent: true,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+    }),
+  )
+  const scale = 18 + node.val * 4
+  sprite.scale.set(scale, scale, 1)
+  return sprite
+}
+
+function impactedRingSprite(node: GraphNode): THREE.Sprite {
+  const sprite = new THREE.Sprite(
+    new THREE.SpriteMaterial({
+      map: getImpactedRingTexture(),
+      transparent: true,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+    }),
+  )
+  const scale = 16 + node.val * 4
+  sprite.scale.set(scale, scale, 1)
+  return sprite
+}
+
 // ---------------------------------------------------------------------------
 // Link styling helpers (view context is passed in so accessors stay pure)
 // ---------------------------------------------------------------------------
@@ -97,9 +211,20 @@ export interface DualPlaneCanvasProps {
   model: ModelData
   /** Active camera preset key. */
   activePreset: string
-  /** Current projected node to fly the camera to (search & focus). */
-  focusNode: GraphNode | null
-  /** Currently selected node id (drives selection visuals). */
+  /**
+   * Camera target node id. The PARENT decides this — it is the user-selected
+   * node while the user is exploring, otherwise the agent_focus node. Because
+   * the parent only swaps this id on an explicit focus change, agent events
+   * never move the camera while the user is browsing (docs/04 §5).
+   */
+  focusNodeId: string | null
+  /** agent_focus object ids (Runtime-driven). Highlighted, never auto-camera. */
+  agentFocusIds: Set<string>
+  /** 已确认根因对象 ids（Runtime conclusion.root_cause_chain，docs/04 §8 ROOT_CAUSE）。 */
+  rootCauseIds: Set<string>
+  /** 受影响对象 ids（Runtime conclusion.impact_chain，docs/04 §8 IMPACTED）。 */
+  impactedIds: Set<string>
+  /** Currently user-selected node id (drives selection visuals). */
   selectedNodeId: string | null
   /** Whether the cross-layer master toggle is on. */
   showCrossLayer: boolean
@@ -116,36 +241,64 @@ export default function DualPlaneCanvas(props: DualPlaneCanvasProps) {
   // Latest-value refs so the once-created graph instance never captures stale state.
   const selectedRef = useRef<string | null>(props.selectedNodeId)
   const hoverRef = useRef<string | null>(null)
-  const focusRef = useRef<string | null>(props.focusNode?.id ?? null)
+  const agentFocusRef = useRef<Set<string>>(props.agentFocusIds)
+  const rootCauseRef = useRef<Set<string>>(props.rootCauseIds)
+  const impactedRef = useRef<Set<string>>(props.impactedIds)
   const showCrossLayerRef = useRef<boolean>(props.showCrossLayer)
   const businessPathRef = useRef<boolean>(props.businessPath)
   const onSelectRef = useRef(props.onNodeSelect)
   const onHoverRef = useRef(props.onNodeHover)
 
   selectedRef.current = props.selectedNodeId
-  focusRef.current = props.focusNode?.id ?? null
+  agentFocusRef.current = props.agentFocusIds
+  rootCauseRef.current = props.rootCauseIds
+  impactedRef.current = props.impactedIds
   showCrossLayerRef.current = props.showCrossLayer
   businessPathRef.current = props.businessPath
   onSelectRef.current = props.onNodeSelect
   onHoverRef.current = props.onNodeHover
 
-  /** Node color: brighter for the selected / hovered / focused node, base otherwise. */
+  const nodesById = useMemo(
+    () => new Map(props.graphData.nodes.map((node) => [node.id, node])),
+    [props.graphData.nodes],
+  )
+
+  /**
+   * Node color:
+   * - agent_focus → active blue (Runtime highlight, docs/04 §8 AGENT_FOCUS tier);
+   * - user-selected / hovered → brightened plane color (USER_SELECTED tier);
+   * - otherwise the neutral plane color.
+   * Lower tiers never fully hide higher tiers — agent_focus keeps its blue even
+   * when the user also selects it (the halo + color combine).
+   */
   const nodeColorFor = (node: GraphNode): string => {
-    if (
-      node.id === selectedRef.current ||
-      node.id === hoverRef.current ||
-      node.id === focusRef.current
-    ) {
+    if (rootCauseRef.current.has(node.id)) return STATUS_COLORS.fault
+    if (impactedRef.current.has(node.id)) return STATUS_COLORS.warning
+    if (agentFocusRef.current.has(node.id)) return STATUS_COLORS.active
+    if (node.id === selectedRef.current || node.id === hoverRef.current) {
       return brighten(node.color)
     }
     return node.color
   }
 
-  /** Re-apply node colors. Passing a fresh accessor forces the lib to re-evaluate. */
-  const refreshNodeColors = () => {
+  /** Per-node 3D object: default sphere is kept (extend=true); we add a label
+   * for landmark nodes and an additive halo for agent_focus nodes. */
+  const nodeThreeObjectFor = (node: GraphNode): THREE.Object3D => {
+    const group = new THREE.Group()
+    // 组合视觉（docs/04 §8）：ROOT_CAUSE 红双环 > IMPACTED 橙虚线环 > AGENT_FOCUS 蓝环。
+    if (rootCauseRef.current.has(node.id)) group.add(rootHaloSprite(node))
+    else if (impactedRef.current.has(node.id)) group.add(impactedRingSprite(node))
+    if (agentFocusRef.current.has(node.id)) group.add(haloSprite(node))
+    if (node.alwaysLabel) group.add(labelSprite(node))
+    return group
+  }
+
+  /** Re-apply node colors / objects. Fresh accessor instances force re-eval. */
+  const refreshNodeAppearance = () => {
     const graph = graphRef.current
     if (!graph) return
     graph.nodeColor((node: GraphNode) => nodeColorFor(node))
+    graph.nodeThreeObject((node: GraphNode) => nodeThreeObjectFor(node))
   }
 
   // --- create the graph instance once -------------------------------------
@@ -181,9 +334,7 @@ export default function DualPlaneCanvas(props: DualPlaneCanvasProps) {
         .nodeOpacity(0.85)
         .nodeColor((node: GraphNode) => nodeColorFor(node))
         .nodeLabel((node: GraphNode) => nodeLabelHtml(node))
-        .nodeThreeObject((node: GraphNode) =>
-          node.alwaysLabel ? labelSprite(node) : new THREE.Group(),
-        )
+        .nodeThreeObject((node: GraphNode) => nodeThreeObjectFor(node))
         .nodeThreeObjectExtend(true)
         .linkOpacity(0.9)
         .linkCurvature((l: GraphLink) => (l.category === 'cross' ? 0.18 : 0))
@@ -196,7 +347,7 @@ export default function DualPlaneCanvas(props: DualPlaneCanvasProps) {
         })
         .onNodeHover((node: GraphNode | null) => {
           hoverRef.current = node?.id ?? null
-          refreshNodeColors()
+          refreshNodeAppearance()
           onHoverRef.current(node?.id ?? null)
         })
         .onBackgroundClick(() => {
@@ -260,7 +411,7 @@ export default function DualPlaneCanvas(props: DualPlaneCanvasProps) {
     const graph = graphRef.current
     if (!graph) return
     graph.graphData({ nodes: props.graphData.nodes, links: props.graphData.links })
-    refreshNodeColors()
+    refreshNodeAppearance()
   }, [props.graphData])
 
   // --- camera presets -----------------------------------------------------
@@ -277,33 +428,33 @@ export default function DualPlaneCanvas(props: DualPlaneCanvasProps) {
     )
   }, [props.activePreset, props.model.presets])
 
-  // --- focus (search) -----------------------------------------------------
-
+  // --- focus (camera target id) -------------------------------------------
+  // Depends on the id only, so re-renders / filter rebuilds that change node
+  // object identity do not trigger a spurious camera flight.
   useEffect(() => {
     const graph = graphRef.current
-    if (!graph || !props.focusNode) return
-    const node = props.focusNode
+    if (!graph || !props.focusNodeId) return
+    const node = nodesById.get(props.focusNodeId)
+    if (!node) return
     const distance = 130
     graph.cameraPosition(
       { x: node.fx, y: node.fy + 30, z: node.fz + distance },
       { x: node.fx, y: node.fy, z: node.fz },
       900,
     )
-    refreshNodeColors()
-  }, [props.focusNode])
+  }, [props.focusNodeId, nodesById])
 
-  // --- selection visuals --------------------------------------------------
+  // --- selection / agent-focus visuals ------------------------------------
 
   useEffect(() => {
-    refreshNodeColors()
-  }, [props.selectedNodeId])
+    refreshNodeAppearance()
+  }, [props.selectedNodeId, props.agentFocusIds, props.rootCauseIds, props.impactedIds])
 
   // --- re-apply link styling on context change ----------------------------
 
   useEffect(() => {
     const graph = graphRef.current
     if (!graph) return
-    // New function instances force the lib to re-evaluate every link.
     graph
       .linkColor((l: GraphLink) =>
         linkColorFor(l, {

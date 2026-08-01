@@ -1,0 +1,8 @@
+{
+  "candidates": [
+    {"candidate_id":"cand-controller-warm-reset","fault_mode_code":"CONTROLLER_WARM_RESET","object_id":"controller-0a","display_name":"Controller-0A 热复位","initial_confidence":0.42,"generation_basis":["sym-lun-latency-high","pattern-controller-warm-reset"],"status":"confirmed"},
+    {"candidate_id":"cand-fc-link-flap","fault_mode_code":"FC_LINK_FLAP","object_id":"fc-port-0a","display_name":"FC端口链路抖动","initial_confidence":0.28,"generation_basis":["sym-lun-latency-high","pattern-fc-link-flap"],"status":"excluded"},
+    {"candidate_id":"cand-san-link-fault","fault_mode_code":"SAN_LINK_FAULT","object_id":"san-fabric-a","display_name":"SAN交换链路异常","initial_confidence":0.18,"generation_basis":["sym-business-slow","pattern-san-link-fault"],"status":"excluded"},
+    {"candidate_id":"cand-pool-bottleneck","fault_mode_code":"POOL_PERFORMANCE_BOTTLENECK","object_id":"storage-pool-01","display_name":"存储池性能瓶颈","initial_confidence":0.12,"generation_basis":["sym-lun-latency-high","pattern-pool-bottleneck"],"status":"excluded"}
+  ]
+}

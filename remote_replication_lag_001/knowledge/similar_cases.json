@@ -1,0 +1,6 @@
+{
+  "similar_cases":[
+    {"similar_case_id":"case-20260715-021","title":"跨城复制WAN丢包导致RPO持续增大","similarity":0.927,"historical_root_cause":{"fault_mode_code":"REMOTE_REPLICATION_NETWORK_CONGESTION","object_type":"NETWORK_PATH"},"matched_features":["packet loss 4%+","retransmits high","throughput collapse","source and target pools normal","RPO recovery after link restored"],"resolution_summary":"网络侧扩容并调整拥塞策略；历史处置仅作参考。"},
+    {"similar_case_id":"case-20260419-008","title":"容灾端存储池重构导致复制积压","similarity":0.351,"historical_root_cause":{"fault_mode_code":"REPLICATION_TARGET_BOTTLENECK","object_type":"STORAGE_POOL"},"matched_features":["replication backlog high"],"mismatched_features":["target write latency normal","no rebuild alarm","packet loss high"]}
+  ]
+}

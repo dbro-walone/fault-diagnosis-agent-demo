@@ -1,0 +1,12 @@
+{
+  "traces":[
+    {"candidate_id":"cand-repl-network-congestion","trace":[
+      {"sequence":1,"stage":"candidate_generation","confidence":0.30,"evidence_refs":[],"reason":"复制RPO与积压异常可能来自源端、链路、远端或配置"},
+      {"sequence":2,"stage":"domain_evidence_collection","confidence":0.72,"evidence_refs":["ev-repl-path","ev-packet-loss-high","ev-retransmits-high","ev-throughput-collapse"],"reason":"复制路径上的丢包、重传与吞吐下降形成同窗传播链"},
+      {"sequence":3,"stage":"evidence_fusion","confidence":0.97,"evidence_refs":["ev-rpo-backlog-impact","ev-network-recovery","ev-source-pool-normal","ev-target-pool-normal","ev-session-config-normal","ev-port-up-no-alarm","ev-similar-network-case"],"reason":"四域竞争检查和网络恢复闭环完成，确认复制网络质量问题"}]},
+    {"candidate_id":"cand-source-bottleneck","trace":[{"sequence":1,"stage":"candidate_generation","confidence":0.22,"evidence_refs":[],"reason":"源端后端无法及时读取变化数据可造成积压"},{"sequence":2,"stage":"evidence_collection","confidence":0.03,"evidence_refs":["ev-source-pool-normal","ev-local-business-normal"],"reason":"源端后端和前端业务时延均正常"}]},
+    {"candidate_id":"cand-target-bottleneck","trace":[{"sequence":1,"stage":"candidate_generation","confidence":0.20,"evidence_refs":[],"reason":"远端写入能力不足可造成复制积压"},{"sequence":2,"stage":"evidence_collection","confidence":0.03,"evidence_refs":["ev-target-pool-normal"],"reason":"远端写入时延与容量均正常"}]},
+    {"candidate_id":"cand-session-config","trace":[{"sequence":1,"stage":"candidate_generation","confidence":0.18,"evidence_refs":[],"reason":"暂停或限速会直接降低复制吞吐"},{"sequence":2,"stage":"evidence_collection","confidence":0.02,"evidence_refs":["ev-session-config-normal"],"reason":"会话未暂停、未限速且配置未变化"}]},
+    {"candidate_id":"cand-repl-port-fault","trace":[{"sequence":1,"stage":"candidate_generation","confidence":0.10,"evidence_refs":[],"reason":"复制端口物理异常可中断复制路径"},{"sequence":2,"stage":"evidence_collection","confidence":0.02,"evidence_refs":["ev-port-up-no-alarm"],"reason":"两端端口均Up且无物理层告警"}]}
+  ]
+}

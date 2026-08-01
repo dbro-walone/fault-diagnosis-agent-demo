@@ -108,6 +108,10 @@ export interface GraphFilter {
   showCrossLayer: boolean
   /** Optional Object Set / Search Around restriction. */
   objectIds?: Set<string>
+  /** D3 设备级聚合：已展开的设备 id 集合（默认收起设备成员）。 */
+  expandedDeviceIds?: Set<string>
+  /** D3 关键对象保留（agent_focus/根因等）：即使所属设备收起仍显示（DETACHED_CRITICAL）。 */
+  criticalObjectIds?: Set<string>
 }
 
 export interface ActiveGraph {
@@ -125,10 +129,25 @@ export interface ModelData {
   presets: PresetInfo[]
   initialPreset: string
   counts: { topology: number; knowledge: number; cross: number }
+  /** 设备级聚合组（D3/§05）：deviceId → 成员对象 ids，供展开/收起钻取。 */
+  deviceGroups: Array<{ deviceId: string; label: string; memberIds: string[] }>
 }
 
 const TYPE_COLOR: Record<OntologyObjectType, string> = {
   [OntologyObjectType.ASSET]: PLANE_COLORS.topology,
+  [OntologyObjectType.BUSINESS_SERVICE]: PLANE_COLORS.topology,
+  [OntologyObjectType.HOST]: PLANE_COLORS.topology,
+  [OntologyObjectType.FABRIC]: PLANE_COLORS.topology,
+  [OntologyObjectType.PORT]: PLANE_COLORS.topology,
+  [OntologyObjectType.STORAGE_SYSTEM]: PLANE_COLORS.topology,
+  [OntologyObjectType.CONTROLLER]: PLANE_COLORS.topology,
+  [OntologyObjectType.SERVICE]: PLANE_COLORS.topology,
+  [OntologyObjectType.LUN]: PLANE_COLORS.topology,
+  [OntologyObjectType.POOL]: PLANE_COLORS.topology,
+  [OntologyObjectType.ENCLOSURE]: PLANE_COLORS.topology,
+  [OntologyObjectType.DISK]: PLANE_COLORS.topology,
+  [OntologyObjectType.REPLICATION_SESSION]: PLANE_COLORS.topology,
+  [OntologyObjectType.REMOTE_DEVICE]: PLANE_COLORS.topology,
   [OntologyObjectType.KNOWLEDGE]: PLANE_COLORS.knowledge,
   [OntologyObjectType.OBSERVATION]: '#38bdf8',
   [OntologyObjectType.FACT]: STATUS_COLORS.evidence,
@@ -141,6 +160,24 @@ const TYPE_COLOR: Record<OntologyObjectType, string> = {
   [OntologyObjectType.DECISION]: STATUS_COLORS.recovered,
   [OntologyObjectType.SCENARIO]: '#c084fc',
 }
+
+/** 资源类 ObjectType 集合（ASSET + 细粒度资源）→ 拓扑平面；其余 → 知识平面。 */
+const RESOURCE_OBJECT_TYPES = new Set<OntologyObjectType>([
+  OntologyObjectType.ASSET,
+  OntologyObjectType.BUSINESS_SERVICE,
+  OntologyObjectType.HOST,
+  OntologyObjectType.FABRIC,
+  OntologyObjectType.PORT,
+  OntologyObjectType.STORAGE_SYSTEM,
+  OntologyObjectType.CONTROLLER,
+  OntologyObjectType.SERVICE,
+  OntologyObjectType.LUN,
+  OntologyObjectType.POOL,
+  OntologyObjectType.ENCLOSURE,
+  OntologyObjectType.DISK,
+  OntologyObjectType.REPLICATION_SESSION,
+  OntologyObjectType.REMOTE_DEVICE,
+])
 
 const TYPE_X: Partial<Record<OntologyObjectType, number>> = {
   [OntologyObjectType.SCENARIO]: -220,
@@ -185,7 +222,7 @@ function nodeWeight(object: OntologyObject): number {
     return 1.8 + numberProperty(object, 'supportScore', 0) / 100
   }
   if (
-    object.type === OntologyObjectType.ASSET &&
+    RESOURCE_OBJECT_TYPES.has(object.type) &&
     ['BUSINESS', 'STORAGE_DEVICE', 'CONTROLLER', 'BLOCK_SERVICE'].includes(
       stringProperty(object, 'assetType'),
     )
@@ -198,7 +235,7 @@ function nodeWeight(object: OntologyObject): number {
 function toGraphNode(object: OntologyObject): GraphNode {
   const position = positionFor(object)
   const plane: Plane =
-    object.type === OntologyObjectType.ASSET ? 'topology' : 'knowledge'
+    RESOURCE_OBJECT_TYPES.has(object.type) ? 'topology' : 'knowledge'
   const group =
     plane === 'topology'
       ? stringProperty(object, 'spatialDomain', 'SCENARIO')
@@ -308,6 +345,7 @@ export function loadModelData(): ModelData {
     count: graph.nodes.filter((node) => node.group === code).length,
   }))
 
+  const deviceGroups = buildDeviceGroups(base.objects)
   cached = {
     registry,
     ...graph,
@@ -326,8 +364,28 @@ export function loadModelData(): ModelData {
       knowledge: graph.nodes.filter((node) => node.plane === 'knowledge').length,
       cross: graph.links.filter((link) => link.category === 'cross').length,
     },
+    deviceGroups,
   }
   return cached
+}
+
+/** 设备级聚合组构建（D3/§05）：按 object.properties.deviceId 分组（复用现有设备 id，不新增 CMDB ID）。 */
+function buildDeviceGroups(objects: OntologyObject[]): ModelData['deviceGroups'] {
+  const byDevice = new Map<string, string[]>()
+  for (const o of objects) {
+    const dev = o.properties.deviceId as string | undefined
+    if (dev && dev !== o.id) {
+      const arr = byDevice.get(dev) ?? []
+      arr.push(o.id)
+      byDevice.set(dev, arr)
+    }
+  }
+  const labelById = new Map(objects.map((o) => [o.id, o.label]))
+  return [...byDevice.entries()].map(([deviceId, memberIds]) => ({
+    deviceId,
+    label: labelById.get(deviceId) ?? deviceId,
+    memberIds,
+  }))
 }
 
 function visibleByDomain(node: GraphNode, filter: GraphFilter): boolean {
@@ -375,6 +433,8 @@ export function buildActiveGraph(model: ModelData, filter: GraphFilter): ActiveG
       .flatMap((link) => [link.sourceId, link.targetId]),
   )
 
+  const expandedDevices = filter.expandedDeviceIds ?? new Set<string>()
+  const criticalIds = filter.criticalObjectIds ?? new Set<string>()
   const nodes = graph.nodes.map((node) => {
     if (rootObjectIds.has(node.id)) return { ...node, color: STATUS_COLORS.fault }
     if (filter.lens === LensId.IMPACT && recoveredIds.has(node.id)) {
@@ -385,8 +445,11 @@ export function buildActiveGraph(model: ModelData, filter: GraphFilter): ActiveG
     return node
   }).filter((node) => {
     if (!visibleByDomain(node, filter)) return false
-    if (!filter.objectIds?.size) return true
-    return filter.objectIds.has(node.id)
+    if (filter.objectIds?.size && !filter.objectIds.has(node.id)) return false
+    // D3 设备级聚合：设备成员在设备收起时隐藏；关键对象（根因/焦点）保留（DETACHED_CRITICAL）。
+    const devId = node.object.properties.deviceId as string | undefined
+    if (devId && devId !== node.id && !expandedDevices.has(devId) && !criticalIds.has(node.id)) return false
+    return true
   })
   const visibleIds = new Set(nodes.map((node) => node.id))
   const links = graph.links.filter((link) => {

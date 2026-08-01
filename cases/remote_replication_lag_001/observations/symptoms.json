@@ -1,0 +1,7 @@
+{
+  "symptoms":[
+    {"symptom_id":"sym-rpo-high","source":"alarm","raw_description":"远程复制RPO从30秒升至12分钟","normalized_type":"REPLICATION_RPO_HIGH","object_id":"replication-session-rs01","detected_at":"2026-08-01T16:08:00.000+08:00","value":720,"unit":"s","baseline":30},
+    {"symptom_id":"sym-backlog-high","source":"kpi","raw_description":"待复制数据积压升至96GB","normalized_type":"REPLICATION_BACKLOG_HIGH","object_id":"replication-session-rs01","detected_at":"2026-08-01T16:08:00.000+08:00","value":96,"unit":"GB","baseline":0.8}
+  ],
+  "normalization_chain":["远程复制RPO超标","复制会话积压","容灾保护能力下降"]
+}

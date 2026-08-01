@@ -1,0 +1,6 @@
+{
+  "alarms":[
+    {"alarm_id":"alm-shared-queue-901","alarm_code":"CONTROLLER_QUEUE_PRESSURE","name":"控制器共享队列压力过高","object_id":"controller-0a","severity":"warning","occurred_at":"2026-08-01T10:16:05.000+08:00","cleared_at":"2026-08-01T10:19:35.000+08:00","status":"cleared","raw_fields":{"queue_depth":186,"threshold":120,"controller":"0A"}},
+    {"alarm_id":"alm-pool-bandwidth-902","alarm_code":"POOL_BANDWIDTH_SATURATED","name":"存储池后端带宽接近上限","object_id":"storage-pool-01","severity":"warning","occurred_at":"2026-08-01T10:16:10.000+08:00","cleared_at":"2026-08-01T10:19:40.000+08:00","status":"cleared","raw_fields":{"bandwidth_utilization_pct":97.0,"threshold_pct":90.0}}
+  ]
+}
