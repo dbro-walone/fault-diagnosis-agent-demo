@@ -1,0 +1,42 @@
+{
+  "case_id": "disk_raid_degrade_001",
+  "name": "SSD 磁盘扇区故障致 RAID 降级归档业务变慢",
+  "description": "storage-02 的 RAID 组中磁盘 disk-02a 发生扇区坏道，RAID 组降级并进入重建，重建期间 lun-arch02 归档业务 IO 时延升高。",
+  "fault_domain": "disk_failure",
+  "fault_mode_code": "DISK_RAID_DEGRADE",
+  "severity": "critical",
+  "scenario_tags": [
+    "磁盘故障",
+    "RAID降级",
+    "扇区坏道",
+    "归档业务",
+    "full_data",
+    "multi_evidence"
+  ],
+  "data_mode": "mock",
+  "data_disclaimer": "本案例数据用于原型演示，不代表真实环境实测结果",
+  "time_origin": "2026-08-01T09:45:00.000+08:00",
+  "observation_window": {
+    "start": "2026-08-01T09:44:50.000+08:00",
+    "end": "2026-08-01T09:45:40.000+08:00"
+  },
+  "trigger": {
+    "type": "kpi_anomaly",
+    "object_id": "lun-arch02",
+    "symptom_id": "sym-arch-latency-high"
+  },
+  "expected_duration_ms": 90000,
+  "supported_capabilities": [
+    "topology_playback",
+    "candidate_reasoning",
+    "evidence_drilldown",
+    "diagnosis_report"
+  ],
+  "future_capabilities": [
+    "repair_plan",
+    "approval",
+    "repair_execution",
+    "effect_verification",
+    "rollback"
+  ]
+}

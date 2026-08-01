@@ -1,0 +1,52 @@
+{
+  "edges": [
+    {
+      "edge_id": "e-host-02-arch-lun",
+      "source_id": "host-02",
+      "target_id": "lun-arch02",
+      "relation_type": "ACCESSES",
+      "direction": "directed",
+      "path_group": "arch-path"
+    },
+    {
+      "edge_id": "e-arch-lun-pool",
+      "source_id": "lun-arch02",
+      "target_id": "storage-pool-02",
+      "relation_type": "BACKED_BY",
+      "direction": "directed",
+      "path_group": "arch-path"
+    },
+    {
+      "edge_id": "e-pool-enclosure",
+      "source_id": "storage-pool-02",
+      "target_id": "disk-enclosure-02",
+      "relation_type": "BACKED_BY",
+      "direction": "directed",
+      "path_group": "arch-path"
+    },
+    {
+      "edge_id": "e-enclosure-disk-2a",
+      "source_id": "disk-enclosure-02",
+      "target_id": "disk-02a",
+      "relation_type": "CONTAINS",
+      "direction": "directed",
+      "path_group": "arch-path"
+    },
+    {
+      "edge_id": "e-enclosure-disk-2b",
+      "source_id": "disk-enclosure-02",
+      "target_id": "disk-02b",
+      "relation_type": "CONTAINS",
+      "direction": "directed",
+      "path_group": "arch-path"
+    },
+    {
+      "edge_id": "e-block-arch",
+      "source_id": "block-service-02",
+      "target_id": "lun-arch02",
+      "relation_type": "PROVIDES_SERVICE",
+      "direction": "directed",
+      "path_group": "arch-path"
+    }
+  ]
+}

@@ -37,6 +37,7 @@ const TYPE_LEXICON: Array<{ type: string; words: string[] }> = [
   { type: 'REPLICATION_RPO_HIGH', words: ['rpo', '远程复制', '容灾', '同步滞后', '复制滞后', '保护降级', 'recovery point'] },
   { type: 'REPLICATION_BACKLOG', words: ['积压', '堆积', '待复制', 'backlog'] },
   { type: 'LINK_LOSS', words: ['丢包', '重传', '链路', '拥塞', 'congestion'] },
+  { type: 'DISK_FAILURE', words: ['磁盘', '扇区', '坏道', 'raid', '降级', '重建', '盘故障'] },
 ]
 
 const OBJECT_LEXICON: Array<{ canonical: string; words: string[] }> = [
@@ -153,6 +154,8 @@ function profileTypes(faultModeCode: string | null): string[] {
   if (code.includes('RESET')) return ['CONTROLLER_RESET', 'LATENCY_SPIKE']
   if (code.includes('NOISY_NEIGHBOR')) return ['NOISY_NEIGHBOR', 'IO_BURST', 'LATENCY_SPIKE']
   if (code.includes('REPLICATION')) return ['REPLICATION_RPO_HIGH', 'LINK_LOSS', 'REPLICATION_BACKLOG']
+  // 磁盘故障：区分信号是磁盘/RAID/扇区词，而非通用时延（避免抢占其他场景的时延现象）。
+  if (code.includes('DISK') || code.includes('RAID')) return ['DISK_FAILURE']
   return []
 }
 

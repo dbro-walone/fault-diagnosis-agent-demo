@@ -1,0 +1,40 @@
+{
+  "candidates": [
+    {
+      "candidate_id": "cand-disk-failure",
+      "fault_mode_code": "DISK_RAID_DEGRADE",
+      "object_id": "disk-02a",
+      "display_name": "磁盘扇区故障致 RAID 降级",
+      "initial_confidence": 0.35,
+      "generation_basis": [
+        "sym-arch-latency-high",
+        "pattern-disk-fault"
+      ],
+      "status": "confirmed"
+    },
+    {
+      "candidate_id": "cand-lun-contention",
+      "fault_mode_code": "LUN_IO_CONTENTION",
+      "object_id": "lun-arch02",
+      "display_name": "归档业务 IO 争抢",
+      "initial_confidence": 0.25,
+      "generation_basis": [
+        "sym-arch-latency-high",
+        "pattern-io-contention"
+      ],
+      "status": "excluded"
+    },
+    {
+      "candidate_id": "cand-host-bottleneck",
+      "fault_mode_code": "HOST_RESOURCE_BOTTLENECK",
+      "object_id": "host-02",
+      "display_name": "主机自身瓶颈",
+      "initial_confidence": 0.2,
+      "generation_basis": [
+        "sym-arch-latency-high",
+        "pattern-host-bottleneck"
+      ],
+      "status": "excluded"
+    }
+  ]
+}

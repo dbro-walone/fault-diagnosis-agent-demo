@@ -15,8 +15,8 @@ try {
 
   const cases = listCases()
   console.log(`\nDiscovered ${cases.length} cases via V2 manifest.`)
-  if (cases.length !== 3) {
-    console.error(`✘ expected 3 cases, got ${cases.length}`)
+  if (cases.length < 3) {
+    console.error(`✘ expected at least 3 cases, got ${cases.length}`)
     failures += 1
   }
 

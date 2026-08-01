@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "updated_at": "2026-08-01T20:00:00+09:00",
+  "updated_at": "2026-08-02T09:00:00+09:00",
   "cases": [
     {
       "case_id": "controller_warm_reset_001",
@@ -21,6 +21,13 @@
       "path": "remote_replication_lag_001",
       "name": "复制网络丢包导致远程复制RPO超标",
       "fault_mode_code": "REMOTE_REPLICATION_NETWORK_CONGESTION",
+      "status": "VALIDATED"
+    },
+    {
+      "case_id": "disk_raid_degrade_001",
+      "path": "disk_raid_degrade_001",
+      "name": "SSD 磁盘扇区故障致 RAID 降级归档业务变慢",
+      "fault_mode_code": "DISK_RAID_DEGRADE",
       "status": "VALIDATED"
     }
   ]
