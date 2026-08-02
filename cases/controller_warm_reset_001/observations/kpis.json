@@ -1,0 +1,42 @@
+{
+  "series": [
+    {
+      "series_id":"kpi-controller-0a-throughput","object_id":"controller-0a","indicator_id":"controller_io_throughput","name":"Controller-0A I/O吞吐","unit":"GB/s","sample_interval_ms":1000,
+      "baseline":{"value":8.4,"method":"mock_pre_fault_mean"},"thresholds":{"warning_low":2.0,"critical_low":0.5},
+      "points":[
+        {"timestamp":"2026-07-30T14:32:15.000+08:00","value":8.2,"quality":"good"},{"timestamp":"2026-07-30T14:32:16.000+08:00","value":8.4,"quality":"good"},{"timestamp":"2026-07-30T14:32:17.000+08:00","value":7.9,"quality":"good"},{"timestamp":"2026-07-30T14:32:18.000+08:00","value":0.0,"quality":"good"},{"timestamp":"2026-07-30T14:32:19.000+08:00","value":0.0,"quality":"good"},{"timestamp":"2026-07-30T14:32:20.000+08:00","value":0.0,"quality":"good"},{"timestamp":"2026-07-30T14:32:21.000+08:00","value":0.0,"quality":"good"},{"timestamp":"2026-07-30T14:32:22.000+08:00","value":0.0,"quality":"good"},{"timestamp":"2026-07-30T14:32:23.000+08:00","value":0.6,"quality":"good"},{"timestamp":"2026-07-30T14:32:24.000+08:00","value":0.9,"quality":"good"}
+      ],
+      "annotations":[{"timestamp":"2026-07-30T14:32:18.000+08:00","type":"anomaly_drop","label":"吞吐降为0"}]
+    },
+    {
+      "series_id":"kpi-controller-0b-throughput","object_id":"controller-0b","indicator_id":"controller_io_throughput","name":"Controller-0B I/O吞吐","unit":"GB/s","sample_interval_ms":1000,
+      "baseline":{"value":7.9,"method":"mock_pre_fault_mean"},"thresholds":{"warning_high":14.0,"critical_high":18.0},
+      "points":[
+        {"timestamp":"2026-07-30T14:32:15.000+08:00","value":7.8,"quality":"good"},{"timestamp":"2026-07-30T14:32:16.000+08:00","value":7.9,"quality":"good"},{"timestamp":"2026-07-30T14:32:17.000+08:00","value":8.0,"quality":"good"},{"timestamp":"2026-07-30T14:32:18.000+08:00","value":9.6,"quality":"good"},{"timestamp":"2026-07-30T14:32:19.000+08:00","value":12.8,"quality":"good"},{"timestamp":"2026-07-30T14:32:20.000+08:00","value":14.7,"quality":"good"},{"timestamp":"2026-07-30T14:32:21.000+08:00","value":15.6,"quality":"good"},{"timestamp":"2026-07-30T14:32:22.000+08:00","value":15.5,"quality":"good"},{"timestamp":"2026-07-30T14:32:23.000+08:00","value":15.4,"quality":"good"},{"timestamp":"2026-07-30T14:32:24.000+08:00","value":15.3,"quality":"good"}
+      ],
+      "annotations":[{"timestamp":"2026-07-30T14:32:21.000+08:00","type":"takeover_peak","label":"接管0A业务"}]
+    },
+    {
+      "series_id":"kpi-lun-db01-latency","object_id":"lun-db01","indicator_id":"lun_avg_latency","name":"LUN平均时延","unit":"ms","sample_interval_ms":1000,
+      "baseline":{"value":1.8,"method":"mock_pre_fault_mean"},"thresholds":{"warning":10.0,"critical":30.0},
+      "points":[
+        {"timestamp":"2026-07-30T14:32:15.000+08:00","value":1.7,"quality":"good"},{"timestamp":"2026-07-30T14:32:16.000+08:00","value":1.8,"quality":"good"},{"timestamp":"2026-07-30T14:32:17.000+08:00","value":1.8,"quality":"good"},{"timestamp":"2026-07-30T14:32:18.000+08:00","value":38.6,"quality":"good"},{"timestamp":"2026-07-30T14:32:19.000+08:00","value":31.4,"quality":"good"},{"timestamp":"2026-07-30T14:32:20.000+08:00","value":24.7,"quality":"good"},{"timestamp":"2026-07-30T14:32:21.000+08:00","value":16.2,"quality":"good"},{"timestamp":"2026-07-30T14:32:22.000+08:00","value":8.4,"quality":"good"},{"timestamp":"2026-07-30T14:32:23.000+08:00","value":3.1,"quality":"good"},{"timestamp":"2026-07-30T14:32:24.000+08:00","value":1.9,"quality":"good"}
+      ],
+      "annotations":[{"timestamp":"2026-07-30T14:32:18.000+08:00","type":"anomaly_peak","label":"时延突增38.6ms"},{"timestamp":"2026-07-30T14:32:24.000+08:00","type":"recovered","label":"恢复至基线"}]
+    },
+    {
+      "series_id":"kpi-fc-port-0a-crc","object_id":"fc-port-0a","indicator_id":"fc_crc_error_delta","name":"FC端口CRC错误增量","unit":"count","sample_interval_ms":1000,
+      "baseline":{"value":0,"method":"mock_pre_fault_mean"},"thresholds":{"warning":1,"critical":10},
+      "points":[
+        {"timestamp":"2026-07-30T14:32:17.000+08:00","value":0,"quality":"good"},{"timestamp":"2026-07-30T14:32:18.000+08:00","value":0,"quality":"good"},{"timestamp":"2026-07-30T14:32:19.000+08:00","value":0,"quality":"good"},{"timestamp":"2026-07-30T14:32:20.000+08:00","value":0,"quality":"good"},{"timestamp":"2026-07-30T14:32:21.000+08:00","value":0,"quality":"good"},{"timestamp":"2026-07-30T14:32:22.000+08:00","value":0,"quality":"good"},{"timestamp":"2026-07-30T14:32:23.000+08:00","value":0,"quality":"good"}
+      ],"annotations":[]
+    },
+    {
+      "series_id":"kpi-pool-utilization","object_id":"storage-pool-01","indicator_id":"pool_utilization","name":"Storage Pool利用率","unit":"%","sample_interval_ms":1000,
+      "baseline":{"value":63.2,"method":"mock_pre_fault_mean"},"thresholds":{"warning":80,"critical":90},
+      "points":[
+        {"timestamp":"2026-07-30T14:32:17.000+08:00","value":63.2,"quality":"good"},{"timestamp":"2026-07-30T14:32:18.000+08:00","value":63.2,"quality":"good"},{"timestamp":"2026-07-30T14:32:19.000+08:00","value":63.3,"quality":"good"},{"timestamp":"2026-07-30T14:32:20.000+08:00","value":63.3,"quality":"good"},{"timestamp":"2026-07-30T14:32:21.000+08:00","value":63.2,"quality":"good"},{"timestamp":"2026-07-30T14:32:22.000+08:00","value":63.2,"quality":"good"},{"timestamp":"2026-07-30T14:32:23.000+08:00","value":63.2,"quality":"good"}
+      ],"annotations":[]
+    }
+  ]
+}

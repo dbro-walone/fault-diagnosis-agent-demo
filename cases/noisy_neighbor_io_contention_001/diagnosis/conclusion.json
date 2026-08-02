@@ -1,0 +1,10 @@
+{
+  "diagnosis_id":"diag-noisy-neighbor-001","status":"confirmed","completed_at":"2026-08-01T10:20:14.000+08:00",
+  "root_cause":{"candidate_id":"cand-noisy-neighbor-a","object_id":"host-a","fault_mode_code":"NOISY_NEIGHBOR_IO_CONTENTION","confidence":0.96},
+  "root_cause_chain":["host-a","lun-a","controller-0a","storage-pool-01"],"impact_chain":["controller-0a","storage-pool-01","lun-b","host-b","business-b"],"recovery_chain":["host-a","storage-pool-01","lun-b","business-b"],
+  "excluded_candidates":["cand-host-b-overload","cand-fc-link-b","cand-controller-pressure","cand-pool-bottleneck"],
+  "diagnosis_summary":"Host-A月结批处理使LUN-A IOPS由18K升至165K、吞吐升至9.4GB/s，占满共享Controller-0A队列和StoragePool-01后端带宽，导致需求未增加的LUN-B时延由3.2ms升至42ms；Host-A任务结束后共享压力和Host-B时延恢复。",
+  "key_evidence_refs":["ev-shared-path","ev-shared-queue-high","ev-a-iops-surge","ev-a-batch-log","ev-recovery-closure"],
+  "business_impact":{"object_id":"business-b","level":"degraded","duration_ms":210000,"description":"Host-B在线交易响应变慢，无业务中断；Host-A业务为共享资源施压者"},
+  "current_capability_boundary":"diagnosis_completed","repair":{"status":"future_capability","display_mode":"dimmed","items":["对Host-A配置QoS","错峰执行批处理","审批与执行","效果验证"]}
+}

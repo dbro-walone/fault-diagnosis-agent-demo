@@ -1,0 +1,11 @@
+{
+  "fingerprints": [
+    {"fingerprint_id":"fp-ctrl-warm-reset-017","name":"控制器Watchdog超时热复位","template":"controller <*> warm reset triggered, reason=<WATCHDOG_TIMEOUT>, service=<BLOCK>","fault_mode_codes":["CONTROLLER_WARM_RESET"],"window":{"start":"2026-07-30T14:32:16.000+08:00","end":"2026-07-30T14:32:20.000+08:00"},"hit_count":7,"matched_log_ids":["log-00015","log-00016","log-00017","log-00018","log-00019","log-00020","log-00021"]},
+    {"fingerprint_id":"fp-watchdog-delay-003","name":"Watchdog心跳延迟","template":"watchdog heartbeat delayed, controller=<*>, delay_ms=<NUM>","fault_mode_codes":["CONTROLLER_WARM_RESET"],"window":{"start":"2026-07-30T14:32:16.000+08:00","end":"2026-07-30T14:32:18.000+08:00"},"hit_count":2,"matched_log_ids":["log-00011","log-00012"]},
+    {"fingerprint_id":"fp-watchdog-timeout-011","name":"Watchdog超时","template":"watchdog timeout detected, controller=<*>, timeout_ms=<NUM>","fault_mode_codes":["CONTROLLER_WARM_RESET"],"window":{"start":"2026-07-30T14:32:17.000+08:00","end":"2026-07-30T14:32:18.000+08:00"},"hit_count":1,"matched_log_ids":["log-00013"]},
+    {"fingerprint_id":"fp-block-heartbeat-lost-006","name":"块服务心跳丢失","template":"block service heartbeat lost from controller <*>","fault_mode_codes":["CONTROLLER_WARM_RESET"],"window":{"start":"2026-07-30T14:32:17.000+08:00","end":"2026-07-30T14:32:18.000+08:00"},"hit_count":1,"matched_log_ids":["log-00014"]},
+    {"fingerprint_id":"fp-block-failover-008","name":"块服务开始切换","template":"failover started, from=<*>, to=<*>","fault_mode_codes":["CONTROLLER_WARM_RESET"],"window":{"start":"2026-07-30T14:32:18.000+08:00","end":"2026-07-30T14:32:19.000+08:00"},"hit_count":1,"matched_log_ids":["log-00022"]},
+    {"fingerprint_id":"fp-block-failover-complete-009","name":"块服务切换完成","template":"failover completed, active=<*>, duration_ms=<NUM>","fault_mode_codes":["CONTROLLER_WARM_RESET"],"window":{"start":"2026-07-30T14:32:22.000+08:00","end":"2026-07-30T14:32:23.000+08:00"},"hit_count":1,"matched_log_ids":["log-00023"]},
+    {"fingerprint_id":"fp-controller-recovered-010","name":"控制器热复位完成","template":"controller <*> warm reset completed, state=<*>","fault_mode_codes":["CONTROLLER_WARM_RESET"],"window":{"start":"2026-07-30T14:32:23.000+08:00","end":"2026-07-30T14:32:24.000+08:00"},"hit_count":1,"matched_log_ids":["log-00024"]}
+  ]
+}

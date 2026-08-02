@@ -3,26 +3,20 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>故障诊断 Agent — 认知模型与探索式诊断</title>
+    <title>故障诊断 Agent — V2 Runtime</title>
     <style>
       * { margin: 0; padding: 0; box-sizing: border-box; }
-      html, body, #root { width: 100%; height: 100%; overflow: hidden; }
+      html, body, #root { width: 100%; height: 100%; }
       body {
         font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', Roboto, sans-serif;
         background: #0f1117;
         color: #e2e8f0;
-      }
-      #app-loading {
-        position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
-        background: #0f1117; z-index: 9999; color: #64748b;
-        font-size: 14px; letter-spacing: 0.05em;
+        overflow: hidden;
       }
     </style>
-  </body>
+  </head>
   <body>
-    <div id="root">
-      <div id="app-loading">正在初始化故障认知模型…</div>
-    </div>
+    <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

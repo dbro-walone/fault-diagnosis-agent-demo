@@ -1,0 +1,7 @@
+{
+  "symptoms":[
+    {"symptom_id":"sym-business-b-slow","source":"user","raw_description":"Host-B上的交易业务突然变慢","normalized_type":"BUSINESS_LATENCY_HIGH","object_id":"business-b","detected_at":"2026-08-01T10:16:32.000+08:00","value":null,"unit":null,"baseline":null},
+    {"symptom_id":"sym-lun-b-latency-high","source":"kpi","raw_description":"LUN-B平均时延超过关键阈值","normalized_type":"LUN_LATENCY_HIGH","object_id":"lun-b","detected_at":"2026-08-01T10:16:30.000+08:00","value":42.0,"unit":"ms","baseline":3.2}
+  ],
+  "normalization_chain":["Host-B交易业务变慢","LUN-B时延升高","共享I/O路径压力"]
+}

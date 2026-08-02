@@ -1,0 +1,5 @@
+{
+  "schema_name":"dme-fault-case-package","schema_version":"1.0.0","case_id":"noisy_neighbor_io_contention_001","case_version":"1.0.0","created_at":"2026-08-01T16:00:00+08:00","data_mode":"mock","locale":"zh-CN","timezone":"Asia/Shanghai","entry_file":"case.json",
+  "files":["case.json","resources.json","topology.json","observations/symptoms.json","observations/alarms.json","observations/logs.json","observations/log_fingerprints.json","observations/kpis.json","knowledge/fault_patterns.json","knowledge/similar_cases.json","diagnosis/candidates.json","diagnosis/tasks.json","diagnosis/evidence.json","diagnosis/confidence_trace.json","diagnosis/conclusion.json","playback/storyboard.json","assets/README.md","README.md"],
+  "compatible_player":">=1.0.0 <2.0.0"
+}

@@ -5,3 +5,5 @@ dist/
 .vite/
 verify-pipeline.mjs
 src/three-global.ts.deprecated
+coverage/
+schemas/generated/

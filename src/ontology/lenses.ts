@@ -26,12 +26,30 @@ const TOPOLOGY_LINKS = [
   OntologyLinkType.INSTANCE_OF,
 ]
 
+/** 资源类对象类型（docs/03 §3）；拓扑/诊断视图均投影这些（D2 细粒度化后适配）。 */
+const RESOURCE_TYPES: OntologyObjectType[] = [
+  OntologyObjectType.ASSET,
+  OntologyObjectType.BUSINESS_SERVICE,
+  OntologyObjectType.HOST,
+  OntologyObjectType.FABRIC,
+  OntologyObjectType.PORT,
+  OntologyObjectType.STORAGE_SYSTEM,
+  OntologyObjectType.CONTROLLER,
+  OntologyObjectType.SERVICE,
+  OntologyObjectType.LUN,
+  OntologyObjectType.POOL,
+  OntologyObjectType.ENCLOSURE,
+  OntologyObjectType.DISK,
+  OntologyObjectType.REPLICATION_SESSION,
+  OntologyObjectType.REMOTE_DEVICE,
+]
+
 export const LENS_DEFINITIONS: Record<LensId, LensDefinition> = {
   [LensId.TOPOLOGY]: {
     id: LensId.TOPOLOGY,
     label: 'Topology',
     description: '资产、访问路径、冗余关系与对象类型映射',
-    primaryObjectTypes: [OntologyObjectType.ASSET],
+    primaryObjectTypes: RESOURCE_TYPES,
     linkTypes: TOPOLOGY_LINKS,
     includeLinkedContext: true,
   },
@@ -59,7 +77,7 @@ export const LENS_DEFINITIONS: Record<LensId, LensDefinition> = {
     label: 'Diagnosis',
     description: '事实、证据、候选、计划与当前收敛状态',
     primaryObjectTypes: [
-      OntologyObjectType.ASSET,
+      ...RESOURCE_TYPES,
       OntologyObjectType.SCENARIO,
       OntologyObjectType.OBSERVATION,
       OntologyObjectType.FACT,
@@ -193,15 +211,15 @@ export function projectLens(snapshot: OntologySnapshot, lensId: LensId): Ontolog
     const target = objectById.get(link.targetId)
     if (!source || !target) return false
     if (
-      source.type === OntologyObjectType.ASSET &&
-      target.type === OntologyObjectType.ASSET
+      RESOURCE_TYPES.includes(source.type) &&
+      RESOURCE_TYPES.includes(target.type)
     ) {
       return true
     }
     return (
       link.type === OntologyLinkType.INSTANCE_OF &&
-      ((source.type === OntologyObjectType.ASSET && isTopologyContext(target)) ||
-        (target.type === OntologyObjectType.ASSET && isTopologyContext(source)))
+      ((RESOURCE_TYPES.includes(source.type) && isTopologyContext(target)) ||
+        (RESOURCE_TYPES.includes(target.type) && isTopologyContext(source)))
     )
   })
 

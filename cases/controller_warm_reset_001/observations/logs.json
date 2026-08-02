@@ -1,0 +1,18 @@
+{
+  "logs": [
+    {"log_id":"log-00011","timestamp":"2026-07-30T14:32:16.902+08:00","object_id":"controller-0a","level":"WARN","component":"watchdog","message":"watchdog heartbeat delayed, controller=0A, delay_ms=842","fingerprint_id":"fp-watchdog-delay-003"},
+    {"log_id":"log-00012","timestamp":"2026-07-30T14:32:17.104+08:00","object_id":"controller-0a","level":"WARN","component":"watchdog","message":"watchdog heartbeat delayed, controller=0A, delay_ms=1096","fingerprint_id":"fp-watchdog-delay-003"},
+    {"log_id":"log-00013","timestamp":"2026-07-30T14:32:17.302+08:00","object_id":"controller-0a","level":"ERROR","component":"watchdog","message":"watchdog timeout detected, controller=0A, timeout_ms=3000","fingerprint_id":"fp-watchdog-timeout-011"},
+    {"log_id":"log-00014","timestamp":"2026-07-30T14:32:17.511+08:00","object_id":"controller-0a","level":"ERROR","component":"block_service","message":"block service heartbeat lost from controller 0A","fingerprint_id":"fp-block-heartbeat-lost-006"},
+    {"log_id":"log-00015","timestamp":"2026-07-30T14:32:17.615+08:00","object_id":"controller-0a","level":"WARN","component":"controller","message":"controller 0A warm reset triggered, reason=watchdog_timeout, service=block","fingerprint_id":"fp-ctrl-warm-reset-017"},
+    {"log_id":"log-00016","timestamp":"2026-07-30T14:32:17.704+08:00","object_id":"controller-0a","level":"WARN","component":"controller","message":"controller 0A warm reset triggered, reason=watchdog_timeout, service=block","fingerprint_id":"fp-ctrl-warm-reset-017"},
+    {"log_id":"log-00017","timestamp":"2026-07-30T14:32:17.781+08:00","object_id":"controller-0a","level":"WARN","component":"controller","message":"controller 0A warm reset triggered, reason=watchdog_timeout, service=block","fingerprint_id":"fp-ctrl-warm-reset-017"},
+    {"log_id":"log-00018","timestamp":"2026-07-30T14:32:17.911+08:00","object_id":"controller-0a","level":"WARN","component":"controller","message":"controller 0A warm reset triggered, reason=watchdog_timeout, service=block","fingerprint_id":"fp-ctrl-warm-reset-017"},
+    {"log_id":"log-00019","timestamp":"2026-07-30T14:32:18.042+08:00","object_id":"controller-0a","level":"WARN","component":"controller","message":"controller 0A warm reset triggered, reason=watchdog_timeout, service=block","fingerprint_id":"fp-ctrl-warm-reset-017"},
+    {"log_id":"log-00020","timestamp":"2026-07-30T14:32:18.183+08:00","object_id":"controller-0a","level":"WARN","component":"controller","message":"controller 0A warm reset triggered, reason=watchdog_timeout, service=block","fingerprint_id":"fp-ctrl-warm-reset-017"},
+    {"log_id":"log-00021","timestamp":"2026-07-30T14:32:18.321+08:00","object_id":"controller-0a","level":"WARN","component":"controller","message":"controller 0A warm reset triggered, reason=watchdog_timeout, service=block","fingerprint_id":"fp-ctrl-warm-reset-017"},
+    {"log_id":"log-00022","timestamp":"2026-07-30T14:32:18.350+08:00","object_id":"block-service-01","level":"INFO","component":"block_service","message":"failover started, from=controller-0A, to=controller-0B","fingerprint_id":"fp-block-failover-008"},
+    {"log_id":"log-00023","timestamp":"2026-07-30T14:32:22.900+08:00","object_id":"block-service-01","level":"INFO","component":"block_service","message":"failover completed, active=controller-0B, duration_ms=4550","fingerprint_id":"fp-block-failover-complete-009"},
+    {"log_id":"log-00024","timestamp":"2026-07-30T14:32:23.106+08:00","object_id":"controller-0a","level":"INFO","component":"controller","message":"controller 0A warm reset completed, state=standby","fingerprint_id":"fp-controller-recovered-010"}
+  ]
+}

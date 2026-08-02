@@ -1,0 +1,11 @@
+{
+  "logs":[
+    {"log_id":"rr-log-001","timestamp":"2026-08-01T16:03:05.000+08:00","object_id":"wan-path-01","level":"WARN","component":"network_monitor","message":"replication path congestion detected, path=Replication-WAN-01, utilization_pct=98.2","fingerprint_id":"fp-wan-congestion-001"},
+    {"log_id":"rr-log-002","timestamp":"2026-08-01T16:03:30.000+08:00","object_id":"wan-path-01","level":"ERROR","component":"network_monitor","message":"packet loss threshold exceeded, path=Replication-WAN-01, loss_pct=4.8, threshold_pct=1.0","fingerprint_id":"fp-wan-packet-loss-002"},
+    {"log_id":"rr-log-003","timestamp":"2026-08-01T16:03:45.000+08:00","object_id":"replication-session-rs01","level":"WARN","component":"replication_protocol","message":"retransmission rate high, session=RS01, retransmits_per_sec=3200","fingerprint_id":"fp-repl-retransmit-003"},
+    {"log_id":"rr-log-004","timestamp":"2026-08-01T16:04:00.000+08:00","object_id":"replication-session-rs01","level":"WARN","component":"replication_engine","message":"effective throughput degraded, session=RS01, throughput_gbps=0.35","fingerprint_id":"fp-repl-throughput-low-004"},
+    {"log_id":"rr-log-005","timestamp":"2026-08-01T16:05:30.000+08:00","object_id":"replication-session-rs01","level":"ERROR","component":"replication_engine","message":"replication session degraded, session=RS01, backlog_gb=54, rpo_seconds=360","fingerprint_id":"fp-session-degraded-005"},
+    {"log_id":"rr-log-006","timestamp":"2026-08-01T16:10:00.000+08:00","object_id":"wan-path-01","level":"INFO","component":"network_monitor","message":"replication path recovered, path=Replication-WAN-01, loss_pct=0.02","fingerprint_id":"fp-wan-recovered-006"},
+    {"log_id":"rr-log-007","timestamp":"2026-08-01T16:14:00.000+08:00","object_id":"replication-session-rs01","level":"INFO","component":"replication_engine","message":"replication session healthy, session=RS01, backlog_gb=2.1, rpo_seconds=45","fingerprint_id":"fp-session-healthy-007"}
+  ]
+}

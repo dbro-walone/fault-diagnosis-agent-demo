@@ -1,0 +1,34 @@
+{
+  "schema_version": "1.0",
+  "updated_at": "2026-08-02T09:00:00+09:00",
+  "cases": [
+    {
+      "case_id": "controller_warm_reset_001",
+      "path": "controller_warm_reset_001",
+      "name": "Controller-0A 热复位导致块业务时延突增",
+      "fault_mode_code": "CONTROLLER_WARM_RESET",
+      "status": "VALIDATED"
+    },
+    {
+      "case_id": "noisy_neighbor_io_contention_001",
+      "path": "noisy_neighbor_io_contention_001",
+      "name": "Host-A I/O突增扰邻Host-B交易业务",
+      "fault_mode_code": "NOISY_NEIGHBOR_IO_CONTENTION",
+      "status": "VALIDATED"
+    },
+    {
+      "case_id": "remote_replication_lag_001",
+      "path": "remote_replication_lag_001",
+      "name": "复制网络丢包导致远程复制RPO超标",
+      "fault_mode_code": "REMOTE_REPLICATION_NETWORK_CONGESTION",
+      "status": "VALIDATED"
+    },
+    {
+      "case_id": "disk_raid_degrade_001",
+      "path": "disk_raid_degrade_001",
+      "name": "SSD 磁盘扇区故障致 RAID 降级归档业务变慢",
+      "fault_mode_code": "DISK_RAID_DEGRADE",
+      "status": "VALIDATED"
+    }
+  ]
+}

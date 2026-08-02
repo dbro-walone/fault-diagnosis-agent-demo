@@ -1,0 +1,15 @@
+{
+  "diagnosis_id":"diag-controller-warm-reset-001",
+  "status":"confirmed",
+  "completed_at":"2026-07-30T14:32:27.100+08:00",
+  "root_cause":{"candidate_id":"cand-controller-warm-reset","object_id":"controller-0a","fault_mode_code":"CONTROLLER_WARM_RESET","confidence":0.96},
+  "root_cause_chain":["controller-0a","block-service-01"],
+  "impact_chain":["block-service-01","lun-db01","db-business-01"],
+  "recovery_chain":["controller-0b","block-service-01","lun-db01"],
+  "excluded_candidates":["cand-fc-link-flap","cand-san-link-fault","cand-pool-bottleneck"],
+  "diagnosis_summary":"Controller-0A因watchdog超时发生热复位，Block Service从Controller-0A切换至Controller-0B，导致LUN-DB01平均时延由1.8ms短时升至38.6ms；切换完成后时延恢复。",
+  "key_evidence_refs":["ev-controller-reset-alarm","ev-warm-reset-fingerprint","ev-controller-throughput-zero","ev-controller0b-takeover","ev-topology-failover"],
+  "business_impact":{"object_id":"db-business-01","level":"degraded","duration_ms":5880,"description":"数据库访问性能短时下降，无持续业务中断"},
+  "current_capability_boundary":"diagnosis_completed",
+  "repair":{"status":"future_capability","display_mode":"dimmed","items":["生成处置方案","风险评估与人工审批","执行修复操作","业务效果验证","失败回退"]}
+}

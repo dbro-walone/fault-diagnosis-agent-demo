@@ -1,0 +1,9 @@
+{
+  "fault_patterns":[
+    {"pattern_id":"pattern-noisy-neighbor","fault_mode_code":"NOISY_NEIGHBOR_IO_CONTENTION","name":"共享存储I/O扰邻","applicable_resource_types":["HOST","LUN","CONTROLLER","STORAGE_POOL"],"symptom_types":["BUSINESS_LATENCY_HIGH","LUN_LATENCY_HIGH"],"expected_signals":["sibling consumer workload surge","shared queue pressure","victim latency high without demand increase","recovery after aggressor stops"],"generation_weight":0.30},
+    {"pattern_id":"pattern-host-b-overload","fault_mode_code":"HOST_RESOURCE_BOTTLENECK","name":"Host-B自身资源瓶颈","applicable_resource_types":["HOST"],"symptom_types":["BUSINESS_LATENCY_HIGH"],"expected_signals":["host CPU or memory high","application errors"],"generation_weight":0.25},
+    {"pattern_id":"pattern-fc-link-fault","fault_mode_code":"FC_LINK_FAULT","name":"Host-B FC链路异常","applicable_resource_types":["FC_PORT","SAN_FABRIC"],"symptom_types":["LUN_LATENCY_HIGH"],"expected_signals":["CRC increment","link down/up","path degradation"],"generation_weight":0.20},
+    {"pattern_id":"pattern-controller-overload","fault_mode_code":"CONTROLLER_OVERLOAD","name":"控制器故障或过载","applicable_resource_types":["CONTROLLER"],"symptom_types":["LUN_LATENCY_HIGH"],"expected_signals":["queue high","controller alarm","multiple consumers affected"],"generation_weight":0.15},
+    {"pattern_id":"pattern-pool-bottleneck","fault_mode_code":"POOL_PERFORMANCE_BOTTLENECK","name":"存储池固有性能瓶颈","applicable_resource_types":["STORAGE_POOL"],"symptom_types":["LUN_LATENCY_HIGH"],"expected_signals":["backend latency high","disk fault or rebuild","persistent pressure"],"generation_weight":0.10}
+  ]
+}

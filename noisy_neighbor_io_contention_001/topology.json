@@ -1,0 +1,18 @@
+{
+  "edges":[
+    {"edge_id":"e-business-a-host-a","source_id":"business-a","target_id":"host-a","relation_type":"RUNS_ON","direction":"directed","path_group":"path-a","redundancy_group":null,"state":"normal","valid_from":null,"valid_to":null},
+    {"edge_id":"e-business-b-host-b","source_id":"business-b","target_id":"host-b","relation_type":"RUNS_ON","direction":"directed","path_group":"path-b","redundancy_group":null,"state":"normal","valid_from":null,"valid_to":null},
+    {"edge_id":"e-host-a-san","source_id":"host-a","target_id":"san-fabric-01","relation_type":"ACCESSES","direction":"directed","path_group":"path-a","redundancy_group":null,"state":"normal","valid_from":null,"valid_to":null},
+    {"edge_id":"e-host-b-san","source_id":"host-b","target_id":"san-fabric-01","relation_type":"ACCESSES","direction":"directed","path_group":"path-b","redundancy_group":null,"state":"normal","valid_from":null,"valid_to":null},
+    {"edge_id":"e-san-fc","source_id":"san-fabric-01","target_id":"fc-port-0a","relation_type":"PHYSICAL_CONNECTS","direction":"directed","path_group":"shared-front-end","redundancy_group":null,"state":"normal","valid_from":null,"valid_to":null},
+    {"edge_id":"e-fc-controller","source_id":"fc-port-0a","target_id":"controller-0a","relation_type":"DEPENDS_ON","direction":"directed","path_group":"shared-front-end","redundancy_group":null,"state":"normal","valid_from":null,"valid_to":null},
+    {"edge_id":"e-host-a-lun-a","source_id":"host-a","target_id":"lun-a","relation_type":"ACCESSES","direction":"directed","path_group":"path-a","redundancy_group":null,"state":"normal","valid_from":null,"valid_to":null},
+    {"edge_id":"e-host-b-lun-b","source_id":"host-b","target_id":"lun-b","relation_type":"ACCESSES","direction":"directed","path_group":"path-b","redundancy_group":null,"state":"normal","valid_from":null,"valid_to":null},
+    {"edge_id":"e-lun-a-controller","source_id":"lun-a","target_id":"controller-0a","relation_type":"SERVED_BY","direction":"directed","path_group":"path-a","redundancy_group":"shared-controller","state":"normal","valid_from":null,"valid_to":null},
+    {"edge_id":"e-lun-b-controller","source_id":"lun-b","target_id":"controller-0a","relation_type":"SERVED_BY","direction":"directed","path_group":"path-b","redundancy_group":"shared-controller","state":"normal","valid_from":null,"valid_to":null},
+    {"edge_id":"e-lun-a-pool","source_id":"lun-a","target_id":"storage-pool-01","relation_type":"BACKED_BY","direction":"directed","path_group":"path-a","redundancy_group":"shared-pool","state":"normal","valid_from":null,"valid_to":null},
+    {"edge_id":"e-lun-b-pool","source_id":"lun-b","target_id":"storage-pool-01","relation_type":"BACKED_BY","direction":"directed","path_group":"path-b","redundancy_group":"shared-pool","state":"normal","valid_from":null,"valid_to":null},
+    {"edge_id":"e-lun-a-shares-lun-b","source_id":"lun-a","target_id":"lun-b","relation_type":"SHARES_RESOURCE_WITH","direction":"undirected","path_group":"contention-path","redundancy_group":"shared-pool","state":"event","valid_from":"2026-08-01T10:15:00.000+08:00","valid_to":"2026-08-01T10:20:00.000+08:00"},
+    {"edge_id":"e-pool-disks","source_id":"storage-pool-01","target_id":"ssd-group-01","relation_type":"BACKED_BY","direction":"directed","path_group":"storage-backend","redundancy_group":null,"state":"normal","valid_from":null,"valid_to":null}
+  ]
+}

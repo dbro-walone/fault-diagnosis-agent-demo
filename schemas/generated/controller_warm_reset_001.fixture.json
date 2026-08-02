@@ -1,0 +1,3055 @@
+{
+  "schema_version": "2.0",
+  "session": {
+    "session_id": "session-controller_warm_reset_001",
+    "case_id": "controller_warm_reset_001",
+    "version": 64,
+    "last_sequence": 64,
+    "mode": "LIVE",
+    "phase": "CONCLUSION_CHECK",
+    "terminal_status": "ROOT_CAUSE_CONFIRMED",
+    "agent_focus": {
+      "source_type": "root_cause",
+      "source_id": "cand-controller-warm-reset",
+      "object_refs": [
+        "controller-0a",
+        "block-service-01"
+      ],
+      "path_refs": [
+        "block-service-01",
+        "lun-db01",
+        "db-business-01"
+      ]
+    }
+  },
+  "facts": [
+    {
+      "fact_id": "fact-alm-0a-78421",
+      "fact_type": "ALARM",
+      "object_refs": [
+        "controller-0a"
+      ],
+      "occurred_at": "2026-07-30T14:32:17.842+08:00",
+      "source": {
+        "execution_id": "exec-task-query-controller-alarm",
+        "skill_id": "alarm_query",
+        "source_refs": [
+          "alm-0a-78421"
+        ]
+      },
+      "payload": {
+        "alarm_code": "CONTROLLER_WARM_RESET",
+        "name": "控制器发生热复位",
+        "severity": "CRITICAL",
+        "occurred_at": "2026-07-30T14:32:17.842+08:00",
+        "cleared_at": "2026-07-30T14:32:23.106+08:00",
+        "status": "cleared",
+        "raw_fields": {
+          "reason": "watchdog_timeout",
+          "reset_type": "warm",
+          "service": "block",
+          "controller": "0A"
+        }
+      },
+      "created_sequence": 11
+    },
+    {
+      "fact_id": "fact-absence-ev-san-no-alarm",
+      "fact_type": "ABSENCE",
+      "object_refs": [
+        "san-fabric-a"
+      ],
+      "source": {
+        "execution_id": "exec-task-query-controller-alarm",
+        "skill_id": "alarm_query",
+        "source_refs": [
+          "task-query-controller-alarm"
+        ]
+      },
+      "quality": {
+        "level": "HIGH",
+        "completeness": "COMPLETE",
+        "freshness": "REPLAY_DATA"
+      },
+      "payload": {
+        "absence": true,
+        "queried_source_ref": "task-query-controller-alarm",
+        "summary": "双Fabric均无链路类告警",
+        "detail": "告警查询仅返回控制器热复位与块服务切换事件",
+        "evidence_type": "alarm_absence"
+      },
+      "created_sequence": 11
+    },
+    {
+      "fact_id": "fact-fp-ctrl-warm-reset-017",
+      "fact_type": "LOG_FINGERPRINT",
+      "object_refs": [
+        "controller-0a"
+      ],
+      "occurred_at": "2026-07-30T14:32:16.000+08:00",
+      "observed_range": {
+        "start": "2026-07-30T14:32:16.000+08:00",
+        "end": "2026-07-30T14:32:20.000+08:00"
+      },
+      "source": {
+        "execution_id": "exec-task-query-log-fingerprint",
+        "skill_id": "log_fingerprint_query",
+        "source_refs": [
+          "fp-ctrl-warm-reset-017"
+        ]
+      },
+      "payload": {
+        "name": "控制器Watchdog超时热复位",
+        "template": "controller <*> warm reset triggered, reason=<WATCHDOG_TIMEOUT>, service=<BLOCK>",
+        "fault_mode_codes": [
+          "CONTROLLER_WARM_RESET"
+        ],
+        "hit_count": 7,
+        "matched_log_ids": [
+          "log-00015",
+          "log-00016",
+          "log-00017",
+          "log-00018",
+          "log-00019",
+          "log-00020",
+          "log-00021"
+        ]
+      },
+      "created_sequence": 16
+    },
+    {
+      "fact_id": "fact-fp-watchdog-timeout-011",
+      "fact_type": "LOG_FINGERPRINT",
+      "object_refs": [
+        "controller-0a"
+      ],
+      "occurred_at": "2026-07-30T14:32:17.000+08:00",
+      "observed_range": {
+        "start": "2026-07-30T14:32:17.000+08:00",
+        "end": "2026-07-30T14:32:18.000+08:00"
+      },
+      "source": {
+        "execution_id": "exec-task-query-log-fingerprint",
+        "skill_id": "log_fingerprint_query",
+        "source_refs": [
+          "fp-watchdog-timeout-011"
+        ]
+      },
+      "payload": {
+        "name": "Watchdog超时",
+        "template": "watchdog timeout detected, controller=<*>, timeout_ms=<NUM>",
+        "fault_mode_codes": [
+          "CONTROLLER_WARM_RESET"
+        ],
+        "hit_count": 1,
+        "matched_log_ids": [
+          "log-00013"
+        ]
+      },
+      "created_sequence": 16
+    },
+    {
+      "fact_id": "fact-kpi-controller-0a-throughput",
+      "fact_type": "KPI_WINDOW",
+      "object_refs": [
+        "controller-0a"
+      ],
+      "occurred_at": "2026-07-30T14:32:18.000+08:00",
+      "observed_range": {
+        "start": "2026-07-30T14:32:15.000+08:00",
+        "end": "2026-07-30T14:32:24.000+08:00"
+      },
+      "source": {
+        "execution_id": "exec-task-query-kpi",
+        "skill_id": "kpi_query",
+        "source_refs": [
+          "kpi-controller-0a-throughput"
+        ],
+        "query_coverage": {
+          "object_coverage": "COMPLETE",
+          "time_coverage": "COMPLETE",
+          "metric_coverage": "COMPLETE"
+        }
+      },
+      "quality": {
+        "level": "HIGH",
+        "completeness": "COMPLETE",
+        "freshness": "REPLAY_DATA"
+      },
+      "payload": {
+        "metric_name": "Controller-0A I/O吞吐",
+        "indicator_id": "controller_io_throughput",
+        "unit": "GB/s",
+        "baseline": 8.4,
+        "thresholds": {
+          "warning_low": 2,
+          "critical_low": 0.5
+        },
+        "peak_value": 0,
+        "peak_at": "2026-07-30T14:32:18.000+08:00",
+        "samples": [
+          {
+            "timestamp": "2026-07-30T14:32:15.000+08:00",
+            "value": 8.2,
+            "quality": "good"
+          },
+          {
+            "timestamp": "2026-07-30T14:32:16.000+08:00",
+            "value": 8.4,
+            "quality": "good"
+          },
+          {
+            "timestamp": "2026-07-30T14:32:17.000+08:00",
+            "value": 7.9,
+            "quality": "good"
+          },
+          {
+            "timestamp": "2026-07-30T14:32:18.000+08:00",
+            "value": 0,
+            "quality": "good"
+          },
+          {
+            "timestamp": "2026-07-30T14:32:19.000+08:00",
+            "value": 0,
+            "quality": "good"
+          },
+          {
+            "timestamp": "2026-07-30T14:32:20.000+08:00",
+            "value": 0,
+            "quality": "good"
+          },
+          {
+            "timestamp": "2026-07-30T14:32:21.000+08:00",
+            "value": 0,
+            "quality": "good"
+          },
+          {
+            "timestamp": "2026-07-30T14:32:22.000+08:00",
+            "value": 0,
+            "quality": "good"
+          },
+          {
+            "timestamp": "2026-07-30T14:32:23.000+08:00",
+            "value": 0.6,
+            "quality": "good"
+          },
+          {
+            "timestamp": "2026-07-30T14:32:24.000+08:00",
+            "value": 0.9,
+            "quality": "good"
+          }
+        ]
+      },
+      "created_sequence": 21
+    },
+    {
+      "fact_id": "fact-kpi-controller-0b-throughput",
+      "fact_type": "KPI_WINDOW",
+      "object_refs": [
+        "controller-0b"
+      ],
+      "occurred_at": "2026-07-30T14:32:21.000+08:00",
+      "observed_range": {
+        "start": "2026-07-30T14:32:15.000+08:00",
+        "end": "2026-07-30T14:32:24.000+08:00"
+      },
+      "source": {
+        "execution_id": "exec-task-query-kpi",
+        "skill_id": "kpi_query",
+        "source_refs": [
+          "kpi-controller-0b-throughput"
+        ],
+        "query_coverage": {
+          "object_coverage": "COMPLETE",
+          "time_coverage": "COMPLETE",
+          "metric_coverage": "COMPLETE"
+        }
+      },
+      "quality": {
+        "level": "HIGH",
+        "completeness": "COMPLETE",
+        "freshness": "REPLAY_DATA"
+      },
+      "payload": {
+        "metric_name": "Controller-0B I/O吞吐",
+        "indicator_id": "controller_io_throughput",
+        "unit": "GB/s",
+        "baseline": 7.9,
+        "thresholds": {
+          "warning_high": 14,
+          "critical_high": 18
+        },
+        "peak_value": 15.6,
+        "peak_at": "2026-07-30T14:32:21.000+08:00",
+        "samples": [
+          {
+            "timestamp": "2026-07-30T14:32:15.000+08:00",
+            "value": 7.8,
+            "quality": "good"
+          },
+          {
+            "timestamp": "2026-07-30T14:32:16.000+08:00",
+            "value": 7.9,
+            "quality": "good"
+          },
+          {
+            "timestamp": "2026-07-30T14:32:17.000+08:00",
+            "value": 8,
+            "quality": "good"
+          },
+          {
+            "timestamp": "2026-07-30T14:32:18.000+08:00",
+            "value": 9.6,
+            "quality": "good"
+          },
+          {
+            "timestamp": "2026-07-30T14:32:19.000+08:00",
+            "value": 12.8,
+            "quality": "good"
+          },
+          {
+            "timestamp": "2026-07-30T14:32:20.000+08:00",
+            "value": 14.7,
+            "quality": "good"
+          },
+          {
+            "timestamp": "2026-07-30T14:32:21.000+08:00",
+            "value": 15.6,
+            "quality": "good"
+          },
+          {
+            "timestamp": "2026-07-30T14:32:22.000+08:00",
+            "value": 15.5,
+            "quality": "good"
+          },
+          {
+            "timestamp": "2026-07-30T14:32:23.000+08:00",
+            "value": 15.4,
+            "quality": "good"
+          },
+          {
+            "timestamp": "2026-07-30T14:32:24.000+08:00",
+            "value": 15.3,
+            "quality": "good"
+          }
+        ]
+      },
+      "created_sequence": 21
+    },
+    {
+      "fact_id": "fact-kpi-fc-port-0a-crc",
+      "fact_type": "KPI_WINDOW",
+      "object_refs": [
+        "fc-port-0a"
+      ],
+      "occurred_at": "2026-07-30T14:32:17.000+08:00",
+      "observed_range": {
+        "start": "2026-07-30T14:32:17.000+08:00",
+        "end": "2026-07-30T14:32:23.000+08:00"
+      },
+      "source": {
+        "execution_id": "exec-task-check-fc-port",
+        "skill_id": "link_health_query",
+        "source_refs": [
+          "kpi-fc-port-0a-crc"
+        ],
+        "query_coverage": {
+          "object_coverage": "COMPLETE",
+          "time_coverage": "COMPLETE",
+          "metric_coverage": "COMPLETE"
+        }
+      },
+      "quality": {
+        "level": "HIGH",
+        "completeness": "COMPLETE",
+        "freshness": "REPLAY_DATA"
+      },
+      "payload": {
+        "metric_name": "FC端口CRC错误增量",
+        "indicator_id": "fc_crc_error_delta",
+        "unit": "count",
+        "baseline": 0,
+        "thresholds": {
+          "warning": 1,
+          "critical": 10
+        },
+        "peak_value": 0,
+        "peak_at": "2026-07-30T14:32:17.000+08:00",
+        "samples": [
+          {
+            "timestamp": "2026-07-30T14:32:17.000+08:00",
+            "value": 0,
+            "quality": "good"
+          },
+          {
+            "timestamp": "2026-07-30T14:32:18.000+08:00",
+            "value": 0,
+            "quality": "good"
+          },
+          {
+            "timestamp": "2026-07-30T14:32:19.000+08:00",
+            "value": 0,
+            "quality": "good"
+          },
+          {
+            "timestamp": "2026-07-30T14:32:20.000+08:00",
+            "value": 0,
+            "quality": "good"
+          },
+          {
+            "timestamp": "2026-07-30T14:32:21.000+08:00",
+            "value": 0,
+            "quality": "good"
+          },
+          {
+            "timestamp": "2026-07-30T14:32:22.000+08:00",
+            "value": 0,
+            "quality": "good"
+          },
+          {
+            "timestamp": "2026-07-30T14:32:23.000+08:00",
+            "value": 0,
+            "quality": "good"
+          }
+        ]
+      },
+      "created_sequence": 26
+    },
+    {
+      "fact_id": "fact-e-failover-a-b",
+      "fact_type": "TOPOLOGY_RELATION",
+      "object_refs": [
+        "controller-0a",
+        "controller-0b"
+      ],
+      "occurred_at": "2026-07-30T14:32:18.350+08:00",
+      "observed_range": {
+        "start": "2026-07-30T14:32:18.350+08:00",
+        "end": "2026-07-30T14:32:22.900+08:00"
+      },
+      "source": {
+        "execution_id": "exec-task-query-topology",
+        "skill_id": "topology_query",
+        "source_refs": [
+          "e-failover-a-b"
+        ]
+      },
+      "payload": {
+        "relation_type": "FAILOVER_TO",
+        "direction": "directed",
+        "path_group": null,
+        "redundancy_group": "controller-ha-01",
+        "state": "event"
+      },
+      "created_sequence": 31
+    },
+    {
+      "fact_id": "fact-kpi-pool-utilization",
+      "fact_type": "KPI_WINDOW",
+      "object_refs": [
+        "storage-pool-01"
+      ],
+      "occurred_at": "2026-07-30T14:32:19.000+08:00",
+      "observed_range": {
+        "start": "2026-07-30T14:32:17.000+08:00",
+        "end": "2026-07-30T14:32:23.000+08:00"
+      },
+      "source": {
+        "execution_id": "exec-task-check-pool",
+        "skill_id": "kpi_query",
+        "source_refs": [
+          "kpi-pool-utilization"
+        ],
+        "query_coverage": {
+          "object_coverage": "COMPLETE",
+          "time_coverage": "COMPLETE",
+          "metric_coverage": "COMPLETE"
+        }
+      },
+      "quality": {
+        "level": "HIGH",
+        "completeness": "COMPLETE",
+        "freshness": "REPLAY_DATA"
+      },
+      "payload": {
+        "metric_name": "Storage Pool利用率",
+        "indicator_id": "pool_utilization",
+        "unit": "%",
+        "baseline": 63.2,
+        "thresholds": {
+          "warning": 80,
+          "critical": 90
+        },
+        "peak_value": 63.3,
+        "peak_at": "2026-07-30T14:32:19.000+08:00",
+        "samples": [
+          {
+            "timestamp": "2026-07-30T14:32:17.000+08:00",
+            "value": 63.2,
+            "quality": "good"
+          },
+          {
+            "timestamp": "2026-07-30T14:32:18.000+08:00",
+            "value": 63.2,
+            "quality": "good"
+          },
+          {
+            "timestamp": "2026-07-30T14:32:19.000+08:00",
+            "value": 63.3,
+            "quality": "good"
+          },
+          {
+            "timestamp": "2026-07-30T14:32:20.000+08:00",
+            "value": 63.3,
+            "quality": "good"
+          },
+          {
+            "timestamp": "2026-07-30T14:32:21.000+08:00",
+            "value": 63.2,
+            "quality": "good"
+          },
+          {
+            "timestamp": "2026-07-30T14:32:22.000+08:00",
+            "value": 63.2,
+            "quality": "good"
+          },
+          {
+            "timestamp": "2026-07-30T14:32:23.000+08:00",
+            "value": 63.2,
+            "quality": "good"
+          }
+        ]
+      },
+      "created_sequence": 36
+    },
+    {
+      "fact_id": "fact-case-20260618-023",
+      "fact_type": "SIMILAR_CASE_REFERENCE",
+      "object_refs": [
+        "lun-db01"
+      ],
+      "source": {
+        "execution_id": "exec-task-search-similar-case",
+        "skill_id": "similar_case_query",
+        "source_refs": [
+          "case-20260618-023"
+        ]
+      },
+      "payload": {
+        "title": "双控存储控制器Watchdog超时热复位",
+        "similarity": 0.914,
+        "historical_root_cause": {
+          "fault_mode_code": "CONTROLLER_WARM_RESET",
+          "object_type": "CONTROLLER"
+        },
+        "matched_features": [
+          "watchdog_timeout",
+          "warm_reset",
+          "active throughput zero",
+          "standby takeover"
+        ],
+        "resolution_summary": "控制器恢复后保持备用状态，业务由对端控制器承载；历史处置仅作参考。"
+      },
+      "created_sequence": 41
+    }
+  ],
+  "evidences": [
+    {
+      "evidence_id": "ev-controller-reset-alarm",
+      "evidence_type": "DIRECT_FAULT",
+      "fact_refs": [
+        "fact-alm-0a-78421"
+      ],
+      "effects": [
+        {
+          "candidate_id": "cand-controller-warm-reset",
+          "effect": "STRONG_SUPPORT",
+          "score_delta": 30,
+          "explanation": "命中Controller-0A热复位严重告警"
+        }
+      ],
+      "object_refs": [
+        "controller-0a"
+      ],
+      "time_alignment_ms": 278,
+      "quality": "HIGH",
+      "created_by": "reasoning-engine",
+      "created_sequence": 44
+    },
+    {
+      "evidence_id": "ev-warm-reset-fingerprint",
+      "evidence_type": "MECHANISM",
+      "fact_refs": [
+        "fact-fp-ctrl-warm-reset-017"
+      ],
+      "effects": [
+        {
+          "candidate_id": "cand-controller-warm-reset",
+          "effect": "STRONG_SUPPORT",
+          "score_delta": 30,
+          "explanation": "4秒窗口内7次命中Watchdog超时热复位指纹"
+        }
+      ],
+      "object_refs": [
+        "controller-0a"
+      ],
+      "time_alignment_ms": 505,
+      "quality": "HIGH",
+      "created_by": "reasoning-engine",
+      "created_sequence": 45
+    },
+    {
+      "evidence_id": "ev-watchdog-timeout-log",
+      "evidence_type": "MECHANISM",
+      "fact_refs": [
+        "fact-fp-watchdog-timeout-011"
+      ],
+      "effects": [
+        {
+          "candidate_id": "cand-controller-warm-reset",
+          "effect": "STRONG_SUPPORT",
+          "score_delta": 30,
+          "explanation": "热复位前出现Watchdog超时日志"
+        }
+      ],
+      "object_refs": [
+        "controller-0a"
+      ],
+      "time_alignment_ms": 818,
+      "quality": "HIGH",
+      "created_by": "reasoning-engine",
+      "created_sequence": 46
+    },
+    {
+      "evidence_id": "ev-controller-throughput-zero",
+      "evidence_type": "IMPACT",
+      "fact_refs": [
+        "fact-kpi-controller-0a-throughput"
+      ],
+      "effects": [
+        {
+          "candidate_id": "cand-controller-warm-reset",
+          "effect": "STRONG_SUPPORT",
+          "score_delta": 30,
+          "explanation": "Controller-0A吞吐由8.4GB/s降为0"
+        }
+      ],
+      "object_refs": [
+        "controller-0a"
+      ],
+      "time_alignment_ms": 120,
+      "quality": "HIGH",
+      "created_by": "reasoning-engine",
+      "created_sequence": 47
+    },
+    {
+      "evidence_id": "ev-controller0b-takeover",
+      "evidence_type": "IMPACT",
+      "fact_refs": [
+        "fact-kpi-controller-0b-throughput"
+      ],
+      "effects": [
+        {
+          "candidate_id": "cand-controller-warm-reset",
+          "effect": "STRONG_SUPPORT",
+          "score_delta": 30,
+          "explanation": "Controller-0B吞吐由7.9GB/s升至15.6GB/s"
+        }
+      ],
+      "object_refs": [
+        "controller-0b"
+      ],
+      "time_alignment_ms": 230,
+      "quality": "HIGH",
+      "created_by": "reasoning-engine",
+      "created_sequence": 48
+    },
+    {
+      "evidence_id": "ev-topology-failover",
+      "evidence_type": "AFFECTED_PATH",
+      "fact_refs": [
+        "fact-e-failover-a-b"
+      ],
+      "effects": [
+        {
+          "candidate_id": "cand-controller-warm-reset",
+          "effect": "SUPPORT",
+          "score_delta": 15,
+          "explanation": "拓扑确认0A与0B为主备关系并发生切换"
+        }
+      ],
+      "object_refs": [
+        "controller-0a",
+        "controller-0b"
+      ],
+      "time_alignment_ms": 230,
+      "quality": "HIGH",
+      "created_by": "reasoning-engine",
+      "created_sequence": 49
+    },
+    {
+      "evidence_id": "ev-similar-case",
+      "evidence_type": "SIMILAR_CASE",
+      "fact_refs": [
+        "fact-case-20260618-023"
+      ],
+      "effects": [
+        {
+          "candidate_id": "cand-controller-warm-reset",
+          "effect": "SUPPORT",
+          "score_delta": 15,
+          "explanation": "历史案例相似度91.4%，根因为控制器热复位"
+        }
+      ],
+      "object_refs": [
+        "lun-db01"
+      ],
+      "time_alignment_ms": null,
+      "quality": "MEDIUM",
+      "created_by": "reasoning-engine",
+      "created_sequence": 50
+    },
+    {
+      "evidence_id": "ev-fc-crc-normal",
+      "evidence_type": "COUNTER_EVIDENCE",
+      "fact_refs": [
+        "fact-kpi-fc-port-0a-crc"
+      ],
+      "effects": [
+        {
+          "candidate_id": "cand-fc-link-flap",
+          "effect": "WEAKEN",
+          "score_delta": -15,
+          "explanation": "FC端口CRC错误增量持续为0"
+        }
+      ],
+      "object_refs": [
+        "fc-port-0a"
+      ],
+      "time_alignment_ms": null,
+      "quality": "HIGH",
+      "created_by": "reasoning-engine",
+      "created_sequence": 51
+    },
+    {
+      "evidence_id": "ev-san-no-alarm",
+      "evidence_type": "ABSENCE",
+      "fact_refs": [
+        "fact-absence-ev-san-no-alarm"
+      ],
+      "effects": [
+        {
+          "candidate_id": "cand-san-link-fault",
+          "effect": "WEAKEN",
+          "score_delta": -15,
+          "explanation": "双Fabric均无链路类告警"
+        }
+      ],
+      "object_refs": [
+        "san-fabric-a"
+      ],
+      "time_alignment_ms": null,
+      "quality": "HIGH",
+      "created_by": "reasoning-engine",
+      "created_sequence": 52
+    },
+    {
+      "evidence_id": "ev-pool-utilization-normal",
+      "evidence_type": "COUNTER_EVIDENCE",
+      "fact_refs": [
+        "fact-kpi-pool-utilization"
+      ],
+      "effects": [
+        {
+          "candidate_id": "cand-pool-bottleneck",
+          "effect": "WEAKEN",
+          "score_delta": -15,
+          "explanation": "存储池利用率稳定在63.2%左右"
+        }
+      ],
+      "object_refs": [
+        "storage-pool-01"
+      ],
+      "time_alignment_ms": null,
+      "quality": "HIGH",
+      "created_by": "reasoning-engine",
+      "created_sequence": 53
+    }
+  ],
+  "candidates": [
+    {
+      "candidate_id": "cand-controller-warm-reset",
+      "object_id": "controller-0a",
+      "fault_mode_code": "CONTROLLER_WARM_RESET",
+      "display_name": "Controller-0A 热复位",
+      "diagnosis_support_score": 96,
+      "status": "CONFIRMED",
+      "generated_from": {
+        "symptom_refs": [
+          "sym-lun-latency-high"
+        ],
+        "ontology_relation_refs": [
+          "pattern-controller-warm-reset"
+        ]
+      },
+      "supporting_evidence_refs": [
+        "ev-controller-reset-alarm",
+        "ev-warm-reset-fingerprint",
+        "ev-watchdog-timeout-log",
+        "ev-controller-throughput-zero",
+        "ev-controller0b-takeover",
+        "ev-topology-failover",
+        "ev-similar-case"
+      ],
+      "weakening_evidence_refs": [],
+      "conflicting_evidence_refs": []
+    },
+    {
+      "candidate_id": "cand-fc-link-flap",
+      "object_id": "fc-port-0a",
+      "fault_mode_code": "FC_LINK_FLAP",
+      "display_name": "FC端口链路抖动",
+      "diagnosis_support_score": 3,
+      "status": "WEAKENED",
+      "generated_from": {
+        "symptom_refs": [
+          "sym-lun-latency-high"
+        ],
+        "ontology_relation_refs": [
+          "pattern-fc-link-flap"
+        ]
+      },
+      "supporting_evidence_refs": [],
+      "weakening_evidence_refs": [
+        "ev-fc-crc-normal"
+      ],
+      "conflicting_evidence_refs": []
+    },
+    {
+      "candidate_id": "cand-san-link-fault",
+      "object_id": "san-fabric-a",
+      "fault_mode_code": "SAN_LINK_FAULT",
+      "display_name": "SAN交换链路异常",
+      "diagnosis_support_score": 1,
+      "status": "WEAKENED",
+      "generated_from": {
+        "symptom_refs": [
+          "sym-business-slow"
+        ],
+        "ontology_relation_refs": [
+          "pattern-san-link-fault"
+        ]
+      },
+      "supporting_evidence_refs": [],
+      "weakening_evidence_refs": [
+        "ev-san-no-alarm"
+      ],
+      "conflicting_evidence_refs": []
+    },
+    {
+      "candidate_id": "cand-pool-bottleneck",
+      "object_id": "storage-pool-01",
+      "fault_mode_code": "POOL_PERFORMANCE_BOTTLENECK",
+      "display_name": "存储池性能瓶颈",
+      "diagnosis_support_score": 2,
+      "status": "WEAKENED",
+      "generated_from": {
+        "symptom_refs": [
+          "sym-lun-latency-high"
+        ],
+        "ontology_relation_refs": [
+          "pattern-pool-bottleneck"
+        ]
+      },
+      "supporting_evidence_refs": [],
+      "weakening_evidence_refs": [
+        "ev-pool-utilization-normal"
+      ],
+      "conflicting_evidence_refs": []
+    }
+  ],
+  "minimum_evidence_chain": {
+    "candidate_id": "cand-controller-warm-reset",
+    "items": [
+      {
+        "requirement_id": "direct_fault",
+        "label": "直接故障/关键机制",
+        "required": true,
+        "status": "SATISFIED",
+        "evidence_refs": [
+          "ev-controller-reset-alarm",
+          "ev-warm-reset-fingerprint",
+          "ev-watchdog-timeout-log"
+        ]
+      },
+      {
+        "requirement_id": "affected_path",
+        "label": "对象位于影响路径",
+        "required": true,
+        "status": "SATISFIED",
+        "evidence_refs": [
+          "ev-topology-failover"
+        ]
+      },
+      {
+        "requirement_id": "time_alignment",
+        "label": "时间一致性",
+        "required": true,
+        "status": "SATISFIED",
+        "evidence_refs": [
+          "ev-controller-reset-alarm",
+          "ev-warm-reset-fingerprint",
+          "ev-watchdog-timeout-log",
+          "ev-controller-throughput-zero",
+          "ev-controller0b-takeover",
+          "ev-topology-failover"
+        ]
+      },
+      {
+        "requirement_id": "impact",
+        "label": "主要业务影响可解释",
+        "required": true,
+        "status": "SATISFIED",
+        "evidence_refs": [
+          "ev-controller-throughput-zero",
+          "ev-controller0b-takeover"
+        ]
+      },
+      {
+        "requirement_id": "competitor_check",
+        "label": "关键竞争候选检查",
+        "required": true,
+        "status": "SATISFIED",
+        "evidence_refs": [
+          "ev-fc-crc-normal",
+          "ev-san-no-alarm",
+          "ev-pool-utilization-normal"
+        ]
+      },
+      {
+        "requirement_id": "similar_case",
+        "label": "相似案例辅助参考",
+        "required": false,
+        "status": "SATISFIED",
+        "evidence_refs": [
+          "ev-similar-case"
+        ]
+      }
+    ]
+  },
+  "events": [
+    {
+      "event_id": "evt-0001",
+      "session_id": "session-controller_warm_reset_001",
+      "sequence": 1,
+      "event_type": "DIAGNOSIS_SESSION_CREATED",
+      "producer": "runtime",
+      "correlation_id": null,
+      "causation_id": null,
+      "payload": {
+        "case_id": "controller_warm_reset_001",
+        "phase": "INPUT_COMPLETION"
+      }
+    },
+    {
+      "event_id": "evt-0002",
+      "session_id": "session-controller_warm_reset_001",
+      "sequence": 2,
+      "event_type": "SYMPTOM_NORMALIZED",
+      "producer": "normalizer",
+      "correlation_id": null,
+      "causation_id": "evt-0001",
+      "payload": {
+        "symptom_id": "sym-business-slow",
+        "normalized_text": "LUN-DB01平均时延超过关键阈值",
+        "object_refs": [
+          "db-business-01",
+          "lun-db01"
+        ],
+        "time_range_start": "2026-07-30T14:31:50.000+08:00",
+        "time_range_end": "2026-07-30T14:32:35.000+08:00",
+        "normalization_chain": [
+          "数据库业务访问变慢",
+          "LUN读写时延升高",
+          "块业务路径异常"
+        ],
+        "source_symptom_ids": [
+          "sym-business-slow",
+          "sym-lun-latency-high"
+        ]
+      }
+    },
+    {
+      "event_id": "evt-0003",
+      "session_id": "session-controller_warm_reset_001",
+      "sequence": 3,
+      "event_type": "RESOURCE_MAPPED",
+      "producer": "planner",
+      "correlation_id": null,
+      "causation_id": "evt-0002",
+      "payload": {
+        "object_refs": [
+          "db-business-01",
+          "lun-db01"
+        ],
+        "path_refs": []
+      }
+    },
+    {
+      "event_id": "evt-0004",
+      "session_id": "session-controller_warm_reset_001",
+      "sequence": 4,
+      "event_type": "DIAGNOSIS_PHASE_CHANGED",
+      "producer": "planner",
+      "correlation_id": null,
+      "causation_id": "evt-0003",
+      "payload": {
+        "phase": "CANDIDATE_GENERATION"
+      }
+    },
+    {
+      "event_id": "evt-0005",
+      "session_id": "session-controller_warm_reset_001",
+      "sequence": 5,
+      "event_type": "CANDIDATES_GENERATED",
+      "producer": "reasoning",
+      "correlation_id": null,
+      "causation_id": "evt-0004",
+      "payload": {
+        "candidate_refs": [
+          "cand-controller-warm-reset",
+          "cand-fc-link-flap",
+          "cand-san-link-fault",
+          "cand-pool-bottleneck"
+        ],
+        "candidates": [
+          {
+            "candidate_id": "cand-controller-warm-reset",
+            "object_id": "controller-0a",
+            "fault_mode_code": "CONTROLLER_WARM_RESET",
+            "display_name": "Controller-0A 热复位",
+            "diagnosis_support_score": 42,
+            "status": "ACTIVE",
+            "generated_from": {
+              "symptom_refs": [
+                "sym-lun-latency-high"
+              ],
+              "ontology_relation_refs": [
+                "pattern-controller-warm-reset"
+              ]
+            }
+          },
+          {
+            "candidate_id": "cand-fc-link-flap",
+            "object_id": "fc-port-0a",
+            "fault_mode_code": "FC_LINK_FLAP",
+            "display_name": "FC端口链路抖动",
+            "diagnosis_support_score": 28,
+            "status": "ACTIVE",
+            "generated_from": {
+              "symptom_refs": [
+                "sym-lun-latency-high"
+              ],
+              "ontology_relation_refs": [
+                "pattern-fc-link-flap"
+              ]
+            }
+          },
+          {
+            "candidate_id": "cand-san-link-fault",
+            "object_id": "san-fabric-a",
+            "fault_mode_code": "SAN_LINK_FAULT",
+            "display_name": "SAN交换链路异常",
+            "diagnosis_support_score": 18,
+            "status": "ACTIVE",
+            "generated_from": {
+              "symptom_refs": [
+                "sym-business-slow"
+              ],
+              "ontology_relation_refs": [
+                "pattern-san-link-fault"
+              ]
+            }
+          },
+          {
+            "candidate_id": "cand-pool-bottleneck",
+            "object_id": "storage-pool-01",
+            "fault_mode_code": "POOL_PERFORMANCE_BOTTLENECK",
+            "display_name": "存储池性能瓶颈",
+            "diagnosis_support_score": 12,
+            "status": "ACTIVE",
+            "generated_from": {
+              "symptom_refs": [
+                "sym-lun-latency-high"
+              ],
+              "ontology_relation_refs": [
+                "pattern-pool-bottleneck"
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "event_id": "evt-0006",
+      "session_id": "session-controller_warm_reset_001",
+      "sequence": 6,
+      "event_type": "DIAGNOSIS_PHASE_CHANGED",
+      "producer": "planner",
+      "correlation_id": null,
+      "causation_id": "evt-0004",
+      "payload": {
+        "phase": "CANDIDATE_EVIDENCE"
+      }
+    },
+    {
+      "event_id": "evt-0007",
+      "session_id": "session-controller_warm_reset_001",
+      "sequence": 7,
+      "event_type": "PLAN_CREATED",
+      "producer": "planner",
+      "correlation_id": null,
+      "causation_id": "evt-0006",
+      "payload": {
+        "plan_id": "plan-controller_warm_reset_001-001",
+        "phase": "CANDIDATE_EVIDENCE",
+        "primary_task_id": "task-query-controller-alarm",
+        "task_refs": [
+          "task-query-controller-alarm",
+          "task-query-log-fingerprint",
+          "task-query-kpi",
+          "task-check-fc-port",
+          "task-query-topology",
+          "task-check-pool",
+          "task-search-similar-case"
+        ]
+      }
+    },
+    {
+      "event_id": "evt-0008",
+      "session_id": "session-controller_warm_reset_001",
+      "sequence": 8,
+      "event_type": "TASK_STATUS_CHANGED",
+      "producer": "planner",
+      "correlation_id": "exec-task-query-controller-alarm",
+      "causation_id": "evt-0007",
+      "payload": {
+        "task": {
+          "task_id": "task-query-controller-alarm",
+          "skill_code": "QUERY_ALARM",
+          "skill_id": "alarm_query",
+          "action": "QUERY_ALARM",
+          "stage": "evidence_collection",
+          "display_name": "查询控制器告警",
+          "goal": "查询控制器告警",
+          "target_object_refs": [
+            "controller-0a"
+          ],
+          "input": {
+            "object_ids": [
+              "controller-0a"
+            ],
+            "start": "2026-07-30T14:32:10.000+08:00",
+            "end": "2026-07-30T14:32:25.000+08:00"
+          },
+          "priority": 100,
+          "execution_mode": "PARALLEL",
+          "ui_role": "PRIMARY",
+          "status": "RUNNING",
+          "result_refs": [
+            "alm-0a-78421",
+            "alm-block-failover-219"
+          ],
+          "started_at": "2026-07-30T14:32:25.100+08:00",
+          "ended_at": "2026-07-30T14:32:25.480+08:00",
+          "error": null
+        },
+        "status": "RUNNING"
+      }
+    },
+    {
+      "event_id": "evt-0009",
+      "session_id": "session-controller_warm_reset_001",
+      "sequence": 9,
+      "event_type": "SKILL_STARTED",
+      "occurred_at": "2026-07-30T14:32:25.100+08:00",
+      "producer": "skill-executor",
+      "correlation_id": "exec-task-query-controller-alarm",
+      "causation_id": "evt-0008",
+      "payload": {
+        "execution_id": "exec-task-query-controller-alarm",
+        "task_id": "task-query-controller-alarm",
+        "skill_id": "alarm_query",
+        "ui_role": "PRIMARY",
+        "goal": "查询控制器告警",
+        "action_text": "执行 alarm_query：查询控制器告警",
+        "reason_text": "按 Planner 优先级验证候选相关对象与时间窗",
+        "expected_result_text": "期望命中与候选对象、时间窗一致的告警生命周期",
+        "target_object_refs": [
+          "controller-0a"
+        ]
+      }
+    },
+    {
+      "event_id": "evt-0010",
+      "session_id": "session-controller_warm_reset_001",
+      "sequence": 10,
+      "event_type": "SKILL_COMPLETED",
+      "occurred_at": "2026-07-30T14:32:25.480+08:00",
+      "producer": "skill-executor",
+      "correlation_id": "exec-task-query-controller-alarm",
+      "causation_id": "evt-0008",
+      "payload": {
+        "execution_id": "exec-task-query-controller-alarm",
+        "result_summary": "查询控制器告警",
+        "ended_at": "2026-07-30T14:32:25.480+08:00"
+      }
+    },
+    {
+      "event_id": "evt-0011",
+      "session_id": "session-controller_warm_reset_001",
+      "sequence": 11,
+      "event_type": "FACT_DISCOVERED",
+      "producer": "fact-normalizer",
+      "correlation_id": "exec-task-query-controller-alarm",
+      "causation_id": "evt-0010",
+      "payload": {
+        "fact_refs": [
+          "fact-alm-0a-78421",
+          "fact-absence-ev-san-no-alarm"
+        ],
+        "facts": [
+          {
+            "fact_id": "fact-alm-0a-78421",
+            "fact_type": "ALARM",
+            "object_refs": [
+              "controller-0a"
+            ],
+            "occurred_at": "2026-07-30T14:32:17.842+08:00",
+            "source": {
+              "execution_id": "exec-task-query-controller-alarm",
+              "skill_id": "alarm_query",
+              "source_refs": [
+                "alm-0a-78421"
+              ]
+            },
+            "payload": {
+              "alarm_code": "CONTROLLER_WARM_RESET",
+              "name": "控制器发生热复位",
+              "severity": "CRITICAL",
+              "occurred_at": "2026-07-30T14:32:17.842+08:00",
+              "cleared_at": "2026-07-30T14:32:23.106+08:00",
+              "status": "cleared",
+              "raw_fields": {
+                "reason": "watchdog_timeout",
+                "reset_type": "warm",
+                "service": "block",
+                "controller": "0A"
+              }
+            }
+          },
+          {
+            "fact_id": "fact-absence-ev-san-no-alarm",
+            "fact_type": "ABSENCE",
+            "object_refs": [
+              "san-fabric-a"
+            ],
+            "source": {
+              "execution_id": "exec-task-query-controller-alarm",
+              "skill_id": "alarm_query",
+              "source_refs": [
+                "task-query-controller-alarm"
+              ]
+            },
+            "quality": {
+              "level": "HIGH",
+              "completeness": "COMPLETE",
+              "freshness": "REPLAY_DATA"
+            },
+            "payload": {
+              "absence": true,
+              "queried_source_ref": "task-query-controller-alarm",
+              "summary": "双Fabric均无链路类告警",
+              "detail": "告警查询仅返回控制器热复位与块服务切换事件",
+              "evidence_type": "alarm_absence"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "event_id": "evt-0012",
+      "session_id": "session-controller_warm_reset_001",
+      "sequence": 12,
+      "event_type": "TASK_STATUS_CHANGED",
+      "producer": "planner",
+      "correlation_id": "exec-task-query-controller-alarm",
+      "causation_id": "evt-0011",
+      "payload": {
+        "task_id": "task-query-controller-alarm",
+        "status": "SUCCEEDED"
+      }
+    },
+    {
+      "event_id": "evt-0013",
+      "session_id": "session-controller_warm_reset_001",
+      "sequence": 13,
+      "event_type": "TASK_STATUS_CHANGED",
+      "producer": "planner",
+      "correlation_id": "exec-task-query-log-fingerprint",
+      "causation_id": "evt-0007",
+      "payload": {
+        "task": {
+          "task_id": "task-query-log-fingerprint",
+          "skill_code": "MATCH_LOG_FINGERPRINT",
+          "skill_id": "log_fingerprint_query",
+          "action": "MATCH_LOG_FINGERPRINT",
+          "stage": "evidence_collection",
+          "display_name": "匹配热复位日志指纹",
+          "goal": "匹配热复位日志指纹",
+          "target_object_refs": [
+            "controller-0a"
+          ],
+          "input": {
+            "object_ids": [
+              "controller-0a"
+            ],
+            "window_seconds": 10
+          },
+          "priority": 99,
+          "execution_mode": "PARALLEL",
+          "ui_role": "BACKGROUND",
+          "status": "RUNNING",
+          "result_refs": [
+            "fp-ctrl-warm-reset-017",
+            "fp-watchdog-timeout-011"
+          ],
+          "started_at": "2026-07-30T14:32:25.120+08:00",
+          "ended_at": "2026-07-30T14:32:25.910+08:00",
+          "error": null
+        },
+        "status": "RUNNING"
+      }
+    },
+    {
+      "event_id": "evt-0014",
+      "session_id": "session-controller_warm_reset_001",
+      "sequence": 14,
+      "event_type": "SKILL_STARTED",
+      "occurred_at": "2026-07-30T14:32:25.120+08:00",
+      "producer": "skill-executor",
+      "correlation_id": "exec-task-query-log-fingerprint",
+      "causation_id": "evt-0013",
+      "payload": {
+        "execution_id": "exec-task-query-log-fingerprint",
+        "task_id": "task-query-log-fingerprint",
+        "skill_id": "log_fingerprint_query",
+        "ui_role": "BACKGROUND",
+        "goal": "匹配热复位日志指纹",
+        "action_text": "执行 log_fingerprint_query：匹配热复位日志指纹",
+        "reason_text": "按 Planner 优先级验证候选相关对象与时间窗",
+        "expected_result_text": "期望命中可解释故障机理的日志指纹序列",
+        "target_object_refs": [
+          "controller-0a"
+        ]
+      }
+    },
+    {
+      "event_id": "evt-0015",
+      "session_id": "session-controller_warm_reset_001",
+      "sequence": 15,
+      "event_type": "SKILL_COMPLETED",
+      "occurred_at": "2026-07-30T14:32:25.910+08:00",
+      "producer": "skill-executor",
+      "correlation_id": "exec-task-query-log-fingerprint",
+      "causation_id": "evt-0013",
+      "payload": {
+        "execution_id": "exec-task-query-log-fingerprint",
+        "result_summary": "匹配热复位日志指纹",
+        "ended_at": "2026-07-30T14:32:25.910+08:00"
+      }
+    },
+    {
+      "event_id": "evt-0016",
+      "session_id": "session-controller_warm_reset_001",
+      "sequence": 16,
+      "event_type": "FACT_DISCOVERED",
+      "producer": "fact-normalizer",
+      "correlation_id": "exec-task-query-log-fingerprint",
+      "causation_id": "evt-0015",
+      "payload": {
+        "fact_refs": [
+          "fact-fp-ctrl-warm-reset-017",
+          "fact-fp-watchdog-timeout-011"
+        ],
+        "facts": [
+          {
+            "fact_id": "fact-fp-ctrl-warm-reset-017",
+            "fact_type": "LOG_FINGERPRINT",
+            "object_refs": [
+              "controller-0a"
+            ],
+            "occurred_at": "2026-07-30T14:32:16.000+08:00",
+            "observed_range": {
+              "start": "2026-07-30T14:32:16.000+08:00",
+              "end": "2026-07-30T14:32:20.000+08:00"
+            },
+            "source": {
+              "execution_id": "exec-task-query-log-fingerprint",
+              "skill_id": "log_fingerprint_query",
+              "source_refs": [
+                "fp-ctrl-warm-reset-017"
+              ]
+            },
+            "payload": {
+              "name": "控制器Watchdog超时热复位",
+              "template": "controller <*> warm reset triggered, reason=<WATCHDOG_TIMEOUT>, service=<BLOCK>",
+              "fault_mode_codes": [
+                "CONTROLLER_WARM_RESET"
+              ],
+              "hit_count": 7,
+              "matched_log_ids": [
+                "log-00015",
+                "log-00016",
+                "log-00017",
+                "log-00018",
+                "log-00019",
+                "log-00020",
+                "log-00021"
+              ]
+            }
+          },
+          {
+            "fact_id": "fact-fp-watchdog-timeout-011",
+            "fact_type": "LOG_FINGERPRINT",
+            "object_refs": [
+              "controller-0a"
+            ],
+            "occurred_at": "2026-07-30T14:32:17.000+08:00",
+            "observed_range": {
+              "start": "2026-07-30T14:32:17.000+08:00",
+              "end": "2026-07-30T14:32:18.000+08:00"
+            },
+            "source": {
+              "execution_id": "exec-task-query-log-fingerprint",
+              "skill_id": "log_fingerprint_query",
+              "source_refs": [
+                "fp-watchdog-timeout-011"
+              ]
+            },
+            "payload": {
+              "name": "Watchdog超时",
+              "template": "watchdog timeout detected, controller=<*>, timeout_ms=<NUM>",
+              "fault_mode_codes": [
+                "CONTROLLER_WARM_RESET"
+              ],
+              "hit_count": 1,
+              "matched_log_ids": [
+                "log-00013"
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "event_id": "evt-0017",
+      "session_id": "session-controller_warm_reset_001",
+      "sequence": 17,
+      "event_type": "TASK_STATUS_CHANGED",
+      "producer": "planner",
+      "correlation_id": "exec-task-query-log-fingerprint",
+      "causation_id": "evt-0016",
+      "payload": {
+        "task_id": "task-query-log-fingerprint",
+        "status": "SUCCEEDED"
+      }
+    },
+    {
+      "event_id": "evt-0018",
+      "session_id": "session-controller_warm_reset_001",
+      "sequence": 18,
+      "event_type": "TASK_STATUS_CHANGED",
+      "producer": "planner",
+      "correlation_id": "exec-task-query-kpi",
+      "causation_id": "evt-0007",
+      "payload": {
+        "task": {
+          "task_id": "task-query-kpi",
+          "skill_code": "QUERY_KPI",
+          "skill_id": "kpi_query",
+          "action": "QUERY_KPI",
+          "stage": "evidence_collection",
+          "display_name": "对齐控制器与LUN KPI",
+          "goal": "对齐控制器与LUN KPI",
+          "target_object_refs": [
+            "kpi-controller-0a-throughput",
+            "kpi-controller-0b-throughput",
+            "kpi-lun-db01-latency"
+          ],
+          "input": {
+            "series_ids": [
+              "kpi-controller-0a-throughput",
+              "kpi-controller-0b-throughput",
+              "kpi-lun-db01-latency"
+            ]
+          },
+          "priority": 98,
+          "execution_mode": "PARALLEL",
+          "ui_role": "BACKGROUND",
+          "status": "RUNNING",
+          "result_refs": [
+            "kpi-controller-0a-throughput",
+            "kpi-controller-0b-throughput",
+            "kpi-lun-db01-latency"
+          ],
+          "started_at": "2026-07-30T14:32:25.150+08:00",
+          "ended_at": "2026-07-30T14:32:26.080+08:00",
+          "error": null
+        },
+        "status": "RUNNING"
+      }
+    },
+    {
+      "event_id": "evt-0019",
+      "session_id": "session-controller_warm_reset_001",
+      "sequence": 19,
+      "event_type": "SKILL_STARTED",
+      "occurred_at": "2026-07-30T14:32:25.150+08:00",
+      "producer": "skill-executor",
+      "correlation_id": "exec-task-query-kpi",
+      "causation_id": "evt-0018",
+      "payload": {
+        "execution_id": "exec-task-query-kpi",
+        "task_id": "task-query-kpi",
+        "skill_id": "kpi_query",
+        "ui_role": "BACKGROUND",
+        "goal": "对齐控制器与LUN KPI",
+        "action_text": "执行 kpi_query：对齐控制器与LUN KPI",
+        "reason_text": "按 Planner 优先级验证候选相关对象与时间窗",
+        "expected_result_text": "期望获得对象指标基线、阈值与异常窗口的时序对齐",
+        "target_object_refs": [
+          "kpi-controller-0a-throughput",
+          "kpi-controller-0b-throughput",
+          "kpi-lun-db01-latency"
+        ]
+      }
+    },
+    {
+      "event_id": "evt-0020",
+      "session_id": "session-controller_warm_reset_001",
+      "sequence": 20,
+      "event_type": "SKILL_COMPLETED",
+      "occurred_at": "2026-07-30T14:32:26.080+08:00",
+      "producer": "skill-executor",
+      "correlation_id": "exec-task-query-kpi",
+      "causation_id": "evt-0018",
+      "payload": {
+        "execution_id": "exec-task-query-kpi",
+        "result_summary": "对齐控制器与LUN KPI",
+        "ended_at": "2026-07-30T14:32:26.080+08:00"
+      }
+    },
+    {
+      "event_id": "evt-0021",
+      "session_id": "session-controller_warm_reset_001",
+      "sequence": 21,
+      "event_type": "FACT_DISCOVERED",
+      "producer": "fact-normalizer",
+      "correlation_id": "exec-task-query-kpi",
+      "causation_id": "evt-0020",
+      "payload": {
+        "fact_refs": [
+          "fact-kpi-controller-0a-throughput",
+          "fact-kpi-controller-0b-throughput"
+        ],
+        "facts": [
+          {
+            "fact_id": "fact-kpi-controller-0a-throughput",
+            "fact_type": "KPI_WINDOW",
+            "object_refs": [
+              "controller-0a"
+            ],
+            "occurred_at": "2026-07-30T14:32:18.000+08:00",
+            "observed_range": {
+              "start": "2026-07-30T14:32:15.000+08:00",
+              "end": "2026-07-30T14:32:24.000+08:00"
+            },
+            "source": {
+              "execution_id": "exec-task-query-kpi",
+              "skill_id": "kpi_query",
+              "source_refs": [
+                "kpi-controller-0a-throughput"
+              ],
+              "query_coverage": {
+                "object_coverage": "COMPLETE",
+                "time_coverage": "COMPLETE",
+                "metric_coverage": "COMPLETE"
+              }
+            },
+            "quality": {
+              "level": "HIGH",
+              "completeness": "COMPLETE",
+              "freshness": "REPLAY_DATA"
+            },
+            "payload": {
+              "metric_name": "Controller-0A I/O吞吐",
+              "indicator_id": "controller_io_throughput",
+              "unit": "GB/s",
+              "baseline": 8.4,
+              "thresholds": {
+                "warning_low": 2,
+                "critical_low": 0.5
+              },
+              "peak_value": 0,
+              "peak_at": "2026-07-30T14:32:18.000+08:00",
+              "samples": [
+                {
+                  "timestamp": "2026-07-30T14:32:15.000+08:00",
+                  "value": 8.2,
+                  "quality": "good"
+                },
+                {
+                  "timestamp": "2026-07-30T14:32:16.000+08:00",
+                  "value": 8.4,
+                  "quality": "good"
+                },
+                {
+                  "timestamp": "2026-07-30T14:32:17.000+08:00",
+                  "value": 7.9,
+                  "quality": "good"
+                },
+                {
+                  "timestamp": "2026-07-30T14:32:18.000+08:00",
+                  "value": 0,
+                  "quality": "good"
+                },
+                {
+                  "timestamp": "2026-07-30T14:32:19.000+08:00",
+                  "value": 0,
+                  "quality": "good"
+                },
+                {
+                  "timestamp": "2026-07-30T14:32:20.000+08:00",
+                  "value": 0,
+                  "quality": "good"
+                },
+                {
+                  "timestamp": "2026-07-30T14:32:21.000+08:00",
+                  "value": 0,
+                  "quality": "good"
+                },
+                {
+                  "timestamp": "2026-07-30T14:32:22.000+08:00",
+                  "value": 0,
+                  "quality": "good"
+                },
+                {
+                  "timestamp": "2026-07-30T14:32:23.000+08:00",
+                  "value": 0.6,
+                  "quality": "good"
+                },
+                {
+                  "timestamp": "2026-07-30T14:32:24.000+08:00",
+                  "value": 0.9,
+                  "quality": "good"
+                }
+              ]
+            }
+          },
+          {
+            "fact_id": "fact-kpi-controller-0b-throughput",
+            "fact_type": "KPI_WINDOW",
+            "object_refs": [
+              "controller-0b"
+            ],
+            "occurred_at": "2026-07-30T14:32:21.000+08:00",
+            "observed_range": {
+              "start": "2026-07-30T14:32:15.000+08:00",
+              "end": "2026-07-30T14:32:24.000+08:00"
+            },
+            "source": {
+              "execution_id": "exec-task-query-kpi",
+              "skill_id": "kpi_query",
+              "source_refs": [
+                "kpi-controller-0b-throughput"
+              ],
+              "query_coverage": {
+                "object_coverage": "COMPLETE",
+                "time_coverage": "COMPLETE",
+                "metric_coverage": "COMPLETE"
+              }
+            },
+            "quality": {
+              "level": "HIGH",
+              "completeness": "COMPLETE",
+              "freshness": "REPLAY_DATA"
+            },
+            "payload": {
+              "metric_name": "Controller-0B I/O吞吐",
+              "indicator_id": "controller_io_throughput",
+              "unit": "GB/s",
+              "baseline": 7.9,
+              "thresholds": {
+                "warning_high": 14,
+                "critical_high": 18
+              },
+              "peak_value": 15.6,
+              "peak_at": "2026-07-30T14:32:21.000+08:00",
+              "samples": [
+                {
+                  "timestamp": "2026-07-30T14:32:15.000+08:00",
+                  "value": 7.8,
+                  "quality": "good"
+                },
+                {
+                  "timestamp": "2026-07-30T14:32:16.000+08:00",
+                  "value": 7.9,
+                  "quality": "good"
+                },
+                {
+                  "timestamp": "2026-07-30T14:32:17.000+08:00",
+                  "value": 8,
+                  "quality": "good"
+                },
+                {
+                  "timestamp": "2026-07-30T14:32:18.000+08:00",
+                  "value": 9.6,
+                  "quality": "good"
+                },
+                {
+                  "timestamp": "2026-07-30T14:32:19.000+08:00",
+                  "value": 12.8,
+                  "quality": "good"
+                },
+                {
+                  "timestamp": "2026-07-30T14:32:20.000+08:00",
+                  "value": 14.7,
+                  "quality": "good"
+                },
+                {
+                  "timestamp": "2026-07-30T14:32:21.000+08:00",
+                  "value": 15.6,
+                  "quality": "good"
+                },
+                {
+                  "timestamp": "2026-07-30T14:32:22.000+08:00",
+                  "value": 15.5,
+                  "quality": "good"
+                },
+                {
+                  "timestamp": "2026-07-30T14:32:23.000+08:00",
+                  "value": 15.4,
+                  "quality": "good"
+                },
+                {
+                  "timestamp": "2026-07-30T14:32:24.000+08:00",
+                  "value": 15.3,
+                  "quality": "good"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "event_id": "evt-0022",
+      "session_id": "session-controller_warm_reset_001",
+      "sequence": 22,
+      "event_type": "TASK_STATUS_CHANGED",
+      "producer": "planner",
+      "correlation_id": "exec-task-query-kpi",
+      "causation_id": "evt-0021",
+      "payload": {
+        "task_id": "task-query-kpi",
+        "status": "SUCCEEDED"
+      }
+    },
+    {
+      "event_id": "evt-0023",
+      "session_id": "session-controller_warm_reset_001",
+      "sequence": 23,
+      "event_type": "TASK_STATUS_CHANGED",
+      "producer": "planner",
+      "correlation_id": "exec-task-check-fc-port",
+      "causation_id": "evt-0007",
+      "payload": {
+        "task": {
+          "task_id": "task-check-fc-port",
+          "skill_code": "CHECK_PORT_HEALTH",
+          "skill_id": "link_health_query",
+          "action": "CHECK_PORT_HEALTH",
+          "stage": "evidence_collection",
+          "display_name": "检查FC端口状态与错误计数",
+          "goal": "检查FC端口状态与错误计数",
+          "target_object_refs": [
+            "fc-port-0a",
+            "fc-port-0b"
+          ],
+          "input": {
+            "object_ids": [
+              "fc-port-0a",
+              "fc-port-0b"
+            ]
+          },
+          "priority": 97,
+          "execution_mode": "PARALLEL",
+          "ui_role": "BACKGROUND",
+          "status": "RUNNING",
+          "result_refs": [
+            "kpi-fc-port-0a-crc"
+          ],
+          "started_at": "2026-07-30T14:32:25.180+08:00",
+          "ended_at": "2026-07-30T14:32:25.770+08:00",
+          "error": null
+        },
+        "status": "RUNNING"
+      }
+    },
+    {
+      "event_id": "evt-0024",
+      "session_id": "session-controller_warm_reset_001",
+      "sequence": 24,
+      "event_type": "SKILL_STARTED",
+      "occurred_at": "2026-07-30T14:32:25.180+08:00",
+      "producer": "skill-executor",
+      "correlation_id": "exec-task-check-fc-port",
+      "causation_id": "evt-0023",
+      "payload": {
+        "execution_id": "exec-task-check-fc-port",
+        "task_id": "task-check-fc-port",
+        "skill_id": "link_health_query",
+        "ui_role": "BACKGROUND",
+        "goal": "检查FC端口状态与错误计数",
+        "action_text": "执行 link_health_query：检查FC端口状态与错误计数",
+        "reason_text": "按 Planner 优先级验证候选相关对象与时间窗",
+        "expected_result_text": "期望确认链路状态与错误计数是否异常",
+        "target_object_refs": [
+          "fc-port-0a",
+          "fc-port-0b"
+        ]
+      }
+    },
+    {
+      "event_id": "evt-0025",
+      "session_id": "session-controller_warm_reset_001",
+      "sequence": 25,
+      "event_type": "SKILL_COMPLETED",
+      "occurred_at": "2026-07-30T14:32:25.770+08:00",
+      "producer": "skill-executor",
+      "correlation_id": "exec-task-check-fc-port",
+      "causation_id": "evt-0023",
+      "payload": {
+        "execution_id": "exec-task-check-fc-port",
+        "result_summary": "检查FC端口状态与错误计数",
+        "ended_at": "2026-07-30T14:32:25.770+08:00"
+      }
+    },
+    {
+      "event_id": "evt-0026",
+      "session_id": "session-controller_warm_reset_001",
+      "sequence": 26,
+      "event_type": "FACT_DISCOVERED",
+      "producer": "fact-normalizer",
+      "correlation_id": "exec-task-check-fc-port",
+      "causation_id": "evt-0025",
+      "payload": {
+        "fact_refs": [
+          "fact-kpi-fc-port-0a-crc"
+        ],
+        "facts": [
+          {
+            "fact_id": "fact-kpi-fc-port-0a-crc",
+            "fact_type": "KPI_WINDOW",
+            "object_refs": [
+              "fc-port-0a"
+            ],
+            "occurred_at": "2026-07-30T14:32:17.000+08:00",
+            "observed_range": {
+              "start": "2026-07-30T14:32:17.000+08:00",
+              "end": "2026-07-30T14:32:23.000+08:00"
+            },
+            "source": {
+              "execution_id": "exec-task-check-fc-port",
+              "skill_id": "link_health_query",
+              "source_refs": [
+                "kpi-fc-port-0a-crc"
+              ],
+              "query_coverage": {
+                "object_coverage": "COMPLETE",
+                "time_coverage": "COMPLETE",
+                "metric_coverage": "COMPLETE"
+              }
+            },
+            "quality": {
+              "level": "HIGH",
+              "completeness": "COMPLETE",
+              "freshness": "REPLAY_DATA"
+            },
+            "payload": {
+              "metric_name": "FC端口CRC错误增量",
+              "indicator_id": "fc_crc_error_delta",
+              "unit": "count",
+              "baseline": 0,
+              "thresholds": {
+                "warning": 1,
+                "critical": 10
+              },
+              "peak_value": 0,
+              "peak_at": "2026-07-30T14:32:17.000+08:00",
+              "samples": [
+                {
+                  "timestamp": "2026-07-30T14:32:17.000+08:00",
+                  "value": 0,
+                  "quality": "good"
+                },
+                {
+                  "timestamp": "2026-07-30T14:32:18.000+08:00",
+                  "value": 0,
+                  "quality": "good"
+                },
+                {
+                  "timestamp": "2026-07-30T14:32:19.000+08:00",
+                  "value": 0,
+                  "quality": "good"
+                },
+                {
+                  "timestamp": "2026-07-30T14:32:20.000+08:00",
+                  "value": 0,
+                  "quality": "good"
+                },
+                {
+                  "timestamp": "2026-07-30T14:32:21.000+08:00",
+                  "value": 0,
+                  "quality": "good"
+                },
+                {
+                  "timestamp": "2026-07-30T14:32:22.000+08:00",
+                  "value": 0,
+                  "quality": "good"
+                },
+                {
+                  "timestamp": "2026-07-30T14:32:23.000+08:00",
+                  "value": 0,
+                  "quality": "good"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "event_id": "evt-0027",
+      "session_id": "session-controller_warm_reset_001",
+      "sequence": 27,
+      "event_type": "TASK_STATUS_CHANGED",
+      "producer": "planner",
+      "correlation_id": "exec-task-check-fc-port",
+      "causation_id": "evt-0026",
+      "payload": {
+        "task_id": "task-check-fc-port",
+        "status": "SUCCEEDED"
+      }
+    },
+    {
+      "event_id": "evt-0028",
+      "session_id": "session-controller_warm_reset_001",
+      "sequence": 28,
+      "event_type": "TASK_STATUS_CHANGED",
+      "producer": "planner",
+      "correlation_id": "exec-task-query-topology",
+      "causation_id": "evt-0007",
+      "payload": {
+        "task": {
+          "task_id": "task-query-topology",
+          "skill_code": "QUERY_TOPOLOGY",
+          "skill_id": "topology_query",
+          "action": "QUERY_TOPOLOGY",
+          "stage": "evidence_collection",
+          "display_name": "查询块业务路径与主备关系",
+          "goal": "查询块业务路径与主备关系",
+          "target_object_refs": [
+            "lun-db01"
+          ],
+          "input": {
+            "start_object_id": "lun-db01",
+            "max_hops": 4
+          },
+          "priority": 96,
+          "execution_mode": "PARALLEL",
+          "ui_role": "BACKGROUND",
+          "status": "RUNNING",
+          "result_refs": [
+            "e-controller-a-block",
+            "e-controller-b-block",
+            "e-controller-ha",
+            "e-failover-a-b"
+          ],
+          "started_at": "2026-07-30T14:32:25.200+08:00",
+          "ended_at": "2026-07-30T14:32:25.620+08:00",
+          "error": null
+        },
+        "status": "RUNNING"
+      }
+    },
+    {
+      "event_id": "evt-0029",
+      "session_id": "session-controller_warm_reset_001",
+      "sequence": 29,
+      "event_type": "SKILL_STARTED",
+      "occurred_at": "2026-07-30T14:32:25.200+08:00",
+      "producer": "skill-executor",
+      "correlation_id": "exec-task-query-topology",
+      "causation_id": "evt-0028",
+      "payload": {
+        "execution_id": "exec-task-query-topology",
+        "task_id": "task-query-topology",
+        "skill_id": "topology_query",
+        "ui_role": "BACKGROUND",
+        "goal": "查询块业务路径与主备关系",
+        "action_text": "执行 topology_query：查询块业务路径与主备关系",
+        "reason_text": "按 Planner 优先级验证候选相关对象与时间窗",
+        "expected_result_text": "期望获得上下游、主备/共享/复制等关系子图",
+        "target_object_refs": [
+          "lun-db01"
+        ]
+      }
+    },
+    {
+      "event_id": "evt-0030",
+      "session_id": "session-controller_warm_reset_001",
+      "sequence": 30,
+      "event_type": "SKILL_COMPLETED",
+      "occurred_at": "2026-07-30T14:32:25.620+08:00",
+      "producer": "skill-executor",
+      "correlation_id": "exec-task-query-topology",
+      "causation_id": "evt-0028",
+      "payload": {
+        "execution_id": "exec-task-query-topology",
+        "result_summary": "查询块业务路径与主备关系",
+        "ended_at": "2026-07-30T14:32:25.620+08:00"
+      }
+    },
+    {
+      "event_id": "evt-0031",
+      "session_id": "session-controller_warm_reset_001",
+      "sequence": 31,
+      "event_type": "FACT_DISCOVERED",
+      "producer": "fact-normalizer",
+      "correlation_id": "exec-task-query-topology",
+      "causation_id": "evt-0030",
+      "payload": {
+        "fact_refs": [
+          "fact-e-failover-a-b"
+        ],
+        "facts": [
+          {
+            "fact_id": "fact-e-failover-a-b",
+            "fact_type": "TOPOLOGY_RELATION",
+            "object_refs": [
+              "controller-0a",
+              "controller-0b"
+            ],
+            "occurred_at": "2026-07-30T14:32:18.350+08:00",
+            "observed_range": {
+              "start": "2026-07-30T14:32:18.350+08:00",
+              "end": "2026-07-30T14:32:22.900+08:00"
+            },
+            "source": {
+              "execution_id": "exec-task-query-topology",
+              "skill_id": "topology_query",
+              "source_refs": [
+                "e-failover-a-b"
+              ]
+            },
+            "payload": {
+              "relation_type": "FAILOVER_TO",
+              "direction": "directed",
+              "path_group": null,
+              "redundancy_group": "controller-ha-01",
+              "state": "event"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "event_id": "evt-0032",
+      "session_id": "session-controller_warm_reset_001",
+      "sequence": 32,
+      "event_type": "TASK_STATUS_CHANGED",
+      "producer": "planner",
+      "correlation_id": "exec-task-query-topology",
+      "causation_id": "evt-0031",
+      "payload": {
+        "task_id": "task-query-topology",
+        "status": "SUCCEEDED"
+      }
+    },
+    {
+      "event_id": "evt-0033",
+      "session_id": "session-controller_warm_reset_001",
+      "sequence": 33,
+      "event_type": "TASK_STATUS_CHANGED",
+      "producer": "planner",
+      "correlation_id": "exec-task-check-pool",
+      "causation_id": "evt-0007",
+      "payload": {
+        "task": {
+          "task_id": "task-check-pool",
+          "skill_code": "QUERY_KPI",
+          "skill_id": "kpi_query",
+          "action": "QUERY_KPI",
+          "stage": "evidence_collection",
+          "display_name": "检查存储池负载",
+          "goal": "检查存储池负载",
+          "target_object_refs": [
+            "kpi-pool-utilization"
+          ],
+          "input": {
+            "series_ids": [
+              "kpi-pool-utilization"
+            ]
+          },
+          "priority": 95,
+          "execution_mode": "PARALLEL",
+          "ui_role": "BACKGROUND",
+          "status": "RUNNING",
+          "result_refs": [
+            "kpi-pool-utilization"
+          ],
+          "started_at": "2026-07-30T14:32:25.220+08:00",
+          "ended_at": "2026-07-30T14:32:25.680+08:00",
+          "error": null
+        },
+        "status": "RUNNING"
+      }
+    },
+    {
+      "event_id": "evt-0034",
+      "session_id": "session-controller_warm_reset_001",
+      "sequence": 34,
+      "event_type": "SKILL_STARTED",
+      "occurred_at": "2026-07-30T14:32:25.220+08:00",
+      "producer": "skill-executor",
+      "correlation_id": "exec-task-check-pool",
+      "causation_id": "evt-0033",
+      "payload": {
+        "execution_id": "exec-task-check-pool",
+        "task_id": "task-check-pool",
+        "skill_id": "kpi_query",
+        "ui_role": "BACKGROUND",
+        "goal": "检查存储池负载",
+        "action_text": "执行 kpi_query：检查存储池负载",
+        "reason_text": "按 Planner 优先级验证候选相关对象与时间窗",
+        "expected_result_text": "期望获得对象指标基线、阈值与异常窗口的时序对齐",
+        "target_object_refs": [
+          "kpi-pool-utilization"
+        ]
+      }
+    },
+    {
+      "event_id": "evt-0035",
+      "session_id": "session-controller_warm_reset_001",
+      "sequence": 35,
+      "event_type": "SKILL_COMPLETED",
+      "occurred_at": "2026-07-30T14:32:25.680+08:00",
+      "producer": "skill-executor",
+      "correlation_id": "exec-task-check-pool",
+      "causation_id": "evt-0033",
+      "payload": {
+        "execution_id": "exec-task-check-pool",
+        "result_summary": "检查存储池负载",
+        "ended_at": "2026-07-30T14:32:25.680+08:00"
+      }
+    },
+    {
+      "event_id": "evt-0036",
+      "session_id": "session-controller_warm_reset_001",
+      "sequence": 36,
+      "event_type": "FACT_DISCOVERED",
+      "producer": "fact-normalizer",
+      "correlation_id": "exec-task-check-pool",
+      "causation_id": "evt-0035",
+      "payload": {
+        "fact_refs": [
+          "fact-kpi-pool-utilization"
+        ],
+        "facts": [
+          {
+            "fact_id": "fact-kpi-pool-utilization",
+            "fact_type": "KPI_WINDOW",
+            "object_refs": [
+              "storage-pool-01"
+            ],
+            "occurred_at": "2026-07-30T14:32:19.000+08:00",
+            "observed_range": {
+              "start": "2026-07-30T14:32:17.000+08:00",
+              "end": "2026-07-30T14:32:23.000+08:00"
+            },
+            "source": {
+              "execution_id": "exec-task-check-pool",
+              "skill_id": "kpi_query",
+              "source_refs": [
+                "kpi-pool-utilization"
+              ],
+              "query_coverage": {
+                "object_coverage": "COMPLETE",
+                "time_coverage": "COMPLETE",
+                "metric_coverage": "COMPLETE"
+              }
+            },
+            "quality": {
+              "level": "HIGH",
+              "completeness": "COMPLETE",
+              "freshness": "REPLAY_DATA"
+            },
+            "payload": {
+              "metric_name": "Storage Pool利用率",
+              "indicator_id": "pool_utilization",
+              "unit": "%",
+              "baseline": 63.2,
+              "thresholds": {
+                "warning": 80,
+                "critical": 90
+              },
+              "peak_value": 63.3,
+              "peak_at": "2026-07-30T14:32:19.000+08:00",
+              "samples": [
+                {
+                  "timestamp": "2026-07-30T14:32:17.000+08:00",
+                  "value": 63.2,
+                  "quality": "good"
+                },
+                {
+                  "timestamp": "2026-07-30T14:32:18.000+08:00",
+                  "value": 63.2,
+                  "quality": "good"
+                },
+                {
+                  "timestamp": "2026-07-30T14:32:19.000+08:00",
+                  "value": 63.3,
+                  "quality": "good"
+                },
+                {
+                  "timestamp": "2026-07-30T14:32:20.000+08:00",
+                  "value": 63.3,
+                  "quality": "good"
+                },
+                {
+                  "timestamp": "2026-07-30T14:32:21.000+08:00",
+                  "value": 63.2,
+                  "quality": "good"
+                },
+                {
+                  "timestamp": "2026-07-30T14:32:22.000+08:00",
+                  "value": 63.2,
+                  "quality": "good"
+                },
+                {
+                  "timestamp": "2026-07-30T14:32:23.000+08:00",
+                  "value": 63.2,
+                  "quality": "good"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "event_id": "evt-0037",
+      "session_id": "session-controller_warm_reset_001",
+      "sequence": 37,
+      "event_type": "TASK_STATUS_CHANGED",
+      "producer": "planner",
+      "correlation_id": "exec-task-check-pool",
+      "causation_id": "evt-0036",
+      "payload": {
+        "task_id": "task-check-pool",
+        "status": "SUCCEEDED"
+      }
+    },
+    {
+      "event_id": "evt-0038",
+      "session_id": "session-controller_warm_reset_001",
+      "sequence": 38,
+      "event_type": "TASK_STATUS_CHANGED",
+      "producer": "planner",
+      "correlation_id": "exec-task-search-similar-case",
+      "causation_id": "evt-0007",
+      "payload": {
+        "task": {
+          "task_id": "task-search-similar-case",
+          "skill_code": "SEARCH_SIMILAR_CASE",
+          "skill_id": "similar_case_query",
+          "action": "SEARCH_SIMILAR_CASE",
+          "stage": "evidence_collection",
+          "display_name": "检索相似历史案例",
+          "goal": "检索相似历史案例",
+          "target_object_refs": [],
+          "input": {
+            "query_features": [
+              "watchdog_timeout",
+              "warm_reset",
+              "LUN_LATENCY_HIGH"
+            ]
+          },
+          "priority": 94,
+          "execution_mode": "PARALLEL",
+          "ui_role": "BACKGROUND",
+          "status": "RUNNING",
+          "result_refs": [
+            "case-20260618-023"
+          ],
+          "started_at": "2026-07-30T14:32:25.250+08:00",
+          "ended_at": "2026-07-30T14:32:26.340+08:00",
+          "error": null
+        },
+        "status": "RUNNING"
+      }
+    },
+    {
+      "event_id": "evt-0039",
+      "session_id": "session-controller_warm_reset_001",
+      "sequence": 39,
+      "event_type": "SKILL_STARTED",
+      "occurred_at": "2026-07-30T14:32:25.250+08:00",
+      "producer": "skill-executor",
+      "correlation_id": "exec-task-search-similar-case",
+      "causation_id": "evt-0038",
+      "payload": {
+        "execution_id": "exec-task-search-similar-case",
+        "task_id": "task-search-similar-case",
+        "skill_id": "similar_case_query",
+        "ui_role": "BACKGROUND",
+        "goal": "检索相似历史案例",
+        "action_text": "执行 similar_case_query：检索相似历史案例",
+        "reason_text": "按 Planner 优先级验证候选相关对象与时间窗",
+        "expected_result_text": "期望检索可作辅助参考的历史相似案例",
+        "target_object_refs": []
+      }
+    },
+    {
+      "event_id": "evt-0040",
+      "session_id": "session-controller_warm_reset_001",
+      "sequence": 40,
+      "event_type": "SKILL_COMPLETED",
+      "occurred_at": "2026-07-30T14:32:26.340+08:00",
+      "producer": "skill-executor",
+      "correlation_id": "exec-task-search-similar-case",
+      "causation_id": "evt-0038",
+      "payload": {
+        "execution_id": "exec-task-search-similar-case",
+        "result_summary": "检索相似历史案例",
+        "ended_at": "2026-07-30T14:32:26.340+08:00"
+      }
+    },
+    {
+      "event_id": "evt-0041",
+      "session_id": "session-controller_warm_reset_001",
+      "sequence": 41,
+      "event_type": "FACT_DISCOVERED",
+      "producer": "fact-normalizer",
+      "correlation_id": "exec-task-search-similar-case",
+      "causation_id": "evt-0040",
+      "payload": {
+        "fact_refs": [
+          "fact-case-20260618-023"
+        ],
+        "facts": [
+          {
+            "fact_id": "fact-case-20260618-023",
+            "fact_type": "SIMILAR_CASE_REFERENCE",
+            "object_refs": [
+              "lun-db01"
+            ],
+            "source": {
+              "execution_id": "exec-task-search-similar-case",
+              "skill_id": "similar_case_query",
+              "source_refs": [
+                "case-20260618-023"
+              ]
+            },
+            "payload": {
+              "title": "双控存储控制器Watchdog超时热复位",
+              "similarity": 0.914,
+              "historical_root_cause": {
+                "fault_mode_code": "CONTROLLER_WARM_RESET",
+                "object_type": "CONTROLLER"
+              },
+              "matched_features": [
+                "watchdog_timeout",
+                "warm_reset",
+                "active throughput zero",
+                "standby takeover"
+              ],
+              "resolution_summary": "控制器恢复后保持备用状态，业务由对端控制器承载；历史处置仅作参考。"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "event_id": "evt-0042",
+      "session_id": "session-controller_warm_reset_001",
+      "sequence": 42,
+      "event_type": "TASK_STATUS_CHANGED",
+      "producer": "planner",
+      "correlation_id": "exec-task-search-similar-case",
+      "causation_id": "evt-0041",
+      "payload": {
+        "task_id": "task-search-similar-case",
+        "status": "SUCCEEDED"
+      }
+    },
+    {
+      "event_id": "evt-0043",
+      "session_id": "session-controller_warm_reset_001",
+      "sequence": 43,
+      "event_type": "DIAGNOSIS_PHASE_CHANGED",
+      "producer": "planner",
+      "correlation_id": null,
+      "causation_id": "evt-0042",
+      "payload": {
+        "phase": "COMPETING_EXPLANATION"
+      }
+    },
+    {
+      "event_id": "evt-0044",
+      "session_id": "session-controller_warm_reset_001",
+      "sequence": 44,
+      "event_type": "EVIDENCE_CREATED",
+      "producer": "reasoning",
+      "correlation_id": null,
+      "causation_id": "evt-0011",
+      "payload": {
+        "evidence_ref": "ev-controller-reset-alarm",
+        "evidence": {
+          "evidence_id": "ev-controller-reset-alarm",
+          "evidence_type": "DIRECT_FAULT",
+          "fact_refs": [
+            "fact-alm-0a-78421"
+          ],
+          "effects": [
+            {
+              "candidate_id": "cand-controller-warm-reset",
+              "effect": "STRONG_SUPPORT",
+              "score_delta": 30,
+              "explanation": "命中Controller-0A热复位严重告警"
+            }
+          ],
+          "object_refs": [
+            "controller-0a"
+          ],
+          "time_alignment_ms": 278,
+          "quality": "HIGH",
+          "created_by": "reasoning-engine"
+        }
+      }
+    },
+    {
+      "event_id": "evt-0045",
+      "session_id": "session-controller_warm_reset_001",
+      "sequence": 45,
+      "event_type": "EVIDENCE_CREATED",
+      "producer": "reasoning",
+      "correlation_id": null,
+      "causation_id": "evt-0016",
+      "payload": {
+        "evidence_ref": "ev-warm-reset-fingerprint",
+        "evidence": {
+          "evidence_id": "ev-warm-reset-fingerprint",
+          "evidence_type": "MECHANISM",
+          "fact_refs": [
+            "fact-fp-ctrl-warm-reset-017"
+          ],
+          "effects": [
+            {
+              "candidate_id": "cand-controller-warm-reset",
+              "effect": "STRONG_SUPPORT",
+              "score_delta": 30,
+              "explanation": "4秒窗口内7次命中Watchdog超时热复位指纹"
+            }
+          ],
+          "object_refs": [
+            "controller-0a"
+          ],
+          "time_alignment_ms": 505,
+          "quality": "HIGH",
+          "created_by": "reasoning-engine"
+        }
+      }
+    },
+    {
+      "event_id": "evt-0046",
+      "session_id": "session-controller_warm_reset_001",
+      "sequence": 46,
+      "event_type": "EVIDENCE_CREATED",
+      "producer": "reasoning",
+      "correlation_id": null,
+      "causation_id": "evt-0016",
+      "payload": {
+        "evidence_ref": "ev-watchdog-timeout-log",
+        "evidence": {
+          "evidence_id": "ev-watchdog-timeout-log",
+          "evidence_type": "MECHANISM",
+          "fact_refs": [
+            "fact-fp-watchdog-timeout-011"
+          ],
+          "effects": [
+            {
+              "candidate_id": "cand-controller-warm-reset",
+              "effect": "STRONG_SUPPORT",
+              "score_delta": 30,
+              "explanation": "热复位前出现Watchdog超时日志"
+            }
+          ],
+          "object_refs": [
+            "controller-0a"
+          ],
+          "time_alignment_ms": 818,
+          "quality": "HIGH",
+          "created_by": "reasoning-engine"
+        }
+      }
+    },
+    {
+      "event_id": "evt-0047",
+      "session_id": "session-controller_warm_reset_001",
+      "sequence": 47,
+      "event_type": "EVIDENCE_CREATED",
+      "producer": "reasoning",
+      "correlation_id": null,
+      "causation_id": "evt-0021",
+      "payload": {
+        "evidence_ref": "ev-controller-throughput-zero",
+        "evidence": {
+          "evidence_id": "ev-controller-throughput-zero",
+          "evidence_type": "IMPACT",
+          "fact_refs": [
+            "fact-kpi-controller-0a-throughput"
+          ],
+          "effects": [
+            {
+              "candidate_id": "cand-controller-warm-reset",
+              "effect": "STRONG_SUPPORT",
+              "score_delta": 30,
+              "explanation": "Controller-0A吞吐由8.4GB/s降为0"
+            }
+          ],
+          "object_refs": [
+            "controller-0a"
+          ],
+          "time_alignment_ms": 120,
+          "quality": "HIGH",
+          "created_by": "reasoning-engine"
+        }
+      }
+    },
+    {
+      "event_id": "evt-0048",
+      "session_id": "session-controller_warm_reset_001",
+      "sequence": 48,
+      "event_type": "EVIDENCE_CREATED",
+      "producer": "reasoning",
+      "correlation_id": null,
+      "causation_id": "evt-0021",
+      "payload": {
+        "evidence_ref": "ev-controller0b-takeover",
+        "evidence": {
+          "evidence_id": "ev-controller0b-takeover",
+          "evidence_type": "IMPACT",
+          "fact_refs": [
+            "fact-kpi-controller-0b-throughput"
+          ],
+          "effects": [
+            {
+              "candidate_id": "cand-controller-warm-reset",
+              "effect": "STRONG_SUPPORT",
+              "score_delta": 30,
+              "explanation": "Controller-0B吞吐由7.9GB/s升至15.6GB/s"
+            }
+          ],
+          "object_refs": [
+            "controller-0b"
+          ],
+          "time_alignment_ms": 230,
+          "quality": "HIGH",
+          "created_by": "reasoning-engine"
+        }
+      }
+    },
+    {
+      "event_id": "evt-0049",
+      "session_id": "session-controller_warm_reset_001",
+      "sequence": 49,
+      "event_type": "EVIDENCE_CREATED",
+      "producer": "reasoning",
+      "correlation_id": null,
+      "causation_id": "evt-0031",
+      "payload": {
+        "evidence_ref": "ev-topology-failover",
+        "evidence": {
+          "evidence_id": "ev-topology-failover",
+          "evidence_type": "AFFECTED_PATH",
+          "fact_refs": [
+            "fact-e-failover-a-b"
+          ],
+          "effects": [
+            {
+              "candidate_id": "cand-controller-warm-reset",
+              "effect": "SUPPORT",
+              "score_delta": 15,
+              "explanation": "拓扑确认0A与0B为主备关系并发生切换"
+            }
+          ],
+          "object_refs": [
+            "controller-0a",
+            "controller-0b"
+          ],
+          "time_alignment_ms": 230,
+          "quality": "HIGH",
+          "created_by": "reasoning-engine"
+        }
+      }
+    },
+    {
+      "event_id": "evt-0050",
+      "session_id": "session-controller_warm_reset_001",
+      "sequence": 50,
+      "event_type": "EVIDENCE_CREATED",
+      "producer": "reasoning",
+      "correlation_id": null,
+      "causation_id": "evt-0041",
+      "payload": {
+        "evidence_ref": "ev-similar-case",
+        "evidence": {
+          "evidence_id": "ev-similar-case",
+          "evidence_type": "SIMILAR_CASE",
+          "fact_refs": [
+            "fact-case-20260618-023"
+          ],
+          "effects": [
+            {
+              "candidate_id": "cand-controller-warm-reset",
+              "effect": "SUPPORT",
+              "score_delta": 15,
+              "explanation": "历史案例相似度91.4%，根因为控制器热复位"
+            }
+          ],
+          "object_refs": [
+            "lun-db01"
+          ],
+          "time_alignment_ms": null,
+          "quality": "MEDIUM",
+          "created_by": "reasoning-engine"
+        }
+      }
+    },
+    {
+      "event_id": "evt-0051",
+      "session_id": "session-controller_warm_reset_001",
+      "sequence": 51,
+      "event_type": "EVIDENCE_CREATED",
+      "producer": "reasoning",
+      "correlation_id": null,
+      "causation_id": "evt-0026",
+      "payload": {
+        "evidence_ref": "ev-fc-crc-normal",
+        "evidence": {
+          "evidence_id": "ev-fc-crc-normal",
+          "evidence_type": "COUNTER_EVIDENCE",
+          "fact_refs": [
+            "fact-kpi-fc-port-0a-crc"
+          ],
+          "effects": [
+            {
+              "candidate_id": "cand-fc-link-flap",
+              "effect": "WEAKEN",
+              "score_delta": -15,
+              "explanation": "FC端口CRC错误增量持续为0"
+            }
+          ],
+          "object_refs": [
+            "fc-port-0a"
+          ],
+          "time_alignment_ms": null,
+          "quality": "HIGH",
+          "created_by": "reasoning-engine"
+        }
+      }
+    },
+    {
+      "event_id": "evt-0052",
+      "session_id": "session-controller_warm_reset_001",
+      "sequence": 52,
+      "event_type": "EVIDENCE_CREATED",
+      "producer": "reasoning",
+      "correlation_id": null,
+      "causation_id": "evt-0011",
+      "payload": {
+        "evidence_ref": "ev-san-no-alarm",
+        "evidence": {
+          "evidence_id": "ev-san-no-alarm",
+          "evidence_type": "ABSENCE",
+          "fact_refs": [
+            "fact-absence-ev-san-no-alarm"
+          ],
+          "effects": [
+            {
+              "candidate_id": "cand-san-link-fault",
+              "effect": "WEAKEN",
+              "score_delta": -15,
+              "explanation": "双Fabric均无链路类告警"
+            }
+          ],
+          "object_refs": [
+            "san-fabric-a"
+          ],
+          "time_alignment_ms": null,
+          "quality": "HIGH",
+          "created_by": "reasoning-engine"
+        }
+      }
+    },
+    {
+      "event_id": "evt-0053",
+      "session_id": "session-controller_warm_reset_001",
+      "sequence": 53,
+      "event_type": "EVIDENCE_CREATED",
+      "producer": "reasoning",
+      "correlation_id": null,
+      "causation_id": "evt-0036",
+      "payload": {
+        "evidence_ref": "ev-pool-utilization-normal",
+        "evidence": {
+          "evidence_id": "ev-pool-utilization-normal",
+          "evidence_type": "COUNTER_EVIDENCE",
+          "fact_refs": [
+            "fact-kpi-pool-utilization"
+          ],
+          "effects": [
+            {
+              "candidate_id": "cand-pool-bottleneck",
+              "effect": "WEAKEN",
+              "score_delta": -15,
+              "explanation": "存储池利用率稳定在63.2%左右"
+            }
+          ],
+          "object_refs": [
+            "storage-pool-01"
+          ],
+          "time_alignment_ms": null,
+          "quality": "HIGH",
+          "created_by": "reasoning-engine"
+        }
+      }
+    },
+    {
+      "event_id": "evt-0054",
+      "session_id": "session-controller_warm_reset_001",
+      "sequence": 54,
+      "event_type": "CANDIDATE_UPDATED",
+      "producer": "reasoning",
+      "correlation_id": null,
+      "causation_id": "evt-0044",
+      "payload": {
+        "candidate_id": "cand-controller-warm-reset",
+        "score_before": 42,
+        "score_after": 68,
+        "status_after": "LEADING",
+        "caused_by_evidence_refs": [
+          "ev-controller-reset-alarm"
+        ],
+        "reason": "命中热复位告警，告警发生于LUN异常前278ms"
+      }
+    },
+    {
+      "event_id": "evt-0055",
+      "session_id": "session-controller_warm_reset_001",
+      "sequence": 55,
+      "event_type": "CANDIDATE_UPDATED",
+      "producer": "reasoning",
+      "correlation_id": null,
+      "causation_id": "evt-0051",
+      "payload": {
+        "candidate_id": "cand-fc-link-flap",
+        "score_before": 28,
+        "score_after": 17,
+        "status_after": "WEAKENED",
+        "caused_by_evidence_refs": [
+          "ev-fc-crc-normal"
+        ],
+        "reason": "端口状态正常且CRC错误增量为0"
+      }
+    },
+    {
+      "event_id": "evt-0056",
+      "session_id": "session-controller_warm_reset_001",
+      "sequence": 56,
+      "event_type": "CANDIDATE_UPDATED",
+      "producer": "reasoning",
+      "correlation_id": null,
+      "causation_id": "evt-0052",
+      "payload": {
+        "candidate_id": "cand-san-link-fault",
+        "score_before": 18,
+        "score_after": 9,
+        "status_after": "WEAKENED",
+        "caused_by_evidence_refs": [
+          "ev-san-no-alarm"
+        ],
+        "reason": "双Fabric无链路告警"
+      }
+    },
+    {
+      "event_id": "evt-0057",
+      "session_id": "session-controller_warm_reset_001",
+      "sequence": 57,
+      "event_type": "CANDIDATE_UPDATED",
+      "producer": "reasoning",
+      "correlation_id": null,
+      "causation_id": "evt-0053",
+      "payload": {
+        "candidate_id": "cand-pool-bottleneck",
+        "score_before": 12,
+        "score_after": 6,
+        "status_after": "WEAKENED",
+        "caused_by_evidence_refs": [
+          "ev-pool-utilization-normal"
+        ],
+        "reason": "存储池利用率和负载稳定"
+      }
+    },
+    {
+      "event_id": "evt-0058",
+      "session_id": "session-controller_warm_reset_001",
+      "sequence": 58,
+      "event_type": "CANDIDATE_UPDATED",
+      "producer": "reasoning",
+      "correlation_id": null,
+      "causation_id": "evt-0045",
+      "payload": {
+        "candidate_id": "cand-controller-warm-reset",
+        "score_before": 68,
+        "score_after": 96,
+        "status_after": "LEADING",
+        "caused_by_evidence_refs": [
+          "ev-warm-reset-fingerprint",
+          "ev-watchdog-timeout-log",
+          "ev-controller-throughput-zero",
+          "ev-controller0b-takeover",
+          "ev-topology-failover",
+          "ev-similar-case"
+        ],
+        "reason": "日志、告警、KPI、拓扑及历史案例形成相互独立且时间一致的证据闭环"
+      }
+    },
+    {
+      "event_id": "evt-0059",
+      "session_id": "session-controller_warm_reset_001",
+      "sequence": 59,
+      "event_type": "CANDIDATE_UPDATED",
+      "producer": "reasoning",
+      "correlation_id": null,
+      "causation_id": "evt-0051",
+      "payload": {
+        "candidate_id": "cand-fc-link-flap",
+        "score_before": 17,
+        "score_after": 3,
+        "status_after": "WEAKENED",
+        "caused_by_evidence_refs": [
+          "ev-fc-crc-normal",
+          "ev-controller-reset-alarm"
+        ],
+        "reason": "缺少链路异常证据，同时存在明确控制器热复位告警"
+      }
+    },
+    {
+      "event_id": "evt-0060",
+      "session_id": "session-controller_warm_reset_001",
+      "sequence": 60,
+      "event_type": "CANDIDATE_UPDATED",
+      "producer": "reasoning",
+      "correlation_id": null,
+      "causation_id": "evt-0052",
+      "payload": {
+        "candidate_id": "cand-san-link-fault",
+        "score_before": 9,
+        "score_after": 1,
+        "status_after": "WEAKENED",
+        "caused_by_evidence_refs": [
+          "ev-san-no-alarm",
+          "ev-fc-crc-normal"
+        ],
+        "reason": "网络侧与端口侧均无异常观测"
+      }
+    },
+    {
+      "event_id": "evt-0061",
+      "session_id": "session-controller_warm_reset_001",
+      "sequence": 61,
+      "event_type": "CANDIDATE_UPDATED",
+      "producer": "reasoning",
+      "correlation_id": null,
+      "causation_id": "evt-0053",
+      "payload": {
+        "candidate_id": "cand-pool-bottleneck",
+        "score_before": 6,
+        "score_after": 2,
+        "status_after": "WEAKENED",
+        "caused_by_evidence_refs": [
+          "ev-pool-utilization-normal",
+          "ev-controller0b-takeover"
+        ],
+        "reason": "时延变化与控制器切换同步，而非后端资源压力变化"
+      }
+    },
+    {
+      "event_id": "evt-0062",
+      "session_id": "session-controller_warm_reset_001",
+      "sequence": 62,
+      "event_type": "DIAGNOSIS_PHASE_CHANGED",
+      "producer": "planner",
+      "correlation_id": null,
+      "causation_id": "evt-0061",
+      "payload": {
+        "phase": "CONCLUSION_CHECK"
+      }
+    },
+    {
+      "event_id": "evt-0063",
+      "session_id": "session-controller_warm_reset_001",
+      "sequence": 63,
+      "event_type": "ROOT_CAUSE_CONFIRMED",
+      "producer": "reasoning",
+      "correlation_id": null,
+      "causation_id": "evt-0058",
+      "payload": {
+        "candidate_ref": "cand-controller-warm-reset",
+        "score": 96,
+        "root_cause_chain": [
+          "controller-0a",
+          "block-service-01"
+        ],
+        "impact_chain": [
+          "block-service-01",
+          "lun-db01",
+          "db-business-01"
+        ]
+      }
+    },
+    {
+      "event_id": "evt-0064",
+      "session_id": "session-controller_warm_reset_001",
+      "sequence": 64,
+      "event_type": "DIAGNOSIS_COMPLETED",
+      "producer": "runtime",
+      "correlation_id": null,
+      "causation_id": "evt-0063",
+      "payload": {
+        "conclusion": {
+          "diagnosis_id": "diag-controller-warm-reset-001",
+          "status": "ROOT_CAUSE_CONFIRMED",
+          "completed_at": "2026-07-30T14:32:27.100+08:00",
+          "root_cause": {
+            "candidate_id": "cand-controller-warm-reset",
+            "object_id": "controller-0a",
+            "fault_mode_code": "CONTROLLER_WARM_RESET",
+            "diagnosis_support_score": 96
+          },
+          "root_cause_chain": [
+            "controller-0a",
+            "block-service-01"
+          ],
+          "impact_chain": [
+            "block-service-01",
+            "lun-db01",
+            "db-business-01"
+          ],
+          "recovery_chain": [
+            "controller-0b",
+            "block-service-01",
+            "lun-db01"
+          ],
+          "excluded_candidates": [
+            "cand-fc-link-flap",
+            "cand-san-link-fault",
+            "cand-pool-bottleneck"
+          ],
+          "diagnosis_summary": "Controller-0A因watchdog超时发生热复位，Block Service从Controller-0A切换至Controller-0B，导致LUN-DB01平均时延由1.8ms短时升至38.6ms；切换完成后时延恢复。",
+          "key_evidence_refs": [
+            "ev-controller-reset-alarm",
+            "ev-warm-reset-fingerprint",
+            "ev-controller-throughput-zero",
+            "ev-controller0b-takeover",
+            "ev-topology-failover"
+          ],
+          "business_impact": {
+            "object_id": "db-business-01",
+            "level": "degraded",
+            "duration_ms": 5880,
+            "description": "数据库访问性能短时下降，无持续业务中断"
+          },
+          "current_capability_boundary": "diagnosis_completed",
+          "repair": {
+            "status": "future_capability",
+            "display_mode": "dimmed",
+            "items": [
+              "生成处置方案",
+              "风险评估与人工审批",
+              "执行修复操作",
+              "业务效果验证",
+              "失败回退"
+            ]
+          }
+        },
+        "replay_bookmarks": [
+          {
+            "scene_id": "scene-01",
+            "sequence": 1,
+            "title": "正常基线"
+          },
+          {
+            "scene_id": "scene-02",
+            "sequence": 2,
+            "title": "故障现象触发"
+          },
+          {
+            "scene_id": "scene-03",
+            "sequence": 3,
+            "title": "现象映射与范围锁定"
+          },
+          {
+            "scene_id": "scene-04",
+            "sequence": 4,
+            "title": "候选根因生成"
+          },
+          {
+            "scene_id": "scene-05",
+            "sequence": 6,
+            "title": "Agent并行取证"
+          },
+          {
+            "scene_id": "scene-06",
+            "sequence": 43,
+            "title": "候选验证与排除"
+          },
+          {
+            "scene_id": "scene-07",
+            "sequence": 62,
+            "title": "根因诊断完成"
+          },
+          {
+            "scene_id": "scene-08",
+            "sequence": 62,
+            "title": "修复闭环能力预告"
+          }
+        ]
+      }
+    }
+  ]
+}

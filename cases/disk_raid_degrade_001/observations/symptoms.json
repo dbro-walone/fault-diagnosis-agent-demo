@@ -1,0 +1,15 @@
+{
+  "symptoms": [
+    {
+      "symptom_id": "sym-arch-latency-high",
+      "source": "kpi",
+      "raw_description": "归档业务 LUN 时延突增，IO 明显变慢",
+      "normalized_type": "IO_LATENCY_HIGH",
+      "object_id": "lun-arch02",
+      "detected_at": "2026-08-01T09:45:02.000+08:00",
+      "value": 42.0,
+      "unit": "ms",
+      "baseline": 2.8
+    }
+  ]
+}

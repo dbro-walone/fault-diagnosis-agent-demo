@@ -1,0 +1,9 @@
+{
+  "candidates":[
+    {"candidate_id":"cand-noisy-neighbor-a","fault_mode_code":"NOISY_NEIGHBOR_IO_CONTENTION","object_id":"host-a","display_name":"Host-A工作负载突增导致共享存储扰邻","initial_confidence":0.30,"generation_basis":["sym-lun-b-latency-high","pattern-noisy-neighbor"],"status":"confirmed"},
+    {"candidate_id":"cand-host-b-overload","fault_mode_code":"HOST_RESOURCE_BOTTLENECK","object_id":"host-b","display_name":"Host-B自身资源瓶颈","initial_confidence":0.25,"generation_basis":["sym-business-b-slow","pattern-host-b-overload"],"status":"excluded"},
+    {"candidate_id":"cand-fc-link-b","fault_mode_code":"FC_LINK_FAULT","object_id":"fc-port-0a","display_name":"Host-B FC/SAN链路异常","initial_confidence":0.20,"generation_basis":["sym-lun-b-latency-high","pattern-fc-link-fault"],"status":"excluded"},
+    {"candidate_id":"cand-controller-pressure","fault_mode_code":"CONTROLLER_OVERLOAD","object_id":"controller-0a","display_name":"Controller-0A故障或固有过载","initial_confidence":0.15,"generation_basis":["sym-lun-b-latency-high","pattern-controller-overload"],"status":"excluded"},
+    {"candidate_id":"cand-pool-bottleneck","fault_mode_code":"POOL_PERFORMANCE_BOTTLENECK","object_id":"storage-pool-01","display_name":"StoragePool-01固有性能瓶颈","initial_confidence":0.10,"generation_basis":["sym-lun-b-latency-high","pattern-pool-bottleneck"],"status":"excluded"}
+  ]
+}

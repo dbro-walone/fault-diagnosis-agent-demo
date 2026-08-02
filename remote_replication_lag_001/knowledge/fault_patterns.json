@@ -1,0 +1,9 @@
+{
+  "fault_patterns":[
+    {"pattern_id":"pattern-repl-network-congestion","fault_mode_code":"REMOTE_REPLICATION_NETWORK_CONGESTION","name":"复制网络拥塞或丢包","applicable_resource_types":["NETWORK_PATH","REPLICATION_PORT","REPLICATION_SESSION"],"symptom_types":["REPLICATION_RPO_HIGH","REPLICATION_BACKLOG_HIGH"],"expected_signals":["packet loss high","retransmits high","effective throughput low","backlog and RPO rise","recovery after network restoration"],"generation_weight":0.30},
+    {"pattern_id":"pattern-source-bottleneck","fault_mode_code":"REPLICATION_SOURCE_BOTTLENECK","name":"源端存储性能瓶颈","applicable_resource_types":["STORAGE_POOL","LUN"],"symptom_types":["REPLICATION_BACKLOG_HIGH"],"expected_signals":["source backend latency high","send queue starvation"],"generation_weight":0.22},
+    {"pattern_id":"pattern-target-bottleneck","fault_mode_code":"REPLICATION_TARGET_BOTTLENECK","name":"远端写入瓶颈","applicable_resource_types":["STORAGE_POOL","LUN"],"symptom_types":["REPLICATION_BACKLOG_HIGH"],"expected_signals":["target write latency high","receive queue high"],"generation_weight":0.20},
+    {"pattern_id":"pattern-session-config","fault_mode_code":"REPLICATION_SESSION_CONFIG_ERROR","name":"复制会话暂停/限速/配置异常","applicable_resource_types":["REPLICATION_SESSION"],"symptom_types":["REPLICATION_RPO_HIGH"],"expected_signals":["session paused","throttle configured","configuration changed"],"generation_weight":0.18},
+    {"pattern_id":"pattern-repl-port-fault","fault_mode_code":"REPLICATION_PORT_FAULT","name":"源端复制端口物理故障","applicable_resource_types":["REPLICATION_PORT"],"symptom_types":["REPLICATION_RPO_HIGH"],"expected_signals":["port down","CRC errors","link alarm"],"generation_weight":0.10}
+  ]
+}

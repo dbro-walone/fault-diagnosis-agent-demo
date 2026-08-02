@@ -1,0 +1,6 @@
+{
+  "alarms": [
+    {"alarm_id":"alm-0a-78421","alarm_code":"CONTROLLER_WARM_RESET","name":"控制器发生热复位","object_id":"controller-0a","severity":"critical","occurred_at":"2026-07-30T14:32:17.842+08:00","cleared_at":"2026-07-30T14:32:23.106+08:00","status":"cleared","raw_fields":{"reason":"watchdog_timeout","reset_type":"warm","service":"block","controller":"0A"}},
+    {"alarm_id":"alm-block-failover-219","alarm_code":"BLOCK_SERVICE_FAILOVER","name":"块服务发生主备切换","object_id":"block-service-01","severity":"major","occurred_at":"2026-07-30T14:32:18.350+08:00","cleared_at":"2026-07-30T14:32:22.900+08:00","status":"cleared","raw_fields":{"from":"controller-0a","to":"controller-0b","duration_ms":4550}}
+  ]
+}

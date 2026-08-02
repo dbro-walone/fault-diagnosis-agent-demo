@@ -1,0 +1,24 @@
+{
+  "traces": [
+    {"candidate_id":"cand-controller-warm-reset","trace":[
+      {"sequence":1,"stage":"candidate_generation","confidence":0.42,"evidence_refs":[],"reason":"依据LUN时延现象、块业务路径和故障模式生成候选"},
+      {"sequence":2,"stage":"evidence_collection","confidence":0.68,"evidence_refs":["ev-controller-reset-alarm"],"reason":"命中热复位告警，告警发生于LUN异常前278ms"},
+      {"sequence":3,"stage":"evidence_fusion","confidence":0.96,"evidence_refs":["ev-warm-reset-fingerprint","ev-watchdog-timeout-log","ev-controller-throughput-zero","ev-controller0b-takeover","ev-topology-failover","ev-similar-case"],"reason":"日志、告警、KPI、拓扑及历史案例形成相互独立且时间一致的证据闭环"}
+    ]},
+    {"candidate_id":"cand-fc-link-flap","trace":[
+      {"sequence":1,"stage":"candidate_generation","confidence":0.28,"evidence_refs":[],"reason":"短时I/O中断与路径切换可由端口抖动引起"},
+      {"sequence":2,"stage":"evidence_collection","confidence":0.17,"evidence_refs":["ev-fc-crc-normal"],"reason":"端口状态正常且CRC错误增量为0"},
+      {"sequence":3,"stage":"evidence_fusion","confidence":0.03,"evidence_refs":["ev-fc-crc-normal","ev-controller-reset-alarm"],"reason":"缺少链路异常证据，同时存在明确控制器热复位告警"}
+    ]},
+    {"candidate_id":"cand-san-link-fault","trace":[
+      {"sequence":1,"stage":"candidate_generation","confidence":0.18,"evidence_refs":[],"reason":"业务访问路径经过双SAN，网络异常属于合理候选"},
+      {"sequence":2,"stage":"evidence_collection","confidence":0.09,"evidence_refs":["ev-san-no-alarm"],"reason":"双Fabric无链路告警"},
+      {"sequence":3,"stage":"evidence_fusion","confidence":0.01,"evidence_refs":["ev-san-no-alarm","ev-fc-crc-normal"],"reason":"网络侧与端口侧均无异常观测"}
+    ]},
+    {"candidate_id":"cand-pool-bottleneck","trace":[
+      {"sequence":1,"stage":"candidate_generation","confidence":0.12,"evidence_refs":[],"reason":"LUN时延升高可能由后端存储池瓶颈造成"},
+      {"sequence":2,"stage":"evidence_collection","confidence":0.06,"evidence_refs":["ev-pool-utilization-normal"],"reason":"存储池利用率和负载稳定"},
+      {"sequence":3,"stage":"evidence_fusion","confidence":0.02,"evidence_refs":["ev-pool-utilization-normal","ev-controller0b-takeover"],"reason":"时延变化与控制器切换同步，而非后端资源压力变化"}
+    ]}
+  ]
+}

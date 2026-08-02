@@ -1,0 +1,1 @@
+"# disk_raid_degrade_001\n磁盘扇区坏道 → RAID 降级 → 归档业务变慢。用于验证 docs/14 BA-EXT 扩展能力。\n"

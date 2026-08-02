@@ -1,0 +1,96 @@
+{
+  "series": [
+    {
+      "series_id": "kpi-lun-arch02-latency",
+      "object_id": "lun-arch02",
+      "indicator_id": "io_latency",
+      "name": "归档LUN时延",
+      "unit": "ms",
+      "sample_interval_ms": 1000,
+      "baseline": {
+        "value": 2.8
+      },
+      "thresholds": {
+        "high": 10
+      },
+      "points": [
+        {
+          "timestamp": "2026-08-01T09:44:50.000+08:00",
+          "value": 2.9
+        },
+        {
+          "timestamp": "2026-08-01T09:45:02.000+08:00",
+          "value": 18.4
+        },
+        {
+          "timestamp": "2026-08-01T09:45:10.000+08:00",
+          "value": 42.0
+        },
+        {
+          "timestamp": "2026-08-01T09:45:20.000+08:00",
+          "value": 39.6
+        }
+      ]
+    },
+    {
+      "series_id": "kpi-disk-02a-read-err",
+      "object_id": "disk-02a",
+      "indicator_id": "read_errors",
+      "name": "磁盘读错误",
+      "unit": "count",
+      "sample_interval_ms": 1000,
+      "baseline": {
+        "value": 0
+      },
+      "thresholds": {
+        "high": 5
+      },
+      "points": [
+        {
+          "timestamp": "2026-08-01T09:44:50.000+08:00",
+          "value": 0
+        },
+        {
+          "timestamp": "2026-08-01T09:45:02.000+08:00",
+          "value": 12
+        },
+        {
+          "timestamp": "2026-08-01T09:45:10.000+08:00",
+          "value": 47
+        },
+        {
+          "timestamp": "2026-08-01T09:45:20.000+08:00",
+          "value": 53
+        }
+      ]
+    },
+    {
+      "series_id": "kpi-host-02-cpu",
+      "object_id": "host-02",
+      "indicator_id": "cpu_util",
+      "name": "主机CPU",
+      "unit": "%",
+      "sample_interval_ms": 1000,
+      "baseline": {
+        "value": 30
+      },
+      "thresholds": {
+        "high": 90
+      },
+      "points": [
+        {
+          "timestamp": "2026-08-01T09:44:50.000+08:00",
+          "value": 31
+        },
+        {
+          "timestamp": "2026-08-01T09:45:10.000+08:00",
+          "value": 33
+        },
+        {
+          "timestamp": "2026-08-01T09:45:20.000+08:00",
+          "value": 32
+        }
+      ]
+    }
+  ]
+}

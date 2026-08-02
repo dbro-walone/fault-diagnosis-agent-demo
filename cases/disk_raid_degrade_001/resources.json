@@ -1,0 +1,130 @@
+{
+  "resources": [
+    {
+      "resource_id": "business-arch",
+      "resource_type": "BUSINESS",
+      "name": "归档业务",
+      "parent_id": null,
+      "device_id": null,
+      "zone": "BUSINESS_SIDE",
+      "location": "external",
+      "attributes": {
+        "service": "archive-db"
+      }
+    },
+    {
+      "resource_id": "host-02",
+      "resource_type": "HOST",
+      "name": "Host-02",
+      "parent_id": null,
+      "device_id": null,
+      "zone": "ACCESS_SIDE",
+      "location": "external",
+      "attributes": {
+        "os": "Linux",
+        "multipath": "enabled"
+      }
+    },
+    {
+      "resource_id": "storage-02",
+      "resource_type": "STORAGE_DEVICE",
+      "name": "Storage-02",
+      "parent_id": null,
+      "device_id": "storage-02",
+      "zone": "ROOT",
+      "location": "boundary",
+      "attributes": {
+        "model": "MockStorage-Y"
+      }
+    },
+    {
+      "resource_id": "controller-2a",
+      "resource_type": "CONTROLLER",
+      "name": "Controller-2A",
+      "parent_id": "storage-02",
+      "device_id": "storage-02",
+      "zone": "CONTROL_SERVICE",
+      "location": "internal",
+      "attributes": {
+        "role": "active",
+        "slot": "2A"
+      }
+    },
+    {
+      "resource_id": "block-service-02",
+      "resource_type": "BLOCK_SERVICE",
+      "name": "Block Service-02",
+      "parent_id": "storage-02",
+      "device_id": "storage-02",
+      "zone": "CONTROL_SERVICE",
+      "location": "internal",
+      "attributes": {
+        "raid": "RAID6"
+      }
+    },
+    {
+      "resource_id": "lun-arch02",
+      "resource_type": "LUN",
+      "name": "LUN-ARCH02",
+      "parent_id": "storage-02",
+      "device_id": "storage-02",
+      "zone": "LOGICAL_RESOURCE",
+      "location": "internal",
+      "attributes": {
+        "capacity_tb": 16,
+        "protocol": "FC"
+      }
+    },
+    {
+      "resource_id": "storage-pool-02",
+      "resource_type": "STORAGE_POOL",
+      "name": "Storage Pool-02",
+      "parent_id": "storage-02",
+      "device_id": "storage-02",
+      "zone": "LOGICAL_RESOURCE",
+      "location": "internal",
+      "attributes": {
+        "raid": "RAID6",
+        "utilization_pct": 58.4
+      }
+    },
+    {
+      "resource_id": "disk-enclosure-02",
+      "resource_type": "DISK_ENCLOSURE",
+      "name": "Disk Enclosure-02",
+      "parent_id": "storage-02",
+      "device_id": "storage-02",
+      "zone": "PHYSICAL_RESOURCE",
+      "location": "internal",
+      "attributes": {
+        "disk_count": 8
+      }
+    },
+    {
+      "resource_id": "disk-02a",
+      "resource_type": "DISK",
+      "name": "Disk-02A",
+      "parent_id": "disk-enclosure-02",
+      "device_id": "storage-02",
+      "zone": "PHYSICAL_RESOURCE",
+      "location": "internal",
+      "attributes": {
+        "media": "SSD",
+        "health": "degraded"
+      }
+    },
+    {
+      "resource_id": "disk-02b",
+      "resource_type": "DISK",
+      "name": "Disk-02B",
+      "parent_id": "disk-enclosure-02",
+      "device_id": "storage-02",
+      "zone": "PHYSICAL_RESOURCE",
+      "location": "internal",
+      "attributes": {
+        "media": "SSD",
+        "health": "normal"
+      }
+    }
+  ]
+}

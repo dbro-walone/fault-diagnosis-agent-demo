@@ -97,6 +97,21 @@ export function validateModelDocuments(documents: ModelDocuments): void {
   ) throw new Error('[model] invalid projection schema_name/schema_version')
 }
 
+/** V1 resource_type → 细粒度 OntologyObjectType（docs/03 §3）；未知资源回落 ASSET。 */
+const RESOURCE_TYPE_MAP: Partial<Record<string, OntologyObjectType>> = {
+  BUSINESS: OntologyObjectType.BUSINESS_SERVICE,
+  HOST: OntologyObjectType.HOST,
+  SAN_FABRIC: OntologyObjectType.FABRIC,
+  FC_PORT: OntologyObjectType.PORT,
+  STORAGE_DEVICE: OntologyObjectType.STORAGE_SYSTEM,
+  CONTROLLER: OntologyObjectType.CONTROLLER,
+  BLOCK_SERVICE: OntologyObjectType.SERVICE,
+  LUN: OntologyObjectType.LUN,
+  STORAGE_POOL: OntologyObjectType.POOL,
+  DISK_ENCLOSURE: OntologyObjectType.ENCLOSURE,
+  DISK: OntologyObjectType.DISK,
+}
+
 const TOPOLOGY_LINK_MAP: Record<string, OntologyLinkType> = {
   ACCESSES: OntologyLinkType.ACCESSES,
   PHYSICAL_CONNECTS: OntologyLinkType.CONNECTS_TO,
@@ -153,7 +168,7 @@ function modelProvenance(sourceRef: string) {
 function topologyObjects(): OntologyObject[] {
   return (topologyJson.resources as TopologyResource[]).map((resource) => ({
     id: resource.resource_id,
-    type: OntologyObjectType.ASSET,
+    type: RESOURCE_TYPE_MAP[resource.resource_type] ?? OntologyObjectType.ASSET,
     label: resource.display_name,
     properties: {
       assetType: resource.resource_type,

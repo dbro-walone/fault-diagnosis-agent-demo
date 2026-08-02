@@ -1,0 +1,9 @@
+{
+  "candidates":[
+    {"candidate_id":"cand-repl-network-congestion","fault_mode_code":"REMOTE_REPLICATION_NETWORK_CONGESTION","object_id":"wan-path-01","display_name":"复制网络拥塞/丢包","initial_confidence":0.30,"generation_basis":["sym-rpo-high","pattern-repl-network-congestion"],"status":"confirmed"},
+    {"candidate_id":"cand-source-bottleneck","fault_mode_code":"REPLICATION_SOURCE_BOTTLENECK","object_id":"pool-a","display_name":"源端Storage-A后端瓶颈","initial_confidence":0.22,"generation_basis":["sym-backlog-high","pattern-source-bottleneck"],"status":"excluded"},
+    {"candidate_id":"cand-target-bottleneck","fault_mode_code":"REPLICATION_TARGET_BOTTLENECK","object_id":"pool-b","display_name":"远端Storage-B写入瓶颈","initial_confidence":0.20,"generation_basis":["sym-backlog-high","pattern-target-bottleneck"],"status":"excluded"},
+    {"candidate_id":"cand-session-config","fault_mode_code":"REPLICATION_SESSION_CONFIG_ERROR","object_id":"replication-session-rs01","display_name":"复制会话暂停、限速或配置异常","initial_confidence":0.18,"generation_basis":["sym-rpo-high","pattern-session-config"],"status":"excluded"},
+    {"candidate_id":"cand-repl-port-fault","fault_mode_code":"REPLICATION_PORT_FAULT","object_id":"repl-port-a","display_name":"源端复制端口物理故障","initial_confidence":0.10,"generation_basis":["sym-rpo-high","pattern-repl-port-fault"],"status":"excluded"}
+  ]
+}

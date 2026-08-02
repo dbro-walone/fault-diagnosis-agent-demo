@@ -1,0 +1,16 @@
+{
+  "fault_patterns": [
+    {
+      "pattern_id": "pattern-disk-fault",
+      "fault_mode_code": "DISK_RAID_DEGRADE",
+      "symptom_codes": [
+        "IO_LATENCY_HIGH"
+      ],
+      "resource_types": [
+        "DISK",
+        "DISK_ENCLOSURE"
+      ],
+      "description": "磁盘扇区坏道→RAID降级→重建→IO时延升高"
+    }
+  ]
+}

@@ -1,0 +1,8 @@
+{
+  "fault_patterns": [
+    {"pattern_id":"pattern-controller-warm-reset","fault_mode_code":"CONTROLLER_WARM_RESET","name":"控制器热复位","applicable_resource_types":["CONTROLLER"],"symptom_types":["LUN_LATENCY_HIGH","BUSINESS_LATENCY_HIGH"],"expected_signals":["CONTROLLER_WARM_RESET alarm","watchdog_timeout log fingerprint","active controller throughput drops to zero","standby controller throughput increases"],"generation_weight":0.42},
+    {"pattern_id":"pattern-fc-link-flap","fault_mode_code":"FC_LINK_FLAP","name":"FC端口链路抖动","applicable_resource_types":["FC_PORT"],"symptom_types":["LUN_LATENCY_HIGH"],"expected_signals":["port link down/up","CRC error increment","single path interruption"],"generation_weight":0.28},
+    {"pattern_id":"pattern-san-link-fault","fault_mode_code":"SAN_LINK_FAULT","name":"SAN交换链路异常","applicable_resource_types":["SAN_FABRIC"],"symptom_types":["BUSINESS_LATENCY_HIGH"],"expected_signals":["fabric alarm","multi-path degradation","switch port error"],"generation_weight":0.18},
+    {"pattern_id":"pattern-pool-bottleneck","fault_mode_code":"POOL_PERFORMANCE_BOTTLENECK","name":"存储池性能瓶颈","applicable_resource_types":["STORAGE_POOL"],"symptom_types":["LUN_LATENCY_HIGH"],"expected_signals":["pool utilization high","backend latency high","multiple LUNs affected"],"generation_weight":0.12}
+  ]
+}

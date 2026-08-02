@@ -1,0 +1,43 @@
+{
+  "diagnosis_id": "diag-disk-raid-degrade-001",
+  "status": "confirmed",
+  "completed_at": "2026-08-01T09:45:27.000+08:00",
+  "root_cause": {
+    "candidate_id": "cand-disk-failure",
+    "object_id": "disk-02a",
+    "fault_mode_code": "DISK_RAID_DEGRADE",
+    "confidence": 0.94
+  },
+  "root_cause_chain": [
+    "disk-02a",
+    "disk-enclosure-02"
+  ],
+  "impact_chain": [
+    "storage-pool-02",
+    "lun-arch02",
+    "business-arch"
+  ],
+  "recovery_chain": [
+    "disk-02b",
+    "disk-enclosure-02",
+    "lun-arch02"
+  ],
+  "excluded_candidates": [
+    "cand-lun-contention",
+    "cand-host-bottleneck"
+  ],
+  "diagnosis_summary": "disk-02a 发生扇区坏道，RAID 组降级并重建，重建期间归档 LUN 时延由 2.8ms 升至 42ms；主机与 IO 争抢候选被竞争检查排除。",
+  "key_evidence_refs": [
+    "ev-raid-degrade-alarm",
+    "ev-sector-fp",
+    "ev-rebuild-fp",
+    "ev-disk-err-read",
+    "ev-arch-latency"
+  ],
+  "business_impact": {
+    "object_id": "business-arch",
+    "level": "moderate",
+    "duration_ms": 85000,
+    "description": "归档业务 IO 时延升高，重建完成后恢复"
+  }
+}

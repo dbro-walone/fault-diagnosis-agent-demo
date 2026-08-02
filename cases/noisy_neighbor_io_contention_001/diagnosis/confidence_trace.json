@@ -1,0 +1,13 @@
+{
+  "traces":[
+    {"candidate_id":"cand-noisy-neighbor-a","trace":[
+      {"sequence":1,"stage":"candidate_generation","confidence":0.30,"evidence_refs":[],"reason":"LUN-B位于共享存储路径，资源争用是合理候选，但此时尚未知施压者"},
+      {"sequence":2,"stage":"shared_resource_localized","confidence":0.58,"evidence_refs":["ev-b-latency-impact","ev-shared-queue-high"],"reason":"确认B受影响且共享控制器/Pool出现压力"},
+      {"sequence":3,"stage":"aggressor_discovered","confidence":0.82,"evidence_refs":["ev-shared-path","ev-a-iops-surge","ev-a-batch-log"],"reason":"沿共享关系发现Host-A，且A负载突增先于共享压力"},
+      {"sequence":4,"stage":"evidence_fusion","confidence":0.96,"evidence_refs":["ev-recovery-closure","ev-host-b-cpu-normal","ev-fc-crc-zero","ev-controller-no-fault","ev-pool-not-intrinsic","ev-similar-noisy-neighbor"],"reason":"恢复闭环与竞争候选检查完成，形成扰邻最小证据链"}]},
+    {"candidate_id":"cand-host-b-overload","trace":[{"sequence":1,"stage":"candidate_generation","confidence":0.25,"evidence_refs":[],"reason":"业务变慢可能源于Host-B自身"},{"sequence":2,"stage":"evidence_collection","confidence":0.05,"evidence_refs":["ev-host-b-cpu-normal"],"reason":"Host-B资源稳定且无应用错误"}]},
+    {"candidate_id":"cand-fc-link-b","trace":[{"sequence":1,"stage":"candidate_generation","confidence":0.20,"evidence_refs":[],"reason":"单业务时延升高可能由接入链路造成"},{"sequence":2,"stage":"evidence_collection","confidence":0.02,"evidence_refs":["ev-fc-crc-zero"],"reason":"端口状态正常且CRC增量为0"}]},
+    {"candidate_id":"cand-controller-pressure","trace":[{"sequence":1,"stage":"candidate_generation","confidence":0.15,"evidence_refs":[],"reason":"控制器队列升高可能来自控制器固有异常"},{"sequence":2,"stage":"evidence_collection","confidence":0.06,"evidence_refs":["ev-controller-no-fault","ev-a-iops-surge"],"reason":"无控制器故障事实，队列变化由A侧负载解释"}]},
+    {"candidate_id":"cand-pool-bottleneck","trace":[{"sequence":1,"stage":"candidate_generation","confidence":0.10,"evidence_refs":[],"reason":"共享池饱和可导致多个LUN时延异常"},{"sequence":2,"stage":"evidence_collection","confidence":0.03,"evidence_refs":["ev-pool-not-intrinsic"],"reason":"无后端故障且随A降载恢复，非池固有瓶颈"}]}
+  ]
+}
