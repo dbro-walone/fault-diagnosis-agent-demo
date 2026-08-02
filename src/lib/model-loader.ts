@@ -170,22 +170,24 @@ export function healthSeverity(status: string | undefined | null): SeverityLevel
 }
 
 /**
- * 计算设备聚合摘要（docs/05 §5）。纯函数：仅依赖 model 的静态分组 + 可选运行时上下文。
+ * 通用组成员聚合摘要（docs/05 §5）。纯函数：给定成员 id + 标签 + id→node 查找表，
  * 成员异常 = healthStatus 非 NORMAL 或属于关键/受影响对象；候选数 = 候选指向本组成员的数量。
- * 返回 null 表示非聚合设备（不在 deviceGroups 中）。
+ *
+ * computeAggregateSummary（设备级）与分层拓扑 computeLayerSummary（层级级，src/lib/layered-topology）
+ * 共用同一计数口径，保证聚合语义一致。
  */
-export function computeAggregateSummary(
-  model: ModelData,
-  deviceId: string,
+export function computeGroupSummary(
+  memberIds: string[],
+  groupId: string,
+  label: string,
+  nodesById: Map<string, GraphNode>,
   ctx: AggregateSummaryContext = {},
-): AggregateSummary | null {
-  const group = model.deviceGroups.find((g) => g.deviceId === deviceId)
-  if (!group) return null
+): AggregateSummary {
   let anomaly = 0
   let candidate = 0
   let maxSeverity: SeverityLevel = 'NORMAL'
-  for (const memberId of group.memberIds) {
-    const node = model.nodesById.get(memberId)
+  for (const memberId of memberIds) {
+    const node = nodesById.get(memberId)
     const baseSeverity = healthSeverity(node?.healthStatus)
     const isCritical = ctx.criticalIds?.has(memberId) ?? false
     const isImpacted = ctx.impactedIds?.has(memberId) ?? false
@@ -207,13 +209,27 @@ export function computeAggregateSummary(
     if (ctx.candidateObjectIds?.has(memberId) ?? false) candidate += 1
   }
   return {
-    deviceId,
-    label: group.label,
-    total: group.memberIds.length,
+    deviceId: groupId,
+    label,
+    total: memberIds.length,
     anomaly,
     candidate,
     maxSeverity,
   }
+}
+
+/**
+ * 计算设备聚合摘要（docs/05 §5）。纯函数：仅依赖 model 的静态分组 + 可选运行时上下文。
+ * 返回 null 表示非聚合设备（不在 deviceGroups 中）。
+ */
+export function computeAggregateSummary(
+  model: ModelData,
+  deviceId: string,
+  ctx: AggregateSummaryContext = {},
+): AggregateSummary | null {
+  const group = model.deviceGroups.find((g) => g.deviceId === deviceId)
+  if (!group) return null
+  return computeGroupSummary(group.memberIds, group.deviceId, group.label, model.nodesById, ctx)
 }
 
 const TYPE_COLOR: Record<OntologyObjectType, string> = {
