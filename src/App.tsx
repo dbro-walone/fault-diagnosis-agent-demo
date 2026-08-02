@@ -11,9 +11,16 @@ import ModelNavigator, { type LayerVisibility } from '@/components/ModelNavigato
 import ObjectViewPanel from '@/components/ObjectViewPanel'
 import {
   buildActiveGraph,
+  computeAggregateSummary,
   loadModelData,
+  type AggregateSummary,
+  type AggregateSummaryContext,
 } from '@/lib/model-loader'
-import { routeToCase, type RouteCandidate } from '@/lib/v2-case-router'
+import {
+  routeToCase,
+  type NormalizedSymptom,
+  type RouteCandidate,
+} from '@/lib/v2-case-router'
 import { LensId } from '../schemas'
 import {
   listCases,
@@ -59,6 +66,8 @@ export default function App() {
   const [routeError, setRouteError] = useState<string | null>(null)
   const [routeNote, setRouteNote] = useState<string | null>(null)
   const [routeCandidates, setRouteCandidates] = useState<RouteCandidate[] | null>(null)
+  // AMBIGUOUS 时的输入缺口提示（docs/13 §9.4 / BA-GOAL-003）。
+  const [routeGapHint, setRouteGapHint] = useState<string | null>(null)
 
   // user_selection (Projection-only; never written by Runtime).
   const [selectedCandidateId, setSelectedCandidateId] = useState<string | null>(null)
@@ -166,6 +175,26 @@ export default function App() {
     return ids
   }, [snapshot?.conclusion])
 
+  // D3 设备聚合摘要（docs/05 §5）：成员总数/异常数/候选数/最高严重度。
+  // 候选数来自 runtime snapshot 的 candidates.object_id；纯函数只读 model + ctx。
+  const aggregateSummaries = useMemo(() => {
+    const candidateObjectIds = new Set<string>()
+    for (const candidate of snapshot?.candidates ?? []) {
+      if (candidate.object_id) candidateObjectIds.add(candidate.object_id)
+    }
+    const ctx: AggregateSummaryContext = {
+      criticalIds: criticalObjectIds,
+      impactedIds,
+      candidateObjectIds,
+    }
+    const map = new Map<string, AggregateSummary>()
+    for (const group of model.deviceGroups) {
+      const summary = computeAggregateSummary(model, group.deviceId, ctx)
+      if (summary) map.set(group.deviceId, summary)
+    }
+    return map
+  }, [model, criticalObjectIds, impactedIds, snapshot?.candidates])
+
   // Camera target: user node while exploring, agent node otherwise. App owns
   // this decision so DualPlaneCanvas never grabs the camera on agent events
   // while the user is browsing (docs/04 §5).
@@ -209,6 +238,7 @@ export default function App() {
       setActivePreset('OVERVIEW')
       setIsPlaying(true)
       setRouteCandidates(null)
+      setRouteGapHint(null)
       setRouteError(null)
       setRouteNote(note)
     } catch (error) {
@@ -222,11 +252,13 @@ export default function App() {
     setRouteError(null)
     setRouteNote(null)
     setRouteCandidates(null)
+    setRouteGapHint(null)
     const route = routeToCase(payload.symptom, payload.business_scope)
     if (route.status === 'UNIQUE_MATCH' && route.caseId) {
       startSession(route.caseId, null)
     } else if (route.status === 'AMBIGUOUS') {
       // 现象可匹配多个 Case：交由用户选择，不猜测（docs/13 §9.4）。
+      setRouteGapHint(routeGapSuffix(route.normalized))
       setRouteCandidates(route.candidates)
     } else {
       setRouteError(route.error_code ? `[${route.error_code}] ${route.reason}` : route.reason)
@@ -282,11 +314,15 @@ export default function App() {
   }
 
   // Canvas / navigator node selection is a pure user_selection update.
+  // 单击只选中 + 详情（BA-GRAPH-008），绝不改变层级/展开状态/诊断候选。
   const handleNodeSelect = (id: string | null) => {
     setSelectedNodeId(id)
     setUserExploring(true)
-    // D3 设备级聚合：点击设备聚合节点切换展开/收起（成员局部显露，不重新洗牌）。
-    if (id && model.deviceGroups.some((g) => g.deviceId === id)) {
+  }
+
+  // 双击聚合设备节点 → 展开其直接成员 / 收起（BA-GRAPH-009，局部显露不洗牌）。
+  const handleNodeDoubleClick = (id: string) => {
+    if (model.deviceGroups.some((g) => g.deviceId === id)) {
       setExpandedDevices((cur) => ({ ...cur, [id]: !cur[id] }))
     }
   }
@@ -357,9 +393,12 @@ export default function App() {
         rootCauseIds={rootCauseIds}
         impactedIds={impactedIds}
         selectedNodeId={selectedNodeId}
+        expandedDevices={expandedDevices}
+        aggregateSummaries={aggregateSummaries}
         showCrossLayer={showCrossLayer}
         businessPath={businessPath}
         onNodeSelect={handleNodeSelect}
+        onNodeDoubleClick={handleNodeDoubleClick}
         onNodeHover={() => undefined}
       />
 
@@ -393,6 +432,8 @@ export default function App() {
         onClearRestriction={clearRestriction}
         onSearchSelect={handleSearchSelect}
         selectedNodeId={selectedNodeId}
+        expandedDevices={expandedDevices}
+        onToggleDevice={handleNodeDoubleClick}
       />
 
       <header className="ontology-header pointer-events-none absolute left-1/2 top-4 z-40 -translate-x-1/2">
@@ -438,10 +479,17 @@ export default function App() {
         <div className="absolute left-1/2 top-[118px] z-50 flex max-w-md -translate-x-1/2 flex-col gap-1.5 rounded-lg border border-status-active/30 bg-[#11141c]/95 px-3 py-2.5 text-[12px] shadow-xl">
           <div className="flex items-center gap-2 text-[#cbd5e1]">
             <AlertTriangle className="h-4 w-4 shrink-0 text-status-warning" />
-            <span className="flex-1">现象可匹配多个故障场景，请选择最接近的一个：</span>
+            <span className="flex-1">
+              {routeGapHint
+                ? `现象可匹配多个故障场景，请选择最接近的一个：${routeGapHint}`
+                : '现象可匹配多个故障场景，请选择最接近的一个：'}
+            </span>
             <button
               type="button"
-              onClick={() => setRouteCandidates(null)}
+              onClick={() => {
+                setRouteCandidates(null)
+                setRouteGapHint(null)
+              }}
               aria-label="关闭"
               className="text-[#64748b] transition-colors hover:text-[#cbd5e1]"
             >
@@ -501,6 +549,30 @@ export default function App() {
       {!runtime && <DiagnosisEntryButton onStartDiagnosis={handleStartDiagnosis} />}
     </div>
   )
+}
+
+const MISSING_FIELD_LABELS: Record<string, string> = {
+  object: '具体对象',
+  replication_session: '复制会话',
+  time: '时间窗',
+  time_window: '时间窗',
+}
+
+/**
+ * 把标准化缺口映射为候选面板追问文案（docs/13 §9.4 / BA-GOAL-003）。
+ * 仅剩泛化 business 对象时同样视为未识别到具体对象；无缺口返回 null 保持原文案。
+ */
+function routeGapSuffix(normalized: NormalizedSymptom): string | null {
+  const gaps: string[] = []
+  for (const field of normalized.missing_fields) {
+    const label = MISSING_FIELD_LABELS[field]
+    if (label && !gaps.includes(label)) gaps.push(label)
+  }
+  const hasConcreteObject = normalized.object_mentions.some((o) => o !== 'business')
+  if (!hasConcreteObject && !gaps.includes('具体对象')) gaps.push('具体对象')
+  return gaps.length
+    ? `（未识别到${gaps.join('/')}，请补充后重试或直接从下方选择场景）`
+    : null
 }
 
 function phaseLabelOf(phase: string): string {

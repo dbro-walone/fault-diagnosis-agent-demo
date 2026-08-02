@@ -5,7 +5,7 @@
   "fault_domain": "controller",
   "fault_mode_code": "CONTROLLER_WARM_RESET",
   "severity": "critical",
-  "scenario_tags": ["双SAN", "双控制器", "主备切换", "块业务", "full_data", "multi_evidence"],
+  "scenario_tags": ["双SAN", "双控制器", "主备切换", "块业务", "数据库", "交易", "full_data", "multi_evidence"],
   "data_mode": "mock",
   "data_disclaimer": "本案例数据用于原型演示，不代表真实环境实测结果",
   "time_origin": "2026-07-30T14:32:00.000+08:00",

@@ -1,7 +1,10 @@
 import {
   Boxes,
   Check,
+  ChevronDown,
+  ChevronRight,
   Compass,
+  FolderOpen,
   Layers,
   Network,
   Search,
@@ -39,6 +42,10 @@ export interface ModelNavigatorProps {
   onClearRestriction: () => void
   onSearchSelect: (id: string) => void
   selectedNodeId: string | null
+  /** D3 设备级聚合展开状态（deviceId → expanded）。 */
+  expandedDevices: Record<string, boolean>
+  /** 展开/收起设备聚合组（BA-GRAPH-009 显式按钮入口）。 */
+  onToggleDevice: (deviceId: string) => void
 }
 
 function SectionTitle({
@@ -228,6 +235,54 @@ export default function ModelNavigator(props: ModelNavigatorProps) {
             onClick={props.onToggleCrossLayer}
           />
         </section>
+
+        {props.model.deviceGroups.length > 0 && (
+          <section>
+            <SectionTitle icon={<FolderOpen className="h-3.5 w-3.5" />}>
+              设备聚合
+            </SectionTitle>
+            <div className="space-y-1">
+              {props.model.deviceGroups.map((group) => {
+                const expanded = props.expandedDevices[group.deviceId] === true
+                return (
+                  <button
+                    key={group.deviceId}
+                    type="button"
+                    onClick={() => props.onToggleDevice(group.deviceId)}
+                    className={cn(
+                      'flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left transition-colors hover:bg-white/5',
+                      props.selectedNodeId === group.deviceId && 'bg-status-active/12',
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        'shrink-0 rounded border px-1 py-0.5 text-[8px] font-medium',
+                        expanded
+                          ? 'border-status-active/50 bg-status-active/15 text-status-active'
+                          : 'border-white/15 bg-white/5 text-[#94a3b8]',
+                      )}
+                    >
+                      {group.deviceId}
+                    </span>
+                    <span className="min-w-0 flex-1 truncate text-[11px] text-[#cbd5e1]">
+                      {group.label}
+                    </span>
+                    <span className="shrink-0 text-[9px] text-[#64748b]">
+                      {group.memberIds.length} 成员
+                    </span>
+                    <span className="shrink-0 text-[9px] text-status-active">
+                      {expanded ? (
+                        <ChevronDown className="h-3 w-3" />
+                      ) : (
+                        <ChevronRight className="h-3 w-3" />
+                      )}
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
+          </section>
+        )}
 
         <section>
           <SectionTitle icon={<Boxes className="h-3.5 w-3.5" />}>Topology domains</SectionTitle>

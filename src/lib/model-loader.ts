@@ -133,6 +133,89 @@ export interface ModelData {
   deviceGroups: Array<{ deviceId: string; label: string; memberIds: string[] }>
 }
 
+/** 聚合摘要最高严重度（docs/05 §5 highest_severity；非概率）。 */
+export type SeverityLevel = 'NORMAL' | 'WARNING' | 'CRITICAL'
+
+/** 聚合摘要（docs/05 §5）：至少显示总数、异常数、候选数和最高严重度。 */
+export interface AggregateSummary {
+  deviceId: string
+  label: string
+  total: number
+  anomaly: number
+  candidate: number
+  maxSeverity: SeverityLevel
+}
+
+/** 聚合摘要的运行时上下文 —— 由 App 从 diagnosis snapshot 推导，注入纯函数。 */
+export interface AggregateSummaryContext {
+  /** 根因 / agent_focus 关键对象 ids —— 计入异常并提升最高严重度。 */
+  criticalIds?: Set<string>
+  /** 受影响对象 ids（impact_chain）—— 计入异常。 */
+  impactedIds?: Set<string>
+  /** 候选根因指向的对象 ids —— 计入候选数。 */
+  candidateObjectIds?: Set<string>
+}
+
+const SEVERITY_RANK: Record<SeverityLevel, number> = {
+  NORMAL: 0,
+  WARNING: 1,
+  CRITICAL: 2,
+}
+
+/** 从 healthStatus 推导聚合严重度等级（FAULT/ABNORMAL → CRITICAL）。 */
+export function healthSeverity(status: string | undefined | null): SeverityLevel {
+  if (status === 'FAULT' || status === 'ABNORMAL') return 'CRITICAL'
+  if (status === 'WARNING') return 'WARNING'
+  return 'NORMAL'
+}
+
+/**
+ * 计算设备聚合摘要（docs/05 §5）。纯函数：仅依赖 model 的静态分组 + 可选运行时上下文。
+ * 成员异常 = healthStatus 非 NORMAL 或属于关键/受影响对象；候选数 = 候选指向本组成员的数量。
+ * 返回 null 表示非聚合设备（不在 deviceGroups 中）。
+ */
+export function computeAggregateSummary(
+  model: ModelData,
+  deviceId: string,
+  ctx: AggregateSummaryContext = {},
+): AggregateSummary | null {
+  const group = model.deviceGroups.find((g) => g.deviceId === deviceId)
+  if (!group) return null
+  let anomaly = 0
+  let candidate = 0
+  let maxSeverity: SeverityLevel = 'NORMAL'
+  for (const memberId of group.memberIds) {
+    const node = model.nodesById.get(memberId)
+    const baseSeverity = healthSeverity(node?.healthStatus)
+    const isCritical = ctx.criticalIds?.has(memberId) ?? false
+    const isImpacted = ctx.impactedIds?.has(memberId) ?? false
+    const memberSeverity: SeverityLevel = isCritical
+      ? 'CRITICAL'
+      : isImpacted
+        ? 'WARNING'
+        : baseSeverity
+    if (SEVERITY_RANK[memberSeverity] > SEVERITY_RANK[maxSeverity]) {
+      maxSeverity = memberSeverity
+    }
+    if (
+      isCritical ||
+      isImpacted ||
+      (node?.healthStatus !== undefined && node.healthStatus !== 'NORMAL')
+    ) {
+      anomaly += 1
+    }
+    if (ctx.candidateObjectIds?.has(memberId) ?? false) candidate += 1
+  }
+  return {
+    deviceId,
+    label: group.label,
+    total: group.memberIds.length,
+    anomaly,
+    candidate,
+    maxSeverity,
+  }
+}
+
 const TYPE_COLOR: Record<OntologyObjectType, string> = {
   [OntologyObjectType.ASSET]: PLANE_COLORS.topology,
   [OntologyObjectType.BUSINESS_SERVICE]: PLANE_COLORS.topology,
