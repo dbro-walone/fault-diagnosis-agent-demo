@@ -48,8 +48,8 @@ def validate(dist_dir):
         with open(index_path, encoding='utf-8') as fh:
             index = json.load(fh)
         cases = index.get('cases', [])
-        if len(cases) != 3:
-            msgs.append(f'cases/index.json 预期 3 个基线 Case，实际 {len(cases)}')
+        if len(cases) < 3:
+            msgs.append(f'cases/index.json 预期至少 3 个基线 Case，实际 {len(cases)}')
         for entry in cases:
             cid = entry.get('case_id') or entry.get('path')
             cdir = os.path.join(ROOT, 'cases', entry.get('path', cid))
