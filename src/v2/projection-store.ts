@@ -448,6 +448,56 @@ export class ProjectionStore {
       related_refs: relatedRefs(e),
     }))
   }
+
+  // —— 活动逻辑路径（F2：画布红线链路） ——
+  /** 当前快照的活动逻辑路径（根因起点 → 证据/事实对象 → 影响链），供画布渲染红线。 */
+  activePath(): string[] {
+    return activeDiagnosisPath(this.require())
+  }
+}
+
+/**
+ * 把当前快照翻译为画布上的"活动逻辑路径"（docs/07 §4 F2 联动）。
+ *
+ * 取当时已形成的根因候选对象、活跃 Evidence 引用的 Fact 对象、根因链与影响链对象，
+ * 按"根因起点 → 证据 hop → 影响路径"顺序去重串成一条路径。快照不变化则结果确定，
+ * 供 flat / layered 双画布绘制同一红色逻辑链（#ef4444）。
+ */
+export function activeDiagnosisPath(snapshot: DiagnosisSessionSnapshot): string[] {
+  const c = snapshot.conclusion
+  const root = c?.root_cause
+  const leadId = snapshot.knowledge_snapshot?.leading_candidate_id ?? null
+  const rootCand = root
+    ? snapshot.candidates.find((x) => x.candidate_id === root.candidate_id)
+    : snapshot.candidates.find((x) => x.candidate_id === leadId)
+  const startId = root?.object_id ?? rootCand?.object_id ?? null
+  const candidateId = root?.candidate_id ?? leadId ?? rootCand?.candidate_id ?? null
+
+  // 证据 hop：作用于根因/领先候选的 Evidence → 其引用的 Fact → 对象。
+  const factById = new Map(snapshot.facts.map((f) => [f.fact_id, f]))
+  const hopIds: string[] = []
+  if (candidateId) {
+    for (const ev of snapshot.evidences) {
+      if (!ev.effects.some((eff) => eff.candidate_id === candidateId)) continue
+      for (const fid of ev.fact_refs) {
+        const fact = factById.get(fid)
+        if (!fact) continue
+        for (const oid of fact.object_refs ?? []) {
+          if (oid && oid !== startId && !hopIds.includes(oid)) hopIds.push(oid)
+        }
+      }
+    }
+  }
+
+  const path: string[] = []
+  const push = (id: string | null | undefined) => {
+    if (id && !path.includes(id)) path.push(id)
+  }
+  push(startId)
+  for (const id of c?.root_cause_chain ?? []) push(id)
+  for (const id of hopIds) push(id)
+  for (const id of c?.impact_chain ?? []) push(id)
+  return path
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

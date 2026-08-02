@@ -1,6 +1,6 @@
 /**
  * docs/14 业务验收 · 黑盒走查脚本
- * 覆盖核心 P0 用例:模型探索态、唯一路由、模糊追问、扰邻不泄露、终态与回放。
+ * 覆盖核心 P0 用例:模型探索态、唯一路由、弱输入自动匹配(issue #5 B1)、扰邻不泄露、终态与回放。
  * 运行:node e2e/acceptance.mjs(需先启动 python3 start.py --port 8099)
  */
 import { chromium } from '@playwright/test'
@@ -50,11 +50,16 @@ async function submitSymptom(text) {
   await wait(800)
 }
 
-// BA-GOAL-003 模糊输入 → 追问(不默认猜 Controller)
+// BA-GOAL-003 弱输入 → 自动随机选中候选场景执行（issue #5 B1，不再弹候选面板）
 await submitSymptom('业务变慢')
-const askVisible = await page.getByText('现象可匹配多个故障场景').isVisible().catch(() => false)
-rec('BA-GOAL-003', askVisible, '模糊输入追问(不猜测)')
-await page.screenshot({ path: `${OUT}/lui-fact-trace/02-ambiguous-ask.png` })
+const luiAuto = await page.textContent('.ontology-lui').catch(() => '')
+const autoMatched = luiAuto.includes('已自动匹配到')
+rec('BA-GOAL-003', autoMatched, '弱输入自动随机选中候选场景执行')
+await page.screenshot({ path: `${OUT}/lui-fact-trace/02-ambiguous-auto.png` })
+
+// 退出自动匹配的会话，回到探索态（FAB 需重新可见）
+await page.locator('.ontology-lui button[title="退出诊断会话"]').first().click().catch(() => {})
+await wait(600)
 
 // BA-GOAL-002 唯一路由 → 会话
 await submitSymptom('数据库LUN时延突然升高，块业务变慢')

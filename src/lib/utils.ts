@@ -53,6 +53,8 @@ export const LINK_COLORS = {
   crossActive: 'rgba(20, 184, 166, 0.55)',
   /** End-to-end business access path (BUSINESS_PATH preset). */
   businessPath: 'rgba(56, 189, 248, 0.9)',
+  /** F2 活动逻辑链（根因 → 证据 → 影响路径）：随诊断推进实时延伸的红色虚拟连线。 */
+  logic: '#ef4444',
 } as const
 
 /** Clamp a number into the inclusive [min, max] range. */

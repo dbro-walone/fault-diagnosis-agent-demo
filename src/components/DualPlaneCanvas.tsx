@@ -294,13 +294,29 @@ function isBusinessPath(link: GraphLink, businessPath: boolean): boolean {
 
 function linkWidthFor(link: GraphLink, businessPath: boolean): number {
   if (isBusinessPath(link, businessPath)) return 2.4
+  // F2：红色虚拟逻辑链（根因 → 证据 → 影响）——粗线突出，与物理连线区分。
+  if (link.category === 'logic') return 3.2
   if (link.category === 'knowledge') return 0.7 + (link.weight ?? 0.5) * 0.5
   if (link.category === 'cross') return link.relation === 'INSTANCE_OF' ? 0.5 : 1.1
   return 1.1
 }
 
 function linkParticlesFor(link: GraphLink, businessPath: boolean): number {
-  return isBusinessPath(link, businessPath) ? 4 : 0
+  if (isBusinessPath(link, businessPath)) return 4
+  // F2：逻辑链带红色粒子动画，随推进实时“流动”。
+  return link.category === 'logic' ? 6 : 0
+}
+
+/**
+ * F2：逻辑链是虚拟连线，不应把远端对象拉近 —— 通过 link 力设置较大目标距离，
+ * 让红线只作视觉投影、不参与布局收紧。3d-force-graph 无 linkDistance 便捷方法，
+ * 直接配置 d3 link 力。
+ */
+function applyLogicLinkDistance(graph: any): void {
+  const linkForce = graph?.d3Force?.('link')
+  if (linkForce && typeof linkForce.distance === 'function') {
+    linkForce.distance((l: GraphLink) => (l.category === 'logic' ? 420 : 50))
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -364,6 +380,13 @@ export default function DualPlaneCanvas(props: DualPlaneCanvasProps) {
   // 3d-force-graph exposes no native dblclick event on nodes.
   const lastNodeClickRef = useRef<{ id: string; time: number } | null>(null)
 
+  // ── issue #5 B0：诊断推进性能 ──────────────────────────────────────────────
+  // 节点缓存：按 id 复用同一 GraphNode 对象，力导向布局在 graphData 重绑时
+  // 保留已布局位置，避免每 tick 全量重排（肉眼可见卡顿）。
+  const nodeCacheRef = useRef<Map<string, GraphNode>>(new Map())
+  // 最近一次绑定到力导向的图结构签名（节点集 + 连线集）。结构未变时跳过重绑。
+  const dataSignatureRef = useRef<string>('')
+
   selectedRef.current = props.selectedNodeId
   agentFocusRef.current = props.agentFocusIds
   rootCauseRef.current = props.rootCauseIds
@@ -376,9 +399,45 @@ export default function DualPlaneCanvas(props: DualPlaneCanvasProps) {
   onDoubleSelectRef.current = props.onNodeDoubleClick
   onHoverRef.current = props.onNodeHover
 
-  const nodesById = useMemo(
-    () => new Map(props.graphData.nodes.map((node) => [node.id, node])),
+  /** 结构签名：节点 id 集 + 连线(source→target:category) 集。仅结构变化时重绑。 */
+  const graphDataSignature = (gd: ActiveGraph): string => {
+    const nodeIds = gd.nodes.map((n) => n.id).sort().join(',')
+    const linkSig = gd.links
+      .map((l) => `${l.source}->${l.target}:${l.category}`)
+      .sort()
+      .join(',')
+    return `${nodeIds}|${linkSig}`
+  }
+
+  /** 按 id 复用节点对象：保留力导向已布局位置，只刷新展示字段。 */
+  const stabilizeNodes = (nodes: GraphNode[]): GraphNode[] => {
+    const cache = nodeCacheRef.current
+    return nodes.map((node) => {
+      const cached = cache.get(node.id)
+      if (!cached) {
+        cache.set(node.id, node)
+        return node
+      }
+      cached.label = node.label
+      cached.color = node.color
+      cached.healthStatus = node.healthStatus
+      cached.alwaysLabel = node.alwaysLabel
+      cached.val = node.val
+      cached.kind = node.kind
+      cached.group = node.group
+      cached.groupName = node.groupName
+      cached.object = node.object
+      return cached
+    })
+  }
+
+  const stableNodes = useMemo(
+    () => stabilizeNodes(props.graphData.nodes),
     [props.graphData.nodes],
+  )
+  const nodesById = useMemo(
+    () => new Map(stableNodes.map((node) => [node.id, node])),
+    [stableNodes],
   )
 
   /**
@@ -484,7 +543,9 @@ export default function DualPlaneCanvas(props: DualPlaneCanvasProps) {
         .linkCurvature((l: GraphLink) => (l.category === 'cross' ? 0.18 : 0))
         .linkDirectionalParticleWidth(0.8)
         .linkDirectionalParticleSpeed(0.004)
-        .linkDirectionalParticleColor('#38bdf8')
+        .linkDirectionalParticleColor((l: GraphLink) =>
+          l.category === 'logic' ? '#ef4444' : '#38bdf8',
+        )
         .onNodeClick((node: GraphNode) => {
           const id = node.id
           // Double-click on the same node within the window → expand/collapse
@@ -525,6 +586,7 @@ export default function DualPlaneCanvas(props: DualPlaneCanvasProps) {
         .linkDirectionalParticles((l: GraphLink) =>
           linkParticlesFor(l, businessPathRef.current),
         )
+      applyLogicLinkDistance(graph)
 
       // Resize handling.
       const applySize = () => {
@@ -538,7 +600,7 @@ export default function DualPlaneCanvas(props: DualPlaneCanvasProps) {
       // Bind the current data immediately — the separate data useEffect may
       // have already fired (and bailed) while the async import was in flight.
       graph.graphData({
-        nodes: props.graphData.nodes,
+        nodes: stableNodes,
         links: props.graphData.links,
       })
 
@@ -565,13 +627,21 @@ export default function DualPlaneCanvas(props: DualPlaneCanvasProps) {
   }, [])
 
   // --- bind data ----------------------------------------------------------
-
+  // issue #5 B0：仅当节点/连线结构真的变化才重绑 graphData（避免力导向每 tick
+  // 全量重算）；结构未变（如仅颜色/焦点变化）只刷外观。
   useEffect(() => {
     const graph = graphRef.current
     if (!graph) return
-    graph.graphData({ nodes: props.graphData.nodes, links: props.graphData.links })
+    const signature = graphDataSignature(props.graphData)
+    if (dataSignatureRef.current === signature) {
+      refreshNodeAppearance()
+      return
+    }
+    dataSignatureRef.current = signature
+    graph.graphData({ nodes: stableNodes, links: props.graphData.links })
+    applyLogicLinkDistance(graph)
     refreshNodeAppearance()
-  }, [props.graphData])
+  }, [props.graphData, stableNodes])
 
   // --- camera presets -----------------------------------------------------
 

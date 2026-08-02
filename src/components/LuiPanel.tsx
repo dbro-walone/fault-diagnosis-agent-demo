@@ -24,6 +24,8 @@ import {
   Layers,
   ListChecks,
   LogOut,
+  PanelLeftClose,
+  PanelLeftOpen,
   Pause,
   Play,
   RotateCcw,
@@ -80,6 +82,10 @@ export interface LuiPanelProps {
   onReturnAgentView: () => void
   onExit: () => void
   routeNote: string | null
+  /** F0：诊断会话中左侧 Object Explorer 收起 → LUI 宽度放大 ≈1.8×。 */
+  wide: boolean
+  leftPanelCollapsed: boolean
+  onToggleLeftPanel: () => void
 }
 
 export default function LuiPanel(props: LuiPanelProps) {
@@ -93,7 +99,13 @@ export default function LuiPanel(props: LuiPanelProps) {
   }
 
   return (
-    <aside className="ontology-lui pointer-events-auto absolute bottom-4 right-4 top-[60px] z-30 flex w-[448px] flex-col overflow-hidden rounded-xl border border-white/10 bg-[#11141c]/95 shadow-2xl backdrop-blur-md">
+    <aside
+      className={cn(
+        'ontology-lui pointer-events-auto absolute bottom-4 right-4 top-[60px] z-30 flex flex-col overflow-hidden rounded-xl border border-white/10 bg-[#11141c]/95 shadow-2xl backdrop-blur-md',
+        // F0：诊断会话（左侧收起）时 LUI 宽度放大 ≈1.8×。
+        props.wide ? 'w-[806px]' : 'w-[448px]',
+      )}
+    >
       {/* Layer 1 — 会话状态栏 */}
       <SessionStatusBar {...props} />
 
@@ -106,29 +118,19 @@ export default function LuiPanel(props: LuiPanelProps) {
           onReturnAgentView={props.onReturnAgentView}
         />
 
-        {/* Layer 3 — 当前行动 */}
-        <CurrentAction action={action} onSelectFact={selectFact} />
-
-        {/* Layer 4 — 候选根因 */}
-        <CandidateList
-          candidates={candidates}
-          selectedCandidateId={props.selectedCandidateId}
-          onSelectCandidate={props.onSelectCandidate}
-        />
-
-        {/* Layer 5 — 调查工作区 */}
-        <div className="flex min-h-[280px] flex-1 flex-col overflow-hidden rounded-lg border border-white/8 bg-black/20">
-          <div className="flex shrink-0 items-center gap-0.5 border-b border-white/8 px-1.5 py-1">
-            <TabButton active={tab === 'chain'} onClick={() => setTab('chain')} icon={<Layers className="h-3 w-3" />}>
+        {/* Layer 3 — 主内容区（证据链/计划/历史/详情）：提高到诊断态势下方，更大更醒目 */}
+        <div className="flex min-h-[240px] flex-1 flex-col overflow-hidden rounded-lg border border-white/8 bg-black/20">
+          <div className="flex shrink-0 items-center gap-1 border-b border-white/8 px-2 py-1.5">
+            <TabButton active={tab === 'chain'} onClick={() => setTab('chain')} icon={<Layers className="h-3.5 w-3.5" />}>
               证据链
             </TabButton>
-            <TabButton active={tab === 'plan'} onClick={() => setTab('plan')} icon={<ListChecks className="h-3 w-3" />}>
+            <TabButton active={tab === 'plan'} onClick={() => setTab('plan')} icon={<ListChecks className="h-3.5 w-3.5" />}>
               计划
             </TabButton>
-            <TabButton active={tab === 'history'} onClick={() => setTab('history')} icon={<History className="h-3 w-3" />}>
+            <TabButton active={tab === 'history'} onClick={() => setTab('history')} icon={<History className="h-3.5 w-3.5" />}>
               历史
             </TabButton>
-            <TabButton active={tab === 'detail'} onClick={() => setTab('detail')} icon={<FileSearch className="h-3 w-3" />}>
+            <TabButton active={tab === 'detail'} onClick={() => setTab('detail')} icon={<FileSearch className="h-3.5 w-3.5" />}>
               详情
             </TabButton>
           </div>
@@ -168,6 +170,17 @@ export default function LuiPanel(props: LuiPanelProps) {
           </div>
         </div>
 
+        {/* Layer 4 — 当前行动 */}
+        <CurrentAction action={action} onSelectFact={selectFact} />
+
+        {/* Layer 5 — 候选根因 */}
+        <CandidateList
+          candidates={candidates}
+          selectedCandidateId={props.selectedCandidateId}
+          onSelectCandidate={props.onSelectCandidate}
+          concluded={!!snapshot.session.terminal_status}
+        />
+
         {props.routeNote && (
           <div className="flex items-start gap-1.5 rounded-md border border-status-warning/20 bg-status-warning/[0.06] px-2 py-1.5 text-[9px] text-status-warning">
             <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0" />
@@ -206,11 +219,24 @@ function SessionStatusBar(props: LuiPanelProps) {
             {knowledge.terminal_status_label}
           </span>
         )}
+        {/* F0：手动展开/收起左侧 Object Explorer */}
+        <button
+          type="button"
+          onClick={props.onToggleLeftPanel}
+          title={props.leftPanelCollapsed ? '展开左侧 Object Explorer' : '收起左侧 Object Explorer'}
+          className="ml-auto flex h-6 w-6 items-center justify-center rounded text-[#64748b] hover:bg-white/5 hover:text-[#cbd5e1]"
+        >
+          {props.leftPanelCollapsed ? (
+            <PanelLeftOpen className="h-3.5 w-3.5" />
+          ) : (
+            <PanelLeftClose className="h-3.5 w-3.5" />
+          )}
+        </button>
         <button
           type="button"
           onClick={props.onExit}
           title="退出诊断会话"
-          className="ml-auto flex h-6 w-6 items-center justify-center rounded text-[#64748b] hover:bg-white/5 hover:text-[#cbd5e1]"
+          className="flex h-6 w-6 items-center justify-center rounded text-[#64748b] hover:bg-white/5 hover:text-[#cbd5e1]"
         >
           <LogOut className="h-3.5 w-3.5" />
         </button>
@@ -491,33 +517,45 @@ function CandidateList({
   candidates,
   selectedCandidateId,
   onSelectCandidate,
+  concluded,
 }: {
   candidates: CandidateListVM
   selectedCandidateId: string | null
   onSelectCandidate: (id: string | null) => void
+  /** F3：诊断收敛时展示 TOP3（按支持分降序），置信度最高红色高亮。 */
+  concluded: boolean
 }) {
   return (
     <section className="rounded-lg border border-white/8 bg-white/[0.02] p-2.5">
       <div className="mb-2 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-[#94a3b8]">
         <ShieldQuestion className="h-3.5 w-3.5 text-status-warning" />
         候选根因
+        {concluded && (
+          <span className="rounded bg-status-fault/15 px-1.5 py-0.5 text-[9px] font-bold text-status-fault">
+            TOP3
+          </span>
+        )}
         <span className="ml-auto rounded bg-white/5 px-1.5 py-0.5 text-[9px] tabular text-[#64748b]">
-          {candidates.items.length}
+          {concluded ? '按支持分降序' : `${candidates.items.length} 项`}
         </span>
       </div>
       <div className="space-y-1.5">
         {candidates.items.length === 0 && (
           <div className="py-2 text-center text-[10px] text-[#64748b]">范围定位后生成候选</div>
         )}
-        {candidates.items.map((c, index) => (
-          <CandidateRow
-            key={c.candidate_id}
-            candidate={c}
-            index={index}
-            selected={selectedCandidateId === c.candidate_id}
-            onSelect={() => onSelectCandidate(selectedCandidateId === c.candidate_id ? null : c.candidate_id)}
-          />
-        ))}
+        {candidates.items.map((c, index) => {
+          // F3：收敛态只展示 TOP3（原索引保留，01/02/03 编号不变）。
+          if (concluded && index >= 3) return null
+          return (
+            <CandidateRow
+              key={c.candidate_id}
+              candidate={c}
+              index={index}
+              selected={selectedCandidateId === c.candidate_id}
+              onSelect={() => onSelectCandidate(selectedCandidateId === c.candidate_id ? null : c.candidate_id)}
+            />
+          )
+        })}
       </div>
     </section>
   )
@@ -605,10 +643,11 @@ function CandidateRow({
 
 function candidateTone(c: CandidateItemVM): { box: string; badge: string; bar: string } {
   if (c.is_confirmed) {
+    // F3：已确认根因用红色高亮（issue #5 F3；原为 recovered 绿）。
     return {
-      box: 'border-status-recovered/40 bg-status-recovered/[0.06]',
-      badge: 'bg-status-recovered/15 text-status-recovered',
-      bar: 'bg-status-recovered',
+      box: 'border-status-fault/50 bg-status-fault/[0.08]',
+      badge: 'bg-status-fault/20 text-status-fault',
+      bar: 'bg-status-fault',
     }
   }
   if (c.status === 'LEADING') {
@@ -954,8 +993,10 @@ function TabButton({
       type="button"
       onClick={onClick}
       className={cn(
-        'flex items-center gap-1 rounded px-2 py-1 text-[10px] font-medium transition-colors',
-        active ? 'bg-status-active/15 text-status-active' : 'text-[#64748b] hover:bg-white/5 hover:text-[#cbd5e1]',
+        'flex items-center gap-1.5 rounded px-3 py-1.5 text-[12px] font-semibold transition-colors',
+        active
+          ? 'bg-status-active/20 text-status-active'
+          : 'text-[#94a3b8] hover:bg-white/5 hover:text-[#e2e8f0]',
       )}
     >
       {icon}

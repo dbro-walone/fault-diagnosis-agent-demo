@@ -47,6 +47,7 @@ export {
 // 投影层
 export {
   ProjectionStore,
+  activeDiagnosisPath,
   EMPTY_USER_SELECTION,
   type UserSelection,
   type KnowledgeSnapshotVM,

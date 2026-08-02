@@ -5,32 +5,48 @@ import DiagnosisEntryButton, {
   type DiagnosisEntryPayload,
 } from '@/components/DiagnosisEntryButton'
 import DualPlaneCanvas from '@/components/DualPlaneCanvas'
+import LayeredTopologyCanvas from '@/components/LayeredTopologyCanvas'
 import LuiPanel from '@/components/LuiPanel'
 import LensSwitcher from '@/components/LensSwitcher'
-import ModelNavigator, { type LayerVisibility } from '@/components/ModelNavigator'
+import ModelNavigator, {
+  type LayerVisibility,
+  type TopoLayout,
+} from '@/components/ModelNavigator'
 import ObjectViewPanel from '@/components/ObjectViewPanel'
+import {
+  buildLayeredModelData,
+  type TopoLayerCode,
+} from '@/lib/layered-topology'
 import {
   buildActiveGraph,
   computeAggregateSummary,
   loadModelData,
   type AggregateSummary,
   type AggregateSummaryContext,
+  type GraphLink,
 } from '@/lib/model-loader'
-import {
-  routeToCase,
-  type NormalizedSymptom,
-  type RouteCandidate,
-} from '@/lib/v2-case-router'
-import { LensId } from '../schemas'
+import { routeToCase } from '@/lib/v2-case-router'
+import { LensId, OntologyLinkType } from '../schemas'
 import {
   listCases,
   createDiagnosisRuntime,
   ProjectionStore,
+  activeDiagnosisPath,
   type DiagnosisRuntime,
 } from './v2'
 
 const DATA_VERSION = '2.0'
 const EVENT_CADENCE_MS = 700
+
+/** 分层视图可选 Case（3 基线 + 分层演示），名称取自 manifest。 */
+const LAYERED_CASES = listCases().filter((c) =>
+  [
+    'layered_topology_demo_001',
+    'controller_warm_reset_001',
+    'noisy_neighbor_io_contention_001',
+    'remote_replication_lag_001',
+  ].includes(c.caseId),
+)
 
 // ─────────────────────────────────────────────────────────────────────────────
 // App
@@ -38,7 +54,13 @@ const EVENT_CADENCE_MS = 700
 
 export default function App() {
   const [model] = useState(loadModelData)
+  // 分层视图可加载任意 Case（issue #4「兼而有之」）：切 Case 重建模型。
+  const [layeredCaseId, setLayeredCaseId] = useState('layered_topology_demo_001')
+  const layeredModel = useMemo(() => buildLayeredModelData(layeredCaseId), [layeredCaseId])
   const [activeLens, setActiveLens] = useState(LensId.TOPOLOGY)
+  // GitHub issue #4：拓扑平面布局切换（flat 平铺 / layered 分层条带）。
+  const [activeTopoLayout, setActiveTopoLayout] = useState<TopoLayout>('flat')
+  const [expandedLayers, setExpandedLayers] = useState<Partial<Record<TopoLayerCode, boolean>>>({})
   const [activePreset, setActivePreset] = useState(model.initialPreset)
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
@@ -65,9 +87,8 @@ export default function App() {
   const [playbackSpeed, setPlaybackSpeed] = useState(1)
   const [routeError, setRouteError] = useState<string | null>(null)
   const [routeNote, setRouteNote] = useState<string | null>(null)
-  const [routeCandidates, setRouteCandidates] = useState<RouteCandidate[] | null>(null)
-  // AMBIGUOUS 时的输入缺口提示（docs/13 §9.4 / BA-GOAL-003）。
-  const [routeGapHint, setRouteGapHint] = useState<string | null>(null)
+  // F0：诊断会话中默认收起左侧 Object Explorer，LUI 宽度放大（issue #5 F0）。
+  const [leftPanelCollapsed, setLeftPanelCollapsed] = useState(false)
 
   // user_selection (Projection-only; never written by Runtime).
   const [selectedCandidateId, setSelectedCandidateId] = useState<string | null>(null)
@@ -116,32 +137,64 @@ export default function App() {
     return ids
   }, [agentFocus, snapshot?.conclusion])
 
-  const graphData = useMemo(
-    () =>
-      buildActiveGraph(model, {
-        lens: activeLens,
-        overlay: undefined,
-        layerTopology: layerVisibility.topology,
-        layerKnowledge: layerVisibility.knowledge,
-        visibleDomains,
-        visibleKgLayers,
-        showCrossLayer,
-        objectIds: restrictedObjectIds,
-        expandedDeviceIds: new Set(Object.keys(expandedDevices).filter((k) => expandedDevices[k])),
-        criticalObjectIds,
-      }),
-    [
-      activeLens,
-      layerVisibility,
-      model,
-      restrictedObjectIds,
-      showCrossLayer,
+  // F2 活动逻辑路径（根因起点 → 证据 hop → 影响链）：随快照推进逐步延伸，
+  // flat 与 layered 双画布用同一路径绘制红色逻辑链（issue #5 F2）。
+  const logicPath = useMemo(
+    () => (snapshot ? activeDiagnosisPath(snapshot) : []),
+    [snapshot],
+  )
+
+  const graphData = useMemo(() => {
+    const base = buildActiveGraph(model, {
+      lens: activeLens,
+      overlay: undefined,
+      layerTopology: layerVisibility.topology,
+      layerKnowledge: layerVisibility.knowledge,
       visibleDomains,
       visibleKgLayers,
-      expandedDevices,
+      showCrossLayer,
+      objectIds: restrictedObjectIds,
+      expandedDeviceIds: new Set(Object.keys(expandedDevices).filter((k) => expandedDevices[k])),
       criticalObjectIds,
-    ],
-  )
+    })
+    // F2：把活动逻辑路径注入为合成 logic 连线（红色虚拟链路，非物理边）。
+    const nodeIds = new Set(base.nodes.map((n) => n.id))
+    const links = [...base.links]
+    for (let i = 0; i < logicPath.length - 1; i += 1) {
+      const a = logicPath[i]
+      const b = logicPath[i + 1]
+      if (a === b || !nodeIds.has(a) || !nodeIds.has(b)) continue
+      const linkId = `logic:${a}->${b}`
+      if (links.some((l) => l.id === linkId)) continue
+      links.push({
+        id: linkId,
+        source: a,
+        target: b,
+        ontologyLink: {
+          id: linkId,
+          type: OntologyLinkType.CONNECTS_TO,
+          sourceId: a,
+          targetId: b,
+          properties: { pathGroup: 'logic-chain' },
+          provenance: { source: 'MODEL', sourceRef: `logic/${a}/${b}` },
+        },
+        category: 'logic',
+        relation: 'LOGIC_CHAIN',
+      })
+    }
+    return { nodes: base.nodes, links }
+  }, [
+    activeLens,
+    layerVisibility,
+    model,
+    restrictedObjectIds,
+    showCrossLayer,
+    visibleDomains,
+    visibleKgLayers,
+    expandedDevices,
+    criticalObjectIds,
+    logicPath,
+  ])
 
   const graphNodesById = useMemo(
     () => new Map(graphData.nodes.map((node) => [node.id, node])),
@@ -175,13 +228,18 @@ export default function App() {
     return ids
   }, [snapshot?.conclusion])
 
-  // D3 设备聚合摘要（docs/05 §5）：成员总数/异常数/候选数/最高严重度。
-  // 候选数来自 runtime snapshot 的 candidates.object_id；纯函数只读 model + ctx。
-  const aggregateSummaries = useMemo(() => {
-    const candidateObjectIds = new Set<string>()
+  // 候选根因指向的对象 ids（docs/05 §5 候选数）——flat 与 layered 聚合共用。
+  const candidateObjectIds = useMemo(() => {
+    const ids = new Set<string>()
     for (const candidate of snapshot?.candidates ?? []) {
-      if (candidate.object_id) candidateObjectIds.add(candidate.object_id)
+      if (candidate.object_id) ids.add(candidate.object_id)
     }
+    return ids
+  }, [snapshot?.candidates])
+
+  // D3 设备聚合摘要（docs/05 §5）：成员总数/异常数/候选数/最高严重度。
+  // 纯函数只读 model + ctx。
+  const aggregateSummaries = useMemo(() => {
     const ctx: AggregateSummaryContext = {
       criticalIds: criticalObjectIds,
       impactedIds,
@@ -193,7 +251,7 @@ export default function App() {
       if (summary) map.set(group.deviceId, summary)
     }
     return map
-  }, [model, criticalObjectIds, impactedIds, snapshot?.candidates])
+  }, [model, criticalObjectIds, impactedIds, candidateObjectIds])
 
   // Camera target: user node while exploring, agent node otherwise. App owns
   // this decision so DualPlaneCanvas never grabs the camera on agent events
@@ -237,8 +295,11 @@ export default function App() {
       setActiveLens(LensId.DIAGNOSIS)
       setActivePreset('OVERVIEW')
       setIsPlaying(true)
-      setRouteCandidates(null)
-      setRouteGapHint(null)
+      // F0：进入诊断会话自动收起左侧 Object Explorer（退出时恢复）。
+      setLeftPanelCollapsed(true)
+      // F2：分层视图跟随诊断 Case，使红色逻辑链对象落在当前分层模型中。
+      setLayeredCaseId(caseId)
+      setExpandedLayers({})
       setRouteError(null)
       setRouteNote(note)
     } catch (error) {
@@ -248,25 +309,35 @@ export default function App() {
     }
   }
 
+  /** 随机选取一个候选执行：AMBIGUOUS 从排名候选中随机，NO_MATCH 同样落到候选（issue #5 B1）。 */
+  const pickRandomCandidate = (candidates: Array<{ caseId: string; name: string }>): string | null => {
+    if (!candidates.length) return null
+    return candidates[Math.floor(Math.random() * candidates.length)].caseId
+  }
+
   const handleStartDiagnosis = (payload: DiagnosisEntryPayload) => {
     setRouteError(null)
     setRouteNote(null)
-    setRouteCandidates(null)
-    setRouteGapHint(null)
     const route = routeToCase(payload.symptom, payload.business_scope)
     if (route.status === 'UNIQUE_MATCH' && route.caseId) {
       startSession(route.caseId, null)
-    } else if (route.status === 'AMBIGUOUS') {
-      // 现象可匹配多个 Case：交由用户选择，不猜测（docs/13 §9.4）。
-      setRouteGapHint(routeGapSuffix(route.normalized))
-      setRouteCandidates(route.candidates)
     } else {
-      setRouteError(route.error_code ? `[${route.error_code}] ${route.reason}` : route.reason)
+      // B1：弱输入不弹候选面板 —— 自动随机选一个候选场景执行，不强约束用户补充。
+      const picked = pickRandomCandidate(route.candidates)
+      if (picked) {
+        const entry = route.candidates.find((c) => c.caseId === picked)
+        startSession(
+          picked,
+          route.status === 'AMBIGUOUS'
+            ? `现象可匹配多个故障场景，已自动匹配到「${entry?.name ?? picked}」`
+            : `未完全识别场景信号，已自动落到「${entry?.name ?? picked}」`,
+        )
+      } else {
+        setRouteError(
+          route.error_code ? `[${route.error_code}] ${route.reason}` : route.reason,
+        )
+      }
     }
-  }
-
-  const handleSelectRoutedCase = (caseId: string) => {
-    startSession(caseId, '由用户在歧义路由中显式选择')
   }
 
   const handleExitDiagnosis = () => {
@@ -277,6 +348,8 @@ export default function App() {
     setSelectedNodeId(null)
     setUserExploring(false)
     setActiveLens(LensId.TOPOLOGY)
+    // F0：退出诊断恢复左侧 Object Explorer。
+    setLeftPanelCollapsed(false)
   }
 
   const handleSeek = useCallback((sequence: number) => {
@@ -325,6 +398,22 @@ export default function App() {
     if (model.deviceGroups.some((g) => g.deviceId === id)) {
       setExpandedDevices((cur) => ({ ...cur, [id]: !cur[id] }))
     }
+  }
+
+  // 拓扑平面布局切换（issue #4：flat 平铺 ↔ layered 分层条带）。
+  const handleToggleTopoLayout = () => {
+    setActiveTopoLayout((layout) => (layout === 'flat' ? 'layered' : 'flat'))
+  }
+
+  // 分层条带：点击层聚合头展开/收起（域或子层，递归）。
+  const handleToggleLayer = (code: TopoLayerCode) => {
+    setExpandedLayers((cur) => ({ ...cur, [code]: !cur[code] }))
+  }
+
+  // 分层视图 Case 切换：重建分层模型并重置展开状态（issue #4）。
+  const handleChangeLayeredCase = (caseId: string) => {
+    setLayeredCaseId(caseId)
+    setExpandedLayers({})
   }
 
   const handleSearchSelect = (id: string) => {
@@ -384,57 +473,86 @@ export default function App() {
         <strong>需要桌面视口</strong>
         <span>3D 双平面诊断工作台建议在至少 1024px 宽的窗口中使用。</span>
       </div>
-      <DualPlaneCanvas
-        graphData={graphData}
-        model={model}
-        activePreset={activePreset}
-        focusNodeId={focusNodeId}
-        agentFocusIds={agentFocusIds}
-        rootCauseIds={rootCauseIds}
-        impactedIds={impactedIds}
-        selectedNodeId={selectedNodeId}
-        expandedDevices={expandedDevices}
-        aggregateSummaries={aggregateSummaries}
-        showCrossLayer={showCrossLayer}
-        businessPath={businessPath}
-        onNodeSelect={handleNodeSelect}
-        onNodeDoubleClick={handleNodeDoubleClick}
-        onNodeHover={() => undefined}
-      />
+      {activeTopoLayout === 'layered' ? (
+        <LayeredTopologyCanvas
+          model={layeredModel}
+          caseId={layeredCaseId}
+          cases={LAYERED_CASES}
+          onCaseChange={handleChangeLayeredCase}
+          expandedLayers={expandedLayers}
+          onToggleLayer={handleToggleLayer}
+          aggregateContext={{
+            criticalIds: criticalObjectIds,
+            impactedIds,
+            candidateObjectIds,
+          }}
+          criticalObjectIds={criticalObjectIds}
+          agentFocusIds={agentFocusIds}
+          rootCauseIds={rootCauseIds}
+          impactedIds={impactedIds}
+          logicPath={logicPath}
+          selectedNodeId={selectedNodeId}
+          navigatorCollapsed={leftPanelCollapsed}
+          onNodeSelect={handleNodeSelect}
+        />
+      ) : (
+        <DualPlaneCanvas
+          graphData={graphData}
+          model={model}
+          activePreset={activePreset}
+          focusNodeId={focusNodeId}
+          agentFocusIds={agentFocusIds}
+          rootCauseIds={rootCauseIds}
+          impactedIds={impactedIds}
+          selectedNodeId={selectedNodeId}
+          expandedDevices={expandedDevices}
+          aggregateSummaries={aggregateSummaries}
+          showCrossLayer={showCrossLayer}
+          businessPath={businessPath}
+          onNodeSelect={handleNodeSelect}
+          onNodeDoubleClick={handleNodeDoubleClick}
+          onNodeHover={() => undefined}
+        />
+      )}
 
-      <ModelNavigator
-        model={model}
-        activePreset={activePreset}
-        onPresetChange={setActivePreset}
-        layerVisibility={layerVisibility}
-        onToggleLayer={(plane) =>
-          setLayerVisibility((value) => ({ ...value, [plane]: !value[plane] }))
-        }
-        visibleDomains={visibleDomains}
-        onToggleDomain={(code) =>
-          setVisibleDomains((value) => ({ ...value, [code]: value[code] === false }))
-        }
-        visibleKgLayers={visibleKgLayers}
-        onToggleKgLayer={(code) =>
-          setVisibleKgLayers((value) => ({ ...value, [code]: value[code] === false }))
-        }
-        showCrossLayer={showCrossLayer}
-        onToggleCrossLayer={() => setShowCrossLayer((value) => !value)}
-        searchQuery={searchQuery}
-        onSearchChange={(value) => {
-          setSearchQuery(value)
-          if (!value) setObjectSetFilter(false)
-        }}
-        objectSet={objectSet}
-        objectSetFilter={objectSetFilter}
-        onToggleObjectSet={() => setObjectSetFilter((value) => !value)}
-        aroundRootId={aroundRootId}
-        onClearRestriction={clearRestriction}
-        onSearchSelect={handleSearchSelect}
-        selectedNodeId={selectedNodeId}
-        expandedDevices={expandedDevices}
-        onToggleDevice={handleNodeDoubleClick}
-      />
+      {/* F0：诊断会话默认收起 Object Explorer；退出/手动展开后恢复 */}
+      {!leftPanelCollapsed && (
+        <ModelNavigator
+          model={model}
+          activePreset={activePreset}
+          onPresetChange={setActivePreset}
+          layerVisibility={layerVisibility}
+          onToggleLayer={(plane) =>
+            setLayerVisibility((value) => ({ ...value, [plane]: !value[plane] }))
+          }
+          visibleDomains={visibleDomains}
+          onToggleDomain={(code) =>
+            setVisibleDomains((value) => ({ ...value, [code]: value[code] === false }))
+          }
+          visibleKgLayers={visibleKgLayers}
+          onToggleKgLayer={(code) =>
+            setVisibleKgLayers((value) => ({ ...value, [code]: value[code] === false }))
+          }
+          showCrossLayer={showCrossLayer}
+          onToggleCrossLayer={() => setShowCrossLayer((value) => !value)}
+          searchQuery={searchQuery}
+          onSearchChange={(value) => {
+            setSearchQuery(value)
+            if (!value) setObjectSetFilter(false)
+          }}
+          objectSet={objectSet}
+          objectSetFilter={objectSetFilter}
+          onToggleObjectSet={() => setObjectSetFilter((value) => !value)}
+          aroundRootId={aroundRootId}
+          onClearRestriction={clearRestriction}
+          onSearchSelect={handleSearchSelect}
+          selectedNodeId={selectedNodeId}
+          expandedDevices={expandedDevices}
+          onToggleDevice={handleNodeDoubleClick}
+          activeTopoLayout={activeTopoLayout}
+          onToggleTopoLayout={handleToggleTopoLayout}
+        />
+      )}
 
       <header className="ontology-header pointer-events-none absolute left-1/2 top-4 z-40 -translate-x-1/2">
         <div className="pointer-events-auto flex items-center gap-3 rounded-xl border border-white/10 bg-[#11141c]/92 px-4 py-2 shadow-2xl backdrop-blur-md">
@@ -475,46 +593,6 @@ export default function App() {
         </div>
       )}
 
-      {routeCandidates && (
-        <div className="absolute left-1/2 top-[118px] z-50 flex max-w-md -translate-x-1/2 flex-col gap-1.5 rounded-lg border border-status-active/30 bg-[#11141c]/95 px-3 py-2.5 text-[12px] shadow-xl">
-          <div className="flex items-center gap-2 text-[#cbd5e1]">
-            <AlertTriangle className="h-4 w-4 shrink-0 text-status-warning" />
-            <span className="flex-1">
-              {routeGapHint
-                ? `现象可匹配多个故障场景，请选择最接近的一个：${routeGapHint}`
-                : '现象可匹配多个故障场景，请选择最接近的一个：'}
-            </span>
-            <button
-              type="button"
-              onClick={() => {
-                setRouteCandidates(null)
-                setRouteGapHint(null)
-              }}
-              aria-label="关闭"
-              className="text-[#64748b] transition-colors hover:text-[#cbd5e1]"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          </div>
-          {routeCandidates.map((c) => (
-            <button
-              key={c.caseId}
-              type="button"
-              onClick={() => handleSelectRoutedCase(c.caseId)}
-              className="flex items-center justify-between rounded-md border border-white/10 bg-white/5 px-3 py-2 text-left transition-colors hover:border-status-active/50 hover:bg-status-active/10"
-            >
-              <span className="flex-1">
-                <span className="block text-[12px] font-medium text-[#e2e8f0]">{c.name}</span>
-                <span className="block text-[10px] text-[#64748b]">
-                  route_score {c.score} · {c.explanation}
-                </span>
-              </span>
-              <span className="ml-2 shrink-0 text-[10px] text-status-active">选择 →</span>
-            </button>
-          ))}
-        </div>
-      )}
-
       {runtime && vms && snapshot && (
         <LuiPanel
           knowledge={vms.knowledge}
@@ -543,36 +621,15 @@ export default function App() {
           onReturnAgentView={handleReturnAgentView}
           onExit={handleExitDiagnosis}
           routeNote={routeNote}
+          wide={leftPanelCollapsed}
+          leftPanelCollapsed={leftPanelCollapsed}
+          onToggleLeftPanel={() => setLeftPanelCollapsed((value) => !value)}
         />
       )}
 
       {!runtime && <DiagnosisEntryButton onStartDiagnosis={handleStartDiagnosis} />}
     </div>
   )
-}
-
-const MISSING_FIELD_LABELS: Record<string, string> = {
-  object: '具体对象',
-  replication_session: '复制会话',
-  time: '时间窗',
-  time_window: '时间窗',
-}
-
-/**
- * 把标准化缺口映射为候选面板追问文案（docs/13 §9.4 / BA-GOAL-003）。
- * 仅剩泛化 business 对象时同样视为未识别到具体对象；无缺口返回 null 保持原文案。
- */
-function routeGapSuffix(normalized: NormalizedSymptom): string | null {
-  const gaps: string[] = []
-  for (const field of normalized.missing_fields) {
-    const label = MISSING_FIELD_LABELS[field]
-    if (label && !gaps.includes(label)) gaps.push(label)
-  }
-  const hasConcreteObject = normalized.object_mentions.some((o) => o !== 'business')
-  if (!hasConcreteObject && !gaps.includes('具体对象')) gaps.push('具体对象')
-  return gaps.length
-    ? `（未识别到${gaps.join('/')}，请补充后重试或直接从下方选择场景）`
-    : null
 }
 
 function phaseLabelOf(phase: string): string {

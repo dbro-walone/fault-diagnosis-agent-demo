@@ -44,6 +44,7 @@ export type LinkCategory =
   | 'diagnosis'
   | 'impact'
   | 'audit'
+  | 'logic'
 
 export interface GraphNode extends NodeObject {
   id: string
@@ -585,6 +586,8 @@ export function linkColorFor(
       return 'rgba(192,132,252,0.78)'
     case 'diagnosis':
       return 'rgba(45,212,191,0.62)'
+    case 'logic':
+      return LINK_COLORS.logic
   }
 }
 
