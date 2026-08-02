@@ -20,21 +20,16 @@ import {
   ChevronRight,
   Crosshair,
   FastForward,
-  FileSearch,
   FileText,
   History,
-  Layers,
-  ListChecks,
   LogOut,
   PanelLeftClose,
   PanelLeftOpen,
   Pause,
   Pin,
   Play,
-  Radar,
   RefreshCw,
   RotateCcw,
-  ScanSearch,
   ShieldCheck,
   ShieldQuestion,
   StepForward,
@@ -44,15 +39,11 @@ import {
 import { cn } from '@/lib/utils'
 import EventTimeline from './EventTimeline'
 import {
-  ChainItemStatus,
   type CaseRouteEntry,
   type CandidateItemVM,
   type CandidateListVM,
   type CurrentActionVM,
-  type DiagnosisScanVM,
   type DiagnosisSessionSnapshot,
-  type ExaminedVerdict,
-  type EvidenceChainItemVM,
   type FactDetailVM,
   type KnowledgeSnapshotVM,
   type ObjectObsCategoryVM,
@@ -69,16 +60,13 @@ import {
 } from '../v2'
 
 type DisplayMode = 'LIVE' | 'PAUSED' | 'REPLAY'
-type WorkspaceTab = 'chain' | 'plan' | 'history' | 'detail'
 
 export interface LuiPanelProps {
   knowledge: KnowledgeSnapshotVM
   action: CurrentActionVM
   candidates: CandidateListVM
-  /** issue#6 阶段A：Planner 优先级目标列表 + 重规划差异。 */
+  /** issue#6 阶段A + issue#7 C1/C2：Planner 优先级目标列表 + 重规划差异 + 排查路径/实际发现。 */
   planner: PlannerTargetsVM
-  /** issue#6 阶段C：逐对象诊断循环（聚焦→查询→判断→推进），与画布联动。 */
-  scan: DiagnosisScanVM
   snapshot: DiagnosisSessionSnapshot
   store: ProjectionStore
   timelineEvents: TimelineEventVM[]
@@ -111,15 +99,18 @@ export interface LuiPanelProps {
 
 export default function LuiPanel(props: LuiPanelProps) {
   const { knowledge, action, candidates, snapshot, store } = props
-  const [tab, setTab] = useState<WorkspaceTab>('chain')
+  // issue#7 B2：时间线回放不再作为独立 tab，改为主内容区下方可折叠的窄条（默认收起）。
+  const [timelineOpen, setTimelineOpen] = useState(false)
+  // issue#7 B2：事实三级详情从 tab 改为浮层弹窗（点击"产出事实/证据事实"打开）。
+  const [factModalId, setFactModalId] = useState<string | null>(props.selectedFactId ?? null)
 
   // issue#6 阶段B：对象观测三标签 View Model（跟随 agent_focus / Planner 当前位置）。
   const observation = useMemo(() => store.objectObservationPanel(), [store])
 
-  // When the user drills into a fact, jump to the detail tab.
+  // 打开事实详情浮层（保持 Projection user_selection 同步）。
   const selectFact = (id: string | null) => {
     props.onSelectFact(id)
-    if (id) setTab('detail')
+    setFactModalId(id)
   }
 
   return (
@@ -131,7 +122,29 @@ export default function LuiPanel(props: LuiPanelProps) {
       )}
     >
       {/* Layer 1 — 会话状态栏 */}
-      <SessionStatusBar {...props} />
+      <SessionStatusBar
+        {...props}
+        timelineOpen={timelineOpen}
+        onToggleTimeline={() => setTimelineOpen((open) => !open)}
+      />
+
+      {/* issue#7 B2：时间线回放窄条（八幕书签/事件跳转；不占主内容区，可折叠） */}
+      {timelineOpen && (
+        <div className="shrink-0 border-b border-white/8 bg-black/25">
+          <EventTimeline
+            events={props.timelineEvents}
+            cursor={props.cursor}
+            liveHead={props.liveHead}
+            totalEvents={props.totalEvents}
+            isPlaying={props.isPlaying}
+            onPlayPause={props.onPlayPause}
+            onStep={props.onStep}
+            onSeek={props.onSeek}
+            onReturnLive={props.onReturnLive}
+            replayBookmarks={props.replayBookmarks}
+          />
+        </div>
+      )}
 
       <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto p-2.5">
         {/* Layer 2 — 诊断态势 */}
@@ -142,71 +155,17 @@ export default function LuiPanel(props: LuiPanelProps) {
           onReturnAgentView={props.onReturnAgentView}
         />
 
-        {/* issue#6 阶段A：Planner 目标区（目标资源/故障模式/验证问题/期望发现/当前范围 + 重规划差异） */}
+        {/* issue#6 阶段A + issue#7 C1/C2：Planner 目标区（排查路径主线 + 目标资源/故障模式/
+            验证问题/期望发现/实际发现 + 重规划差异） */}
         <PlannerTargetsView planner={props.planner} />
 
         {/* issue#6 阶段B：对象观测三标签（当前焦点对象 告警｜性能｜日志 查询状态与结果） */}
         <ObjectObservationView vm={observation} />
 
-        {/* issue#6 阶段C：逐对象诊断循环（聚焦→查询→判断→推进，与画布联动） */}
-        <DiagnosisLoopView scan={props.scan} />
-
-        {/* Layer 3 — 主内容区（证据链/计划/历史/详情）：提高到诊断态势下方，更大更醒目 */}
-        <div className="flex min-h-[240px] flex-1 flex-col overflow-hidden rounded-lg border border-white/8 bg-black/20">
-          <div className="flex shrink-0 items-center gap-1 border-b border-white/8 px-2 py-1.5">
-            <TabButton active={tab === 'chain'} onClick={() => setTab('chain')} icon={<Layers className="h-3.5 w-3.5" />}>
-              证据链
-            </TabButton>
-            <TabButton active={tab === 'plan'} onClick={() => setTab('plan')} icon={<ListChecks className="h-3.5 w-3.5" />}>
-              计划
-            </TabButton>
-            <TabButton active={tab === 'history'} onClick={() => setTab('history')} icon={<History className="h-3.5 w-3.5" />}>
-              历史
-            </TabButton>
-            <TabButton active={tab === 'detail'} onClick={() => setTab('detail')} icon={<FileSearch className="h-3.5 w-3.5" />}>
-              详情
-            </TabButton>
-          </div>
-
-          <div className="min-h-0 flex-1 overflow-hidden">
-            {tab === 'chain' && (
-              <EvidenceChainView
-                snapshot={snapshot}
-                store={store}
-                selectedCandidateId={props.selectedCandidateId}
-                candidates={candidates}
-                onSelectFact={selectFact}
-              />
-            )}
-            {tab === 'plan' && <PlanView snapshot={snapshot} />}
-            {tab === 'history' && (
-              <EventTimeline
-                events={props.timelineEvents}
-                cursor={props.cursor}
-                liveHead={props.liveHead}
-                totalEvents={props.totalEvents}
-                isPlaying={props.isPlaying}
-                onPlayPause={props.onPlayPause}
-                onStep={props.onStep}
-                onSeek={props.onSeek}
-                onReturnLive={props.onReturnLive}
-                replayBookmarks={props.replayBookmarks}
-              />
-            )}
-            {tab === 'detail' && (
-              <FactDetailView
-                store={store}
-                selectedFactId={props.selectedFactId}
-                onClose={() => selectFact(null)}
-              />
-            )}
-          </div>
-        </div>
-
-        {/* Layer 4 — 当前行动 */}
+        {/* Layer 3 — 当前行动 */}
         <CurrentAction action={action} onSelectFact={selectFact} />
 
-        {/* Layer 5 — 候选根因 */}
+        {/* Layer 4 — 候选根因 */}
         <CandidateList
           candidates={candidates}
           selectedCandidateId={props.selectedCandidateId}
@@ -221,6 +180,15 @@ export default function LuiPanel(props: LuiPanelProps) {
           </div>
         )}
       </div>
+
+      {/* issue#7 B2：事实三级详情浮层（替代原「详情」tab） */}
+      {factModalId && (
+        <FactDetailModal
+          store={store}
+          factId={factModalId}
+          onClose={() => selectFact(null)}
+        />
+      )}
     </aside>
   )
 }
@@ -229,7 +197,7 @@ export default function LuiPanel(props: LuiPanelProps) {
 // Layer 1 — 会话状态栏
 // ─────────────────────────────────────────────────────────────────────────────
 
-function SessionStatusBar(props: LuiPanelProps) {
+function SessionStatusBar(props: LuiPanelProps & { timelineOpen: boolean; onToggleTimeline: () => void }) {
   const { knowledge, mode, cursor, liveHead, totalEvents, isPlaying, caseEntry } = props
   const modeTone =
     mode === 'LIVE'
@@ -252,6 +220,18 @@ function SessionStatusBar(props: LuiPanelProps) {
             {knowledge.terminal_status_label}
           </span>
         )}
+        {/* issue#7 B2：时间线回放入口（八幕书签/事件跳转，独立于主内容区） */}
+        <button
+          type="button"
+          onClick={props.onToggleTimeline}
+          title={props.timelineOpen ? '收起时间线' : '展开时间线'}
+          className={cn(
+            'flex h-6 w-6 items-center justify-center rounded hover:bg-white/5',
+            props.timelineOpen ? 'bg-status-active/15 text-status-active' : 'text-[#64748b] hover:text-[#cbd5e1]',
+          )}
+        >
+          <History className="h-3.5 w-3.5" />
+        </button>
         {/* F0：手动展开/收起左侧 Object Explorer */}
         <button
           type="button"
@@ -438,9 +418,20 @@ function DiagnosisSituation({
 // issue#6 阶段A — Planner 目标区
 // ─────────────────────────────────────────────────────────────────────────────
 
+/** 从 original_scope 提取排查路径 hop 序列："…路径（a → b → c）" → [a,b,c]。 */
+function parsePathHops(scope: string): string[] {
+  const m = /（([^）]+)）/.exec(scope)
+  if (!m) return []
+  return m[1]
+    .split('→')
+    .map((s) => s.trim())
+    .filter(Boolean)
+}
+
 function PlannerTargetsView({ planner }: { planner: PlannerTargetsVM }) {
   const { targets, replans, original_scope, has_replan } = planner
   const lastReplan = replans[replans.length - 1]
+  const pathHops = original_scope ? parsePathHops(original_scope) : []
   return (
     <section className="rounded-lg border border-white/8 bg-white/[0.02] p-2.5">
       <div className="mb-2 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-[#94a3b8]">
@@ -453,21 +444,44 @@ function PlannerTargetsView({ planner }: { planner: PlannerTargetsVM }) {
         )}
       </div>
 
-      {original_scope && (
-        <div className="mb-1.5 flex items-start gap-1 text-[9px] text-[#64748b]">
-          <span className="shrink-0">范围：</span>
-          <span className="min-w-0 flex-1 leading-relaxed text-[#94a3b8]" title={original_scope}>
-            {original_scope}
-          </span>
+      {/* issue#7 C1：排查路径主线（范围中的业务专属路径，从上到下依次排查） */}
+      {pathHops.length > 0 ? (
+        <div className="mb-1.5 rounded-md border border-status-active/15 bg-status-active/[0.04] px-2 py-1.5">
+          <div className="flex items-center gap-1 text-[8px] font-semibold uppercase tracking-wide text-status-active">
+            <ChevronRight className="h-3 w-3" />
+            排查路径
+          </div>
+          <div className="mt-1 flex flex-wrap items-center gap-1 text-[9px]">
+            {pathHops.map((hop, i) => (
+              <span key={`${hop}-${i}`} className="flex items-center gap-1">
+                <span className="rounded bg-white/5 px-1.5 py-0.5 font-medium text-[#cbd5e1]">{hop}</span>
+                {i < pathHops.length - 1 && <ChevronRight className="h-2.5 w-2.5 text-[#475569]" />}
+              </span>
+            ))}
+          </div>
+          {original_scope && (
+            <div className="mt-1 text-[8px] leading-relaxed text-[#64748b]" title={original_scope}>
+              {original_scope}
+            </div>
+          )}
         </div>
+      ) : (
+        original_scope && (
+          <div className="mb-1.5 flex items-start gap-1 text-[9px] text-[#64748b]">
+            <span className="shrink-0">范围：</span>
+            <span className="min-w-0 flex-1 leading-relaxed text-[#94a3b8]" title={original_scope}>
+              {original_scope}
+            </span>
+          </div>
+        )
       )}
 
       {targets.length === 0 ? (
         <div className="py-2 text-center text-[10px] text-[#64748b]">等待 Planner 生成目标…</div>
       ) : (
         <div className="space-y-1.5">
-          {targets.map((t) => (
-            <PlannerTargetRow key={t.seq} target={t} />
+          {targets.map((t, i) => (
+            <PlannerTargetRow key={t.seq} target={t} isFirst={i === 0} />
           ))}
         </div>
       )}
@@ -477,58 +491,83 @@ function PlannerTargetsView({ planner }: { planner: PlannerTargetsVM }) {
   )
 }
 
-function PlannerTargetRow({ target }: { target: PlannerTargetVM }) {
+/** 实际发现基调样式：命中(红) / 正常(绿) / 待排查(灰) / 已排除(弱灰)。 */
+function findingToneClass(tone: PlannerTargetVM['finding_tone']): string {
+  switch (tone) {
+    case 'hit':
+      return 'text-status-fault'
+    case 'normal':
+      return 'text-status-recovered'
+    case 'excluded':
+      return 'text-[#64748b]'
+    default:
+      return 'text-[#94a3b8]'
+  }
+}
+
+function PlannerTargetRow({ target, isFirst }: { target: PlannerTargetVM; isFirst: boolean }) {
   const tone = plannerTargetTone(target)
   return (
-    <div
-      className={cn(
-        'rounded-md border p-2 transition-colors',
-        tone.box,
-        target.is_active && 'ring-1 ring-status-active/40',
-      )}
-    >
-      <div className="flex items-start gap-1.5">
-        <span className="mt-0.5 text-[9px] tabular text-[#475569]">{String(target.seq).padStart(2, '0')}</span>
-        <div className="min-w-0 flex-1">
-          <div className="flex items-start justify-between gap-1.5">
-            <div className="min-w-0">
-              <span
-                className={cn(
-                  'text-[11px] font-semibold leading-snug',
-                  target.is_active ? 'text-status-active' : 'text-[#e2e8f0]',
-                )}
-              >
-                {target.target_resource}
-              </span>
-              {target.round > 1 && (
-                <span className="ml-1 rounded bg-status-warning/15 px-1 py-0.5 text-[8px] text-status-warning">
-                  重规划新增
+    <div className="relative">
+      {/* issue#7 C1：垂直主线连接（从上到下依次排查次序） */}
+      {!isFirst && <span className="absolute -top-1.5 left-[7px] h-1.5 w-px bg-white/10" />}
+      <div
+        className={cn(
+          'rounded-md border p-2 transition-colors',
+          tone.box,
+          target.is_active && 'ring-1 ring-status-active/40',
+        )}
+      >
+        <div className="flex items-start gap-1.5">
+          <span className="mt-0.5 text-[9px] tabular text-[#475569]">{String(target.seq).padStart(2, '0')}</span>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-start justify-between gap-1.5">
+              <div className="min-w-0">
+                <span
+                  className={cn(
+                    'text-[11px] font-semibold leading-snug',
+                    target.is_active ? 'text-status-active' : 'text-[#e2e8f0]',
+                  )}
+                >
+                  {target.target_resource}
                 </span>
-              )}
-              {target.is_paused && (
-                <span className="ml-1 rounded bg-white/5 px-1 py-0.5 text-[8px] text-[#64748b]">暂停</span>
-              )}
-              <span className="ml-1 rounded bg-white/5 px-1 py-0.5 text-[8px] text-[#94a3b8]">{target.scope}</span>
+                {target.round > 1 && (
+                  <span className="ml-1 rounded bg-status-warning/15 px-1 py-0.5 text-[8px] text-status-warning">
+                    重规划新增
+                  </span>
+                )}
+                {target.is_paused && (
+                  <span className="ml-1 rounded bg-white/5 px-1 py-0.5 text-[8px] text-[#64748b]">暂停</span>
+                )}
+                <span className="ml-1 rounded bg-white/5 px-1 py-0.5 text-[8px] text-[#94a3b8]">{target.scope}</span>
+              </div>
+              <span className={cn('flex shrink-0 items-center gap-0.5 rounded px-1.5 py-0.5 text-[8px]', tone.badge)}>
+                {target.is_active ? (
+                  <Activity className="h-3 w-3" />
+                ) : target.status === 'verified_abnormal' ? (
+                  <ShieldCheck className="h-3 w-3" />
+                ) : (
+                  <ShieldQuestion className="h-3 w-3" />
+                )}
+                {target.status_label}
+              </span>
             </div>
-            <span className={cn('flex shrink-0 items-center gap-0.5 rounded px-1.5 py-0.5 text-[8px]', tone.badge)}>
-              {target.is_active ? (
-                <Activity className="h-3 w-3" />
-              ) : target.status === 'verified_abnormal' ? (
-                <ShieldCheck className="h-3 w-3" />
-              ) : (
-                <ShieldQuestion className="h-3 w-3" />
-              )}
-              {target.status_label}
-            </span>
-          </div>
-          <div className="mt-1 text-[9px] font-medium text-[#cbd5e1]">{target.target_fault_mode}</div>
-          <div className="mt-0.5 text-[8px] leading-relaxed text-[#94a3b8]">
-            <span className="text-[#64748b]">为什么：</span>
-            {target.verify_question}
-          </div>
-          <div className="mt-0.5 text-[8px] leading-relaxed text-[#94a3b8]">
-            <span className="text-[#64748b]">期望发现：</span>
-            {target.expected_finding}
+            <div className="mt-1 text-[9px] font-medium text-[#cbd5e1]">{target.target_fault_mode}</div>
+            <div className="mt-0.5 text-[8px] leading-relaxed text-[#94a3b8]">
+              <span className="text-[#64748b]">为什么：</span>
+              {target.verify_question}
+            </div>
+            <div className="mt-0.5 text-[8px] leading-relaxed text-[#94a3b8]">
+              <span className="text-[#64748b]">期望发现：</span>
+              {target.expected_finding}
+            </div>
+            {/* issue#7 C2：实际发现（原证据链内容摘要，随诊断推进填充） */}
+            <div className="mt-0.5 text-[8px] leading-relaxed">
+              <span className="text-[#64748b]">实际发现：</span>
+              <span className={cn('font-medium', findingToneClass(target.finding_tone))}>
+                {target.actual_finding}
+              </span>
+            </div>
           </div>
         </div>
       </div>
@@ -595,99 +634,6 @@ function ReplanBanner({ replan }: { replan: PlannerReplanVM }) {
         </div>
       </div>
     </div>
-  )
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// issue#6 阶段C — 逐对象诊断循环（聚焦→查询→判断→推进）
-// ─────────────────────────────────────────────────────────────────────────────
-
-function verdictDotTone(verdict: ExaminedVerdict | null): string {
-  switch (verdict) {
-    case 'ABNORMAL':
-      return 'bg-status-fault'
-    case 'NORMAL':
-      return 'bg-status-recovered'
-    case 'IMPACTED':
-      return 'bg-orange-400'
-    case 'CANDIDATE':
-      return 'bg-amber-400'
-    default:
-      return 'bg-status-muted'
-  }
-}
-
-/** 画布"聚焦→查询→判断→推进"循环的 LUI 侧联动：当前焦点/扫描对象 + 已判断对象判定。 */
-function DiagnosisLoopView({ scan }: { scan: DiagnosisScanVM }) {
-  if (scan.examined_objects.length === 0) return null
-  const focus =
-    scan.examined_objects.find((o) => o.is_scanning) ??
-    scan.examined_objects.find((o) => o.is_focus)
-  const stepLabel = scan.active_query_object_id
-    ? '查询中'
-    : scan.focus_object_id
-      ? '聚焦'
-      : '待排查'
-  return (
-    <section className="rounded-lg border border-white/8 bg-white/[0.02] p-2.5">
-      <div className="mb-1.5 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-[#94a3b8]">
-        <ScanSearch className="h-3.5 w-3.5 text-status-active" />
-        诊断循环
-        {focus && (
-          <span className="ml-auto flex items-center gap-1 text-[9px] font-medium normal-case tracking-normal">
-            {scan.active_query_object_id && (
-              <span className="flex items-center gap-1 rounded bg-status-active/15 px-1 py-0.5 text-status-active">
-                <Radar className="h-3 w-3" />
-                {stepLabel}
-              </span>
-            )}
-            <span className="max-w-[140px] truncate text-[#cbd5e1]" title={focus.object_id}>
-              {focus.display_name}
-            </span>
-          </span>
-        )}
-      </div>
-      <div className="flex flex-wrap gap-1">
-        {scan.examined_objects.map((o) => (
-          <span
-            key={o.object_id}
-            className={cn(
-              'flex items-center gap-1 rounded px-1.5 py-0.5 text-[8px]',
-              o.is_scanning
-                ? 'bg-status-active/15 text-status-active'
-                : o.is_focus
-                  ? 'bg-white/[0.06] text-[#cbd5e1]'
-                  : o.verdict
-                    ? 'bg-white/[0.03] text-[#94a3b8]'
-                    : 'bg-white/[0.02] text-[#64748b]',
-            )}
-            title={o.verdict ?? '尚未判断'}
-          >
-            <span className={cn('h-1.5 w-1.5 shrink-0 rounded-full', verdictDotTone(o.verdict))} />
-            {o.display_name}
-            {o.is_scanning && <Radar className="h-2.5 w-2.5" />}
-          </span>
-        ))}
-      </div>
-      <div className="mt-1.5 flex flex-wrap items-center gap-2 text-[8px] text-[#64748b]">
-        <span className="flex items-center gap-1">
-          <span className="h-1.5 w-1.5 rounded-full bg-status-fault" />
-          异常
-        </span>
-        <span className="flex items-center gap-1">
-          <span className="h-1.5 w-1.5 rounded-full bg-status-recovered" />
-          正常
-        </span>
-        <span className="flex items-center gap-1">
-          <span className="h-1.5 w-1.5 rounded-full bg-orange-400" />
-          受影响
-        </span>
-        <span className="flex items-center gap-1">
-          <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
-          候选
-        </span>
-      </div>
-    </section>
   )
 }
 
@@ -1202,152 +1148,8 @@ function candidateTone(c: CandidateItemVM): { box: string; badge: string; bar: s
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Layer 5 · 证据链 — 最小证据链条目 + 事实预览（docs/07 §4）
+// issue#7 B2 — 事实三级详情浮层（替代原「详情」tab 与证据链 tab）
 // ─────────────────────────────────────────────────────────────────────────────
-
-function EvidenceChainView({
-  snapshot,
-  store,
-  selectedCandidateId,
-  candidates,
-  onSelectFact,
-}: {
-  snapshot: DiagnosisSessionSnapshot
-  store: ProjectionStore
-  selectedCandidateId: string | null
-  candidates: CandidateListVM
-  onSelectFact: (id: string) => void
-}) {
-  // 证据链归属候选：用户选中 > 领先候选 > 首个。
-  const chainCandidateId =
-    selectedCandidateId ?? candidates.leading_id ?? candidates.items[0]?.candidate_id ?? ''
-
-  // 最小证据链条目（requirement_id / label / status / evidence_refs）。
-  const chain = snapshot.minimum_evidence_chain
-  const items = chain?.items ?? []
-
-  // 用 ProjectionStore 的证据视图（已含事实 headline 预览），按 evidence_id 索引。
-  const chainVm = useMemo(
-    () => (chainCandidateId ? store.evidenceChain(chainCandidateId) : { candidate_id: '', items: [] }),
-    [store, chainCandidateId],
-  )
-  const evItemById = useMemo(
-    () => new Map(chainVm.items.map((i) => [i.evidence_id, i])),
-    [chainVm],
-  )
-
-  return (
-    <div className="flex h-full flex-col overflow-y-auto p-2">
-      <div className="mb-2 flex items-center gap-1.5 text-[9px] text-[#64748b]">
-        <span>证据链候选：</span>
-        <span className="truncate font-medium text-[#cbd5e1]">
-          {candidates.items.find((c) => c.candidate_id === chainCandidateId)?.display_name ?? chainCandidateId}
-        </span>
-      </div>
-      {items.length === 0 ? (
-        <div className="flex flex-1 items-center justify-center text-[10px] text-[#64748b]">
-          等待最小证据链更新…
-        </div>
-      ) : (
-        <ol className="space-y-1.5">
-          {items.map((item) => {
-            const evItems: EvidenceChainItemVM[] = (item.evidence_refs ?? [])
-              .map((id) => evItemById.get(id))
-              .filter((x): x is EvidenceChainItemVM => Boolean(x))
-            return (
-              <li
-                key={item.requirement_id}
-                className="rounded-md border border-white/[0.06] bg-white/[0.02] p-2"
-              >
-                <div className="flex items-center gap-1.5">
-                  <ChainStatusDot status={item.status} />
-                  <span className="text-[10px] font-medium text-[#cbd5e1]">{item.label ?? item.requirement_id}</span>
-                  {item.required ? (
-                    <span className="rounded bg-white/5 px-1 py-0.5 text-[8px] text-[#64748b]">必需</span>
-                  ) : (
-                    <span className="rounded bg-white/5 px-1 py-0.5 text-[8px] text-[#475569]">可选</span>
-                  )}
-                  <span className="ml-auto font-mono text-[8px] text-[#475569]">{item.requirement_id}</span>
-                </div>
-                {evItems.length === 0 ? (
-                  <div className="mt-1.5 pl-4 text-[9px] text-[#64748b]">
-                    {item.status === ChainItemStatus.PENDING ? '尚无关联证据' : '无关联证据'}
-                  </div>
-                ) : (
-                  <div className="mt-1.5 space-y-1 pl-4">
-                    {evItems.map((ev) => (
-                      <EvidencePreview key={ev.evidence_id} item={ev} onSelectFact={onSelectFact} />
-                    ))}
-                  </div>
-                )}
-              </li>
-            )
-          })}
-        </ol>
-      )}
-    </div>
-  )
-}
-
-function EvidencePreview({
-  item,
-  onSelectFact,
-}: {
-  item: EvidenceChainItemVM
-  onSelectFact: (id: string) => void
-}) {
-  const tone = effectTone(item.effect)
-  return (
-    <div className="rounded border border-white/[0.05] bg-black/20 p-1.5">
-      <div className="flex items-center gap-1 text-[9px]">
-        <span className={cn('rounded px-1 py-0.5 font-medium', tone.badge)}>{item.effect_label}</span>
-        <span className="text-[#64748b]">{item.evidence_type_label}</span>
-        {item.score_delta !== 0 && (
-          <span className={cn('ml-auto tabular', item.score_delta > 0 ? 'text-status-evidence' : 'text-status-warning')}>
-            {item.score_delta > 0 ? '+' : ''}{item.score_delta}
-          </span>
-        )}
-      </div>
-      {item.facts.map((fact) => (
-        <button
-          key={fact.fact_id}
-          type="button"
-          onClick={() => onSelectFact(fact.fact_id)}
-          className="mt-1 flex w-full items-start gap-1.5 rounded bg-white/[0.02] px-1.5 py-1 text-left hover:bg-white/[0.05]"
-        >
-          <FactTypeIcon type={fact.fact_type} />
-          <span className="min-w-0 flex-1">
-            <span className="block truncate text-[10px] text-[#cbd5e1]" title={fact.headline}>
-              {fact.headline}
-            </span>
-            <span className="font-mono text-[8px] text-[#475569]">{fact.fact_id}</span>
-          </span>
-          <ChevronRight className="mt-0.5 h-3 w-3 shrink-0 text-[#475569]" />
-        </button>
-      ))}
-    </div>
-  )
-}
-
-function ChainStatusDot({ status }: { status: string }) {
-  const map: Record<string, string> = {
-    SATISFIED: 'bg-status-recovered',
-    IN_PROGRESS: 'bg-status-active',
-    PENDING: 'bg-status-muted',
-    CONFLICTING: 'bg-status-fault',
-    UNAVAILABLE: 'bg-[#475569]',
-  }
-  return <span className={cn('h-2 w-2 shrink-0 rounded-full', map[status] ?? 'bg-status-muted')} />
-}
-
-function effectTone(effect: string): { badge: string } {
-  if (effect === 'STRONG_SUPPORT' || effect === 'SUPPORT') {
-    return { badge: 'bg-status-evidence/15 text-status-evidence' }
-  }
-  if (effect === 'CONFLICT') return { badge: 'bg-status-fault/15 text-status-fault' }
-  if (effect === 'WEAKEN') return { badge: 'bg-status-warning/15 text-status-warning' }
-  return { badge: 'bg-white/5 text-[#94a3b8]' }
-}
 
 function FactTypeIcon({ type }: { type: string }) {
   // Icon glyph by fact type (keeps the three-level drilldown visually anchored).
@@ -1364,166 +1166,76 @@ function FactTypeIcon({ type }: { type: string }) {
   return <span className="mt-0.5 text-[10px] leading-none">{glyph[type] ?? '•'}</span>
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Layer 5 · 计划 — 计划任务 + 重规划 + 候选分数历史
-// ─────────────────────────────────────────────────────────────────────────────
-
-function PlanView({ snapshot }: { snapshot: DiagnosisSessionSnapshot }) {
-  const updates = snapshot.candidate_updates
-  const candName = new Map(snapshot.candidates.map((c) => [c.candidate_id, c.display_name ?? c.candidate_id]))
-  return (
-    <div className="flex h-full flex-col overflow-y-auto p-2">
-      <div className="mb-2 text-[9px] uppercase tracking-wider text-[#64748b]">计划</div>
-      <div className="space-y-1.5">
-        {snapshot.plans.length === 0 && (
-          <div className="text-[10px] text-[#64748b]">等待 Planner 生成计划…</div>
-        )}
-        {snapshot.plans.map((plan) => (
-          <div key={plan.plan_id} className="rounded-md border border-white/[0.06] bg-white/[0.02] p-2">
-            <div className="flex items-center gap-1.5 text-[10px]">
-              <span className="font-medium text-[#cbd5e1]">{plan.plan_id}</span>
-              <span className="rounded bg-white/5 px-1 py-0.5 text-[8px] text-[#64748b]">{plan.phase}</span>
-              <span className="ml-auto text-[8px] tabular text-[#475569]">{plan.tasks.length} 任务</span>
-            </div>
-            <div className="mt-1.5 flex flex-wrap gap-1">
-              {plan.tasks.map((tid) => {
-                const task = snapshot.tasks.find((t) => t.task_id === tid)
-                return (
-                  <span
-                    key={tid}
-                    className="rounded border border-white/8 px-1.5 py-0.5 text-[8px] text-[#94a3b8]"
-                    title={task?.display_name ?? tid}
-                  >
-                    {task?.skill_id ?? tid}
-                  </span>
-                )
-              })}
-            </div>
-          </div>
-        ))}
-      </div>
-
-      <div className="mb-1.5 mt-3 text-[9px] uppercase tracking-wider text-[#64748b]">候选分数轨迹</div>
-      <div className="space-y-1">
-        {updates.length === 0 && <div className="text-[10px] text-[#64748b]">尚无候选更新</div>}
-        {updates.slice(-12).map((u) => (
-          <div
-            key={`${u.candidate_id}-${u.sequence ?? ''}`}
-            className="flex items-center gap-1.5 rounded bg-white/[0.02] px-1.5 py-1 text-[9px]"
-          >
-            <span className="min-w-0 flex-1 truncate text-[#cbd5e1]">{candName.get(u.candidate_id) ?? u.candidate_id}</span>
-            <span className="tabular text-[#64748b]">
-              {u.score_before}→<span className="font-semibold text-status-evidence">{u.score_after}</span>
-            </span>
-          </div>
-        ))}
-      </div>
-    </div>
-  )
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Layer 5 · 详情 — Fact Detail（docs/07 §5/§7）
-// ─────────────────────────────────────────────────────────────────────────────
-
-function FactDetailView({
+/** 事实三级详情浮层（LUI 内弹出，点击「产出事实 / 证据事实」打开）。 */
+function FactDetailModal({
   store,
-  selectedFactId,
+  factId,
   onClose,
 }: {
   store: ProjectionStore
-  selectedFactId: string | null
+  factId: string
   onClose: () => void
 }) {
-  const detail: FactDetailVM | null = useMemo(
-    () => (selectedFactId ? store.factDetail(selectedFactId) : null),
-    [store, selectedFactId],
-  )
-  if (!detail) {
-    return (
-      <div className="flex h-full items-center justify-center p-4 text-center text-[10px] text-[#64748b]">
-        点击证据链中的事实预览以查看三级详情
-      </div>
-    )
-  }
+  const detail: FactDetailVM | null = useMemo(() => store.factDetail(factId), [store, factId])
+  if (!detail) return null
   return (
-    <div className="flex h-full flex-col overflow-y-auto p-2.5">
-      <div className="flex items-start gap-2">
-        <FactTypeIcon type={detail.fact_type} />
-        <div className="min-w-0 flex-1">
-          <div className="text-[12px] font-semibold text-[#e2e8f0]">{detail.fact_type_label}</div>
-          <div className="mt-0.5 font-mono text-[9px] text-[#64748b]">{detail.fact_id}</div>
-        </div>
-        <button type="button" onClick={onClose} className="text-[#64748b] hover:text-[#cbd5e1]" aria-label="关闭详情">
-          <X className="h-3.5 w-3.5" />
-        </button>
-      </div>
-
-      <div className="mt-2 flex flex-wrap gap-1 text-[8px]">
-        <span className="rounded bg-white/5 px-1.5 py-0.5 text-[#94a3b8]">对象 {detail.object_refs.join(', ')}</span>
-        {detail.quality_label && (
-          <span className="rounded bg-status-evidence/10 px-1.5 py-0.5 text-status-evidence">{detail.quality_label}</span>
-        )}
-        <span className="rounded bg-white/5 px-1.5 py-0.5 text-[#94a3b8]">{detail.skill_id}</span>
-      </div>
-
-      <div className="mt-2.5 space-y-1">
-        {detail.payload_rows.map((row) => (
-          <div key={row.key} className="rounded border border-white/[0.05] bg-white/[0.02] px-2 py-1">
-            <div className="text-[8px] uppercase tracking-wide text-[#475569]">{row.label}</div>
-            <div className="mt-0.5 break-all text-[10px] leading-relaxed text-[#cbd5e1]">{row.value}</div>
+    <div
+      className="absolute inset-0 z-40 flex items-center justify-center bg-black/50 p-4"
+      onClick={onClose}
+      role="dialog"
+      aria-label="事实详情"
+    >
+      <div
+        className="pointer-events-auto flex max-h-[75%] w-full max-w-[420px] flex-col overflow-hidden rounded-xl border border-white/10 bg-[#131722] shadow-2xl"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="flex shrink-0 items-start gap-2 border-b border-white/8 p-3">
+          <FactTypeIcon type={detail.fact_type} />
+          <div className="min-w-0 flex-1">
+            <div className="text-[12px] font-semibold text-[#e2e8f0]">{detail.fact_type_label}</div>
+            <div className="mt-0.5 font-mono text-[9px] text-[#64748b]">{detail.fact_id}</div>
           </div>
-        ))}
-      </div>
+          <button type="button" onClick={onClose} className="text-[#64748b] hover:text-[#cbd5e1]" aria-label="关闭详情">
+            <X className="h-3.5 w-3.5" />
+          </button>
+        </div>
 
-      {detail.referenced_by_evidence_ids.length > 0 && (
-        <div className="mt-2.5">
-          <div className="text-[9px] uppercase tracking-wider text-[#64748b]">被证据引用</div>
-          <div className="mt-1 flex flex-wrap gap-1">
-            {detail.referenced_by_evidence_ids.map((id) => (
-              <span key={id} className="rounded bg-status-evidence/10 px-1.5 py-0.5 font-mono text-[8px] text-status-evidence">
-                {id}
-              </span>
+        <div className="min-h-0 flex-1 overflow-y-auto p-3">
+          <div className="flex flex-wrap gap-1 text-[8px]">
+            <span className="rounded bg-white/5 px-1.5 py-0.5 text-[#94a3b8]">对象 {detail.object_refs.join(', ')}</span>
+            {detail.quality_label && (
+              <span className="rounded bg-status-evidence/10 px-1.5 py-0.5 text-status-evidence">{detail.quality_label}</span>
+            )}
+            <span className="rounded bg-white/5 px-1.5 py-0.5 text-[#94a3b8]">{detail.skill_id}</span>
+          </div>
+
+          <div className="mt-2.5 space-y-1">
+            {detail.payload_rows.map((row) => (
+              <div key={row.key} className="rounded border border-white/[0.05] bg-white/[0.02] px-2 py-1">
+                <div className="text-[8px] uppercase tracking-wide text-[#475569]">{row.label}</div>
+                <div className="mt-0.5 break-all text-[10px] leading-relaxed text-[#cbd5e1]">{row.value}</div>
+              </div>
             ))}
           </div>
-        </div>
-      )}
 
-      <div className="mt-2.5 text-[8px] text-[#475569]">
-        来源 Skill：{detail.skill_id} · 执行 {detail.execution_id} · 原始引用 {detail.source_refs.join(', ')}
+          {detail.referenced_by_evidence_ids.length > 0 && (
+            <div className="mt-2.5">
+              <div className="text-[9px] uppercase tracking-wider text-[#64748b]">被证据引用</div>
+              <div className="mt-1 flex flex-wrap gap-1">
+                {detail.referenced_by_evidence_ids.map((id) => (
+                  <span key={id} className="rounded bg-status-evidence/10 px-1.5 py-0.5 font-mono text-[8px] text-status-evidence">
+                    {id}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="mt-2.5 text-[8px] text-[#475569]">
+            来源 Skill：{detail.skill_id} · 执行 {detail.execution_id} · 原始引用 {detail.source_refs.join(', ')}
+          </div>
+        </div>
       </div>
     </div>
-  )
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Shared
-// ─────────────────────────────────────────────────────────────────────────────
-
-function TabButton({
-  active,
-  onClick,
-  icon,
-  children,
-}: {
-  active: boolean
-  onClick: () => void
-  icon: React.ReactNode
-  children: React.ReactNode
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        'flex items-center gap-1.5 rounded px-3 py-1.5 text-[12px] font-semibold transition-colors',
-        active
-          ? 'bg-status-active/20 text-status-active'
-          : 'text-[#94a3b8] hover:bg-white/5 hover:text-[#e2e8f0]',
-      )}
-    >
-      {icon}
-      {children}
-    </button>
   )
 }

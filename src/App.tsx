@@ -77,6 +77,10 @@ export default function App() {
   // F0：诊断会话中默认收起左侧 Object Explorer，LUI 宽度放大（issue #5 F0）。
   const [leftPanelCollapsed, setLeftPanelCollapsed] = useState(false)
 
+  // issue#7 D：LUI 悬浮在画布右侧；诊断会话中按 LUI 宽度把画布右边界左移避让。
+  // LUI 宽 = wide(806px，左侧收起) 或 448px；right-4=16px 外边距 + 16px 间隙。
+  const canvasRightInset = runtime ? (leftPanelCollapsed ? 806 : 448) + 32 : 0
+
   // user_selection (Projection-only; never written by Runtime).
   const [selectedCandidateId, setSelectedCandidateId] = useState<string | null>(null)
   const [selectedFactId, setSelectedFactId] = useState<string | null>(null)
@@ -434,6 +438,7 @@ export default function App() {
         logicPath={logicPath}
         selectedNodeId={selectedNodeId}
         navigatorCollapsed={leftPanelCollapsed}
+        rightInset={canvasRightInset}
         activeLens={activeLens}
         onNodeSelect={handleNodeSelect}
         knowledgeNodes={knowledgeNodes}
@@ -520,7 +525,6 @@ export default function App() {
           action={vms.action}
           candidates={vms.candidates}
           planner={vms.planner}
-          scan={vms.scan}
           snapshot={snapshot}
           store={vms.store}
           timelineEvents={vms.timeline}

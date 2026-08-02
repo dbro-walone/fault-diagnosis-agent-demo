@@ -130,6 +130,10 @@ export interface PlannerTargetVM {
   is_active: boolean
   /** 被重规划暂停的目标（replan.paused_targets 命中）。 */
   is_paused: boolean
+  /** issue#7 C2：目标对象实际查到的结果（原证据链内容摘要：命中的告警/日志指纹/性能事实）。 */
+  actual_finding: string
+  /** 实际发现基调：hit(命中异常) / normal(无命中/正常) / pending(未排查) / excluded(已排除)。 */
+  finding_tone: 'hit' | 'normal' | 'pending' | 'excluded'
 }
 
 export interface PlannerReplanVM {
@@ -584,13 +588,15 @@ export class ProjectionStore {
     }
   }
 
-  // —— Planner 目标（issue#6 阶段A）——
+  // —— Planner 目标（issue#6 阶段A + issue#7 C2 实际发现）——
   plannerTargets(): PlannerTargetsVM {
     const s = this.require()
     const paused = new Set<string>()
     for (const r of s.planner_replans) for (const id of r.paused_targets) paused.add(id)
+    const allFacts = allObservationFacts(this.snapshot!, this.observationsFacts)
     const targets: PlannerTargetVM[] = s.planner_targets.map((t) => {
       const status = derivePlannerTargetStatus(s, t)
+      const finding = plannerTargetFinding(s, t.target_resource, allFacts)
       return {
         seq: t.seq,
         target_resource: t.target_resource,
@@ -604,6 +610,8 @@ export class ProjectionStore {
         status_label: PLANNER_TARGET_STATUS_LABEL[status],
         is_active: status === 'active',
         is_paused: paused.has(t.target_resource),
+        actual_finding: finding.text,
+        finding_tone: finding.tone,
       }
     })
     const activeTarget = targets.find((t) => t.is_active)
@@ -885,6 +893,73 @@ function derivePlannerTargetStatus(s: DiagnosisSessionSnapshot, t: PlannerTarget
   if (laterResolved) return 'verified_ok'
 
   return 'pending'
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// issue#7 C2 — 目标对象「实际发现」
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface PlannerTargetFinding {
+  text: string
+  tone: 'hit' | 'normal' | 'pending' | 'excluded'
+}
+
+/**
+ * 目标对象实际查到的结果（原证据链内容摘要，docs/07 §4）。
+ * 优先级：已排除候选（反证）→ 命中异常（观测异常 / 命中的告警 / 日志指纹 / 性能事实）
+ * → 已查询但无命中 → 未排查。纯函数、确定性、禁止 case_id 特判。
+ */
+function plannerTargetFinding(
+  s: DiagnosisSessionSnapshot,
+  objectId: string,
+  allFacts: CanonicalFact[],
+): PlannerTargetFinding {
+  // 1. 候选被反证削弱 → 已排除。
+  const weakened = s.candidates.some(
+    (c) => c.object_id === objectId && c.status === CandidateStatus.WEAKENED,
+  )
+  if (weakened) return { text: '已排除（候选被反证削弱）', tone: 'excluded' }
+
+  // 2. 观测三类命中异常（告警/性能/日志）→ 命中最优先。
+  const obs = buildObjectObservation(s, objectId, allFacts, false)
+  const hits: string[] = []
+  for (const kind of OBS_KINDS) {
+    const cat = obs[kind]
+    const abnormal = cat.items.filter((i) => i.abnormal)
+    if (abnormal.length > 0) {
+      for (const item of abnormal.slice(0, 2)) {
+        const tag = OBS_CATEGORIES[kind].label
+        if (!hits.some((h) => h.includes(item.title))) hits.push(`${tag} ${item.title}`)
+      }
+    } else if (cat.status === 'QUERIED_ABNORMAL') {
+      hits.push(`${OBS_CATEGORIES[kind].label} 存在异常`)
+    }
+  }
+
+  // 3. 直接命中的事实（证据链内容：告警/日志指纹/性能事实，与对象观测互补）。
+  const objectFacts = allFacts.filter((f) => (f.object_refs ?? []).includes(objectId))
+  for (const f of objectFacts) {
+    const label = headlineOf(f)
+    const tag =
+      f.fact_type === FactType.ALARM
+        ? '告警'
+        : f.fact_type === FactType.LOG_FINGERPRINT || f.fact_type === FactType.LOG
+          ? '日志'
+          : f.fact_type === FactType.KPI_WINDOW
+            ? '性能'
+            : null
+    if (!tag) continue
+    if (!hits.some((h) => h.includes(label))) hits.push(`${tag} ${label}`)
+  }
+
+  if (hits.length > 0) return { text: hits.slice(0, 3).join(' · '), tone: 'hit' }
+
+  // 4. 已查询但无命中（含数据缺失/范围不完整 → 视为"已核查，未发现异常"）。
+  const anyQueried = OBS_KINDS.some((kind) => obs[kind].status !== 'NOT_QUERIED')
+  if (anyQueried) return { text: '无命中/正常', tone: 'normal' }
+
+  // 5. 未排查。
+  return { text: '待排查', tone: 'pending' }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

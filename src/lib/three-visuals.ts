@@ -8,6 +8,47 @@
 
 import * as THREE from 'three'
 
+// ─────────────────────────────────────────────────────────────────────────────
+// issue#7 P0 —— three.js OrbitControls 多指针状态机缺陷修补
+//
+// 崩溃现场（3d-force-graph 打包 chunk `mF.bF`）：
+//   OrbitControls.onPointerUp 的 `case 1`（多指针时剩余 1 个指针）分支执行
+//     const pointerId = this._pointers[0];
+//     const position = this._pointerPositions[pointerId];   // ← 可能是 undefined
+//     this._onTouchStart({ pointerId, pageX: position.x, pageY: position.y }); // 崩溃
+//   `_removePointer` 会 delete `_pointerPositions[pointerId]`，但同名 pointerId
+//   在 `_pointers` 中残留重复项时，只 splice 掉一个；随后 case 1 读到已删除的
+//   位置记录 → "Cannot read properties of undefined (reading 'x')" → 白屏。
+//
+// 修法：对画布持有的 controls 实例打补丁 `_removePointer` —— 每次移除后，把
+// 仍在跟踪的每个指针的位置记录补齐（不改变 OrbitControls 其它行为），保证
+// `onPointerUp` case 1 永远读到合法对象。幂等：同一实例只补一次。
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * 修补 three OrbitControls 的多指针位置记录缺失（issue#7 P0，防白屏崩溃）。
+ * controls 为 3d-force-graph 实例 `.controls()` 返回的 OrbitControls。
+ */
+export function patchOrbitControlsPointerDesync(controls: any): void {
+  if (!controls || typeof controls._removePointer !== 'function') return
+  if (controls.__faultAgentPatchPointerDesync) return
+  const origRemove = controls._removePointer.bind(controls)
+  controls._removePointer = (event: PointerEvent): void => {
+    origRemove(event)
+    // 移除后仍在跟踪的指针必须有位置记录，否则 onPointerUp case 1 读到 undefined。
+    const pointers: unknown[] = controls._pointers
+    const positions = controls._pointerPositions
+    if (!Array.isArray(pointers) || !positions) return
+    for (const pid of pointers) {
+      const key = pid as string | number
+      if (positions[key] === undefined) {
+        positions[key] = { x: event.pageX ?? 0, y: event.pageY ?? 0 }
+      }
+    }
+  }
+  controls.__faultAgentPatchPointerDesync = true
+}
+
 import type {
   AggregateSummary,
   GraphLink,

@@ -42,6 +42,7 @@ import {
   neighborHintSprite,
   scanningVisual,
   verdictRingSprite,
+  patchOrbitControlsPointerDesync,
   VERDICT_COLORS,
   type NodeLabelContext,
   type VerdictKey,
@@ -125,6 +126,8 @@ export interface Layered3DCanvasProps {
   selectedNodeId: string | null
   /** F0：左侧 Object Explorer 是否收起（收起时画布左起点移到边缘）。 */
   navigatorCollapsed: boolean
+  /** issue#7 D：右侧 LUI 占用宽度（px）→ 画布右边界左移避让，不被 LUI 遮挡。0 表示不避让。 */
+  rightInset?: number
   /** 当前透镜（驱动相机：TOPOLOGY/KNOWLEDGE/其余→OVERVIEW）。 */
   activeLens?: LensId
   onNodeSelect: (id: string | null) => void
@@ -158,6 +161,7 @@ export default function Layered3DCanvas(props: Layered3DCanvasProps) {
     logicPath,
     selectedNodeId,
     navigatorCollapsed,
+    rightInset,
     activeLens,
     onNodeSelect,
     knowledgeNodes,
@@ -172,6 +176,8 @@ export default function Layered3DCanvas(props: Layered3DCanvasProps) {
   const scanningSweepsRef = useRef<Map<string, THREE.Sprite>>(new Map())
   /** issue#6 阶段C：最新诊断循环 view-model（RAF 循环只读，避免闭包捕获旧值）。 */
   const diagnosisScanRef = useRef<DiagnosisScanVM | null>(diagnosisScan ?? null)
+  /** issue#7 C3：排查推进时自动展开的层 code（信息条徽标；effect 先写、渲染后读）。 */
+  const autoExpandedLayerRef = useRef<TopoLayerCode | null>(null)
 
   // Latest-value refs so the once-created graph instance never captures stale state.
   const selectedRef = useRef<string | null>(selectedNodeId)
@@ -302,6 +308,22 @@ export default function Layered3DCanvas(props: Layered3DCanvasProps) {
       if (node.fx !== undefined) cached.fx = node.fx
       if (node.fy !== undefined) cached.fy = node.fy
       if (node.fz !== undefined) cached.fz = node.fz
+      // issue#7 P0：缓存复用节点坐标必须是 number（3d-force-graph 布局/d3-force
+      // 读取 node.x；undefined 会被 isNaN 覆盖成随机位置，导致节点"跳走"或渲染 NaN）。
+      // 任一坐标缺失时按新节点所属平面补位（拓扑 x 自由取散列，知识 z 自由取散列）。
+      if (
+        cached.x === undefined ||
+        cached.y === undefined ||
+        cached.z === undefined
+      ) {
+        const pos =
+          node.plane === 'topology'
+            ? topologyNodePosition(node)
+            : knowledgeNodePosition(node)
+        if (cached.x === undefined) cached.x = pos.x
+        if (cached.y === undefined) cached.y = pos.y
+        if (cached.z === undefined) cached.z = pos.z
+      }
       return cached
     })
   }
@@ -474,6 +496,9 @@ export default function Layered3DCanvas(props: Layered3DCanvasProps) {
       })
       graphRef.current = graphInstance
 
+      // issue#7 P0：修补 OrbitControls 多指针位置记录缺失（防诊断中白屏崩溃）。
+      patchOrbitControlsPointerDesync(graphInstance.controls())
+
       graphInstance
         .backgroundColor('#0f1117')
         .showNavInfo(false)
@@ -588,6 +613,27 @@ export default function Layered3DCanvas(props: Layered3DCanvasProps) {
     focusNeighborAnchors,
   ])
 
+  // --- issue#7 C3：排查推进到某对象时自动展开其聚合层，使其可见并高亮 ----
+  // 诊断推进到 active_query_object_id 时，若该对象所属域/子层当前收起，自动展开
+  // （域收起 → 展开域；域已展开但子层收起 → 展开子层）。只处理"当前收起"的层，
+  // 幂等，不反向收拢用户手动展开的层。
+  useEffect(() => {
+    const focusId = diagnosisScan?.active_query_object_id ?? null
+    if (!focusId) return
+    const node = model.nodesById.get(focusId)
+    if (!node) return
+    const sub = node.group as TopoLayerCode
+    const domain = topoLayerDef(sub).domain
+    const expanded = expandedLayersRef.current
+    if (expanded[domain] !== true) {
+      autoExpandedLayerRef.current = domain
+      onToggleLayerRef.current(domain)
+    } else if (expanded[sub] !== true) {
+      autoExpandedLayerRef.current = sub
+      onToggleLayerRef.current(sub)
+    }
+  }, [diagnosisScan?.active_query_object_id, model])
+
   // --- issue#6 阶段C：扫描雷达扫掠 RAF 动画（仅旋转当前扫描对象的扫掠精灵） ---
 
   useEffect(() => {
@@ -621,9 +667,10 @@ export default function Layered3DCanvas(props: Layered3DCanvasProps) {
   return (
     <div
       className={cn(
-        'absolute bottom-0 right-0 top-0 bg-[#0f1117]',
+        'absolute bottom-0 top-0 bg-[#0f1117]',
         navigatorCollapsed ? 'left-4' : 'left-[308px]',
       )}
+      style={{ right: rightInset && rightInset > 0 ? rightInset : 0 }}
     >
       {/* 3D 力导向画布 */}
       <div ref={containerRef} className="absolute inset-0" />
@@ -651,6 +698,15 @@ export default function Layered3DCanvas(props: Layered3DCanvasProps) {
               >
                 图谱原始点 {diagnosisScan.graph_entry_anchors.length}
               </span>
+              {autoExpandedLayerRef.current && (
+                <span
+                  data-testid="scan-expand"
+                  className="flex items-center gap-1 rounded bg-emerald-400/15 px-2 py-0.5 text-[10px] text-emerald-300"
+                  title="排查推进时自动展开的聚合层"
+                >
+                  展开 {autoExpandedLayerRef.current}
+                </span>
+              )}
             </>
           )}
           <label className="ml-1 flex items-center gap-1.5">
@@ -675,32 +731,6 @@ export default function Layered3DCanvas(props: Layered3DCanvasProps) {
       <div className="pointer-events-none absolute bottom-3 left-1/2 z-10 -translate-x-1/2 rounded-lg border border-white/5 bg-[#11141c]/70 px-3 py-1.5 text-[10px] text-[#64748b] backdrop-blur-sm">
         滚轮缩放 · 拖拽旋转 · 拖动节点 · 双击聚合层展开/收起 · 单击查看关联
       </div>
-
-      {/* issue#6 阶段C：诊断循环图例（诊断会话中左下角） */}
-      {diagnosisScan && (
-        <div className="pointer-events-none absolute bottom-3 left-3 z-10 space-y-1 rounded-xl border border-white/10 bg-[#11141c]/85 px-3 py-2.5 text-[9px] text-[#94a3b8] backdrop-blur-md">
-          <div className="mb-1 font-semibold tracking-wide text-[#94a3b8]">诊断循环</div>
-          <div className="flex items-center gap-1.5">
-            <span className="h-2 w-2 rounded-full" style={{ background: SCAN_COLOR }} />
-            聚焦 · 上下游一跳
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="h-2 w-2 rounded-full bg-cyan-400" />
-            查询 · 雷达扫掠
-          </div>
-          <div className="flex items-center gap-1">
-            <span className="h-2 w-2 rounded-full bg-red-500" />
-            <span className="h-2 w-2 rounded-full bg-green-500" />
-            <span className="h-2 w-2 rounded-full bg-orange-500" />
-            <span className="h-2 w-2 rounded-full bg-amber-400" />
-            异常 · 正常 · 受影响 · 候选
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="h-2 w-2 rounded-full bg-amber-400" />
-            图谱原始点
-          </div>
-        </div>
-      )}
 
       {/* 层图例（右侧，S1→S3 域带 + 图谱分层列） */}
       <div className="pointer-events-none absolute right-3 top-1/2 z-10 -translate-y-1/2 space-y-1.5 rounded-xl border border-white/10 bg-[#11141c]/85 px-3 py-2.5 text-[10px] backdrop-blur-md">
