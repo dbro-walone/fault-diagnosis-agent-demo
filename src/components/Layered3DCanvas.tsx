@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef } from 'react'
 import * as THREE from 'three'
-import { Layers, ScanSearch } from 'lucide-react'
+import { ScanSearch } from 'lucide-react'
 
 import { LensId } from '../../schemas'
 import { KNOWLEDGE_LAYERS } from '@/lib/knowledge-plane'
@@ -101,12 +101,6 @@ const SCAN_COLOR = '#22d3ee'
 export interface Layered3DCanvasProps {
   /** 分层拓扑模型（buildLayeredModelData 产物，任意 Case）。 */
   model: LayeredModelData
-  /** 当前分层 Case id。 */
-  caseId: string
-  /** 可选 Case 列表（名称取自 manifest）。 */
-  cases: Array<{ caseId: string; name: string }>
-  /** 切换 Case：重建模型 + 重置展开。 */
-  onCaseChange: (caseId: string) => void
   /** 层展开状态（域/子层 code → expanded）。 */
   expandedLayers: Partial<Record<TopoLayerCode, boolean>>
   /** 点击聚合头/双击聚合节点切换展开。 */
@@ -148,9 +142,6 @@ export interface Layered3DCanvasProps {
 export default function Layered3DCanvas(props: Layered3DCanvasProps) {
   const {
     model,
-    caseId,
-    cases,
-    onCaseChange,
     expandedLayers,
     onToggleLayer,
     aggregateContext,
@@ -655,9 +646,8 @@ export default function Layered3DCanvas(props: Layered3DCanvasProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // --- header counts ---------------------------------------------------------
+  // --- legend colors ---------------------------------------------------------
 
-  const kgCount = graph.nodes.filter((n) => n.plane === 'knowledge').length
   const layerColors = [
     { code: 'S1', name: 'S1 业务域', color: '#34d399' },
     { code: 'S2', name: 'S2 连接域', color: '#60a5fa' },
@@ -675,57 +665,34 @@ export default function Layered3DCanvas(props: Layered3DCanvasProps) {
       {/* 3D 力导向画布 */}
       <div ref={containerRef} className="absolute inset-0" />
 
-      {/* 信息条：标题 + 统计 + Case 切换 */}
-      <div className="pointer-events-none absolute left-1/2 top-[104px] z-10 -translate-x-1/2">
-        <div className="pointer-events-auto flex items-center gap-3 rounded-xl border border-white/10 bg-[#11141c]/92 px-4 py-2 text-[12px] text-[#94a3b8] shadow-2xl backdrop-blur-md">
-          <Layers className="h-4 w-4 text-status-active" />
-          <span className="font-semibold text-[#e2e8f0]">S1 → S3 分层拓扑 · 故障知识图谱</span>
-          <span className="hidden text-[#64748b] md:inline">
-            {model.nodes.length} 资源 · {graph.crossLinks.length} 跨层映射 · {kgCount} 图谱节点
+      {/* 诊断扫描态（issue#6 阶段C / issue#7 C3）：聚焦查询对象 + 图谱原始点 + 自动展开层。
+          首屏顶部控件已精简，扫描徽标移至左下角，不占画布顶部空间。 */}
+      {diagnosisScan && (
+        <div className="pointer-events-none absolute bottom-12 left-3 z-10 flex items-center gap-2">
+          <span
+            data-testid="scan-query"
+            className="flex items-center gap-1 rounded bg-status-active/15 px-2 py-0.5 text-[10px] text-status-active"
+          >
+            <ScanSearch className="h-3 w-3" />
+            查询 {diagnosisScan.active_query_object_id ?? '—'}
           </span>
-          {diagnosisScan && (
-            <>
-              <span
-                data-testid="scan-query"
-                className="flex items-center gap-1 rounded bg-status-active/15 px-2 py-0.5 text-[10px] text-status-active"
-              >
-                <ScanSearch className="h-3 w-3" />
-                查询 {diagnosisScan.active_query_object_id ?? '—'}
-              </span>
-              <span
-                data-testid="scan-kg"
-                className="flex items-center gap-1 rounded bg-amber-400/15 px-2 py-0.5 text-[10px] text-amber-300"
-              >
-                图谱原始点 {diagnosisScan.graph_entry_anchors.length}
-              </span>
-              {autoExpandedLayerRef.current && (
-                <span
-                  data-testid="scan-expand"
-                  className="flex items-center gap-1 rounded bg-emerald-400/15 px-2 py-0.5 text-[10px] text-emerald-300"
-                  title="排查推进时自动展开的聚合层"
-                >
-                  展开 {autoExpandedLayerRef.current}
-                </span>
-              )}
-            </>
-          )}
-          <label className="ml-1 flex items-center gap-1.5">
-            <span className="text-[10px] text-[#64748b]">Case</span>
-            <select
-              value={caseId}
-              onChange={(event) => onCaseChange(event.target.value)}
-              aria-label="分层拓扑 Case"
-              className="max-w-[220px] cursor-pointer rounded-md border border-white/10 bg-[#11141c] px-2 py-1 text-[11px] text-[#cbd5e1] outline-none focus:border-status-active/60"
+          <span
+            data-testid="scan-kg"
+            className="flex items-center gap-1 rounded bg-amber-400/15 px-2 py-0.5 text-[10px] text-amber-300"
+          >
+            图谱原始点 {diagnosisScan.graph_entry_anchors.length}
+          </span>
+          {autoExpandedLayerRef.current && (
+            <span
+              data-testid="scan-expand"
+              className="flex items-center gap-1 rounded bg-emerald-400/15 px-2 py-0.5 text-[10px] text-emerald-300"
+              title="排查推进时自动展开的聚合层"
             >
-              {cases.map((c) => (
-                <option key={c.caseId} value={c.caseId}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-          </label>
+              展开 {autoExpandedLayerRef.current}
+            </span>
+          )}
         </div>
-      </div>
+      )}
 
       {/* 交互提示 */}
       <div className="pointer-events-none absolute bottom-3 left-1/2 z-10 -translate-x-1/2 rounded-lg border border-white/5 bg-[#11141c]/70 px-3 py-1.5 text-[10px] text-[#64748b] backdrop-blur-sm">

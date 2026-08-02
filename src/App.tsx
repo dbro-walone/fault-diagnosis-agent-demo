@@ -1,12 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { AlertTriangle, Database, Eye, Radar, X } from 'lucide-react'
+import { AlertTriangle, Radar, X } from 'lucide-react'
 
 import DiagnosisEntryButton, {
   type DiagnosisEntryPayload,
 } from '@/components/DiagnosisEntryButton'
 import Layered3DCanvas from '@/components/Layered3DCanvas'
 import LuiPanel from '@/components/LuiPanel'
-import LensSwitcher from '@/components/LensSwitcher'
 import ModelNavigator, {
   type LayerVisibility,
 } from '@/components/ModelNavigator'
@@ -27,18 +26,7 @@ import {
   type DiagnosisRuntime,
 } from './v2'
 
-const DATA_VERSION = '2.0'
 const EVENT_CADENCE_MS = 700
-
-/** 分层视图可选 Case（3 基线 + 分层演示），名称取自 manifest。 */
-const LAYERED_CASES = listCases().filter((c) =>
-  [
-    'layered_topology_demo_001',
-    'controller_warm_reset_001',
-    'noisy_neighbor_io_contention_001',
-    'remote_replication_lag_001',
-  ].includes(c.caseId),
-)
 
 // ─────────────────────────────────────────────────────────────────────────────
 // App
@@ -216,15 +204,6 @@ export default function App() {
     return () => window.clearTimeout(timer)
   }, [runtime, isPlaying, playbackSpeed])
 
-  const handleLensChange = (lens: LensId) => {
-    setActiveLens(lens)
-    setAroundRootId(null)
-    setObjectSetFilter(false)
-    if (lens === LensId.TOPOLOGY) setActivePreset('TOPOLOGY_ONLY')
-    else if (lens === LensId.KNOWLEDGE) setActivePreset('KNOWLEDGE_ONLY')
-    else setActivePreset('OVERVIEW')
-  }
-
   const startSession = (caseId: string, note: string | null) => {
     try {
       const created = createDiagnosisRuntime(caseId).advance()
@@ -346,12 +325,6 @@ export default function App() {
     setExpandedLayers((cur) => ({ ...cur, [code]: !cur[code] }))
   }
 
-  // 分层视图 Case 切换：重建分层模型并重置展开状态（issue #4）。
-  const handleChangeLayeredCase = (caseId: string) => {
-    setLayeredCaseId(caseId)
-    setExpandedLayers({})
-  }
-
   const handleSearchSelect = (id: string) => {
     setSelectedNodeId(id)
     setUserExploring(true)
@@ -382,9 +355,6 @@ export default function App() {
     : isPlaying
       ? 'LIVE'
       : 'PAUSED'
-  const phaseLabel = snapshot?.session.phase
-    ? phaseLabelOf(snapshot.session.phase)
-    : '模型探索态'
 
   // Projection store → View Models (read-only consumption of the snapshot).
   const vms = useMemo(() => {
@@ -421,9 +391,6 @@ export default function App() {
           跨层映射与 F2 红逻辑链均为 3D 连线。 */}
       <Layered3DCanvas
         model={layeredModel}
-        caseId={layeredCaseId}
-        cases={LAYERED_CASES}
-        onCaseChange={handleChangeLayeredCase}
         expandedLayers={expandedLayers}
         onToggleLayer={handleToggleLayer}
         aggregateContext={{
@@ -480,26 +447,6 @@ export default function App() {
         />
       )}
 
-      <header className="ontology-header pointer-events-none absolute left-1/2 top-4 z-40 -translate-x-1/2">
-        <div className="pointer-events-auto flex items-center gap-3 rounded-xl border border-white/10 bg-[#11141c]/92 px-4 py-2 shadow-2xl backdrop-blur-md">
-          <Radar className="h-4 w-4 text-status-active" />
-          <span className="text-[13px] font-semibold tracking-wide">
-            Fault Operations Ontology
-          </span>
-          <span className="h-4 w-px bg-white/10" />
-          <span className="flex items-center gap-1.5 text-[10px] text-[#94a3b8]">
-            <Database className="h-3 w-3" />
-            Runtime v{DATA_VERSION}
-          </span>
-          <span className="flex items-center gap-1.5 rounded bg-status-active/15 px-2 py-1 text-[10px]">
-            <Eye className="h-3 w-3 text-status-active" />
-            {phaseLabel}
-          </span>
-        </div>
-      </header>
-
-      <LensSwitcher activeLens={activeLens} onChange={handleLensChange} />
-
       {selectedObjectView && (
         <ObjectViewPanel
           view={selectedObjectView}
@@ -510,7 +457,7 @@ export default function App() {
       )}
 
       {routeError && (
-        <div className="absolute left-1/2 top-[118px] z-50 flex max-w-lg -translate-x-1/2 items-start gap-2 rounded-lg border border-status-fault/30 bg-[#24191d]/95 px-3 py-2 text-[12px] text-status-fault shadow-xl">
+        <div className="absolute left-1/2 top-4 z-50 flex max-w-lg -translate-x-1/2 items-start gap-2 rounded-lg border border-status-fault/30 bg-[#24191d]/95 px-3 py-2 text-[12px] text-status-fault shadow-xl">
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
           <span className="flex-1">{routeError}</span>
           <button type="button" onClick={() => setRouteError(null)} aria-label="关闭">
@@ -557,18 +504,4 @@ export default function App() {
       {!runtime && <DiagnosisEntryButton onStartDiagnosis={handleStartDiagnosis} />}
     </div>
   )
-}
-
-function phaseLabelOf(phase: string): string {
-  const map: Record<string, string> = {
-    INPUT_COMPLETION: '输入补全',
-    SYMPTOM_VALIDATION: '现象校验',
-    SCOPE_LOCALIZATION: '范围定位',
-    CANDIDATE_GENERATION: '候选生成',
-    CANDIDATE_EVIDENCE: '候选取证',
-    COMPETING_EXPLANATION: '竞争解释',
-    CONCLUSION_CHECK: '终态门控',
-    SUPPLEMENTARY_PLANNING: '补充规划',
-  }
-  return map[phase] ?? phase
 }

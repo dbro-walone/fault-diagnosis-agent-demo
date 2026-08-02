@@ -27,11 +27,9 @@
 @media (max-width: 1023px) {
   .ontology-interaction-canvas,
   .ontology-navigator,
-  .ontology-lens-switcher,
   .ontology-diagnosis-panel,
   .ontology-object-view,
   .ontology-diagnosis-entry,
-  .ontology-header,
   .ontology-lui {
     display: none !important;
   }
