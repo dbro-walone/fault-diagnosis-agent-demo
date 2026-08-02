@@ -1,0 +1,31 @@
+{
+  "logs": [
+    {
+      "log_id": "log-disk-01a-sector",
+      "timestamp": "2026-08-02T09:59:58.200+08:00",
+      "object_id": "disk-01a",
+      "level": "ERROR",
+      "component": "disk-agent",
+      "message": "Sector reallocation threshold exceeded: 51 sectors",
+      "fingerprint_id": "fp-sector-fault"
+    },
+    {
+      "log_id": "log-raid-rebuild",
+      "timestamp": "2026-08-02T10:00:05.100+08:00",
+      "object_id": "raid-01a",
+      "level": "WARN",
+      "component": "raid-mgr",
+      "message": "RAID group raid-01a degraded, rebuild started",
+      "fingerprint_id": "fp-raid-rebuild"
+    },
+    {
+      "log_id": "log-host-normal",
+      "timestamp": "2026-08-02T10:00:20.000+08:00",
+      "object_id": "client-os-01",
+      "level": "INFO",
+      "component": "os",
+      "message": "CPU/IO normal, no local saturation",
+      "fingerprint_id": "fp-host-normal"
+    }
+  ]
+}

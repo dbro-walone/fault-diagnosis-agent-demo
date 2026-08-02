@@ -1,0 +1,19 @@
+{
+  "similar_cases": [
+    {
+      "similar_case_id": "case-20260728-021",
+      "title": "历史磁盘扇区坏道致RAID降级",
+      "similarity": 0.81,
+      "historical_root_cause": {
+        "fault_mode_code": "DISK_SECTOR_FAULT",
+        "object_type": "DISK"
+      },
+      "matched_features": [
+        "sector_realloc",
+        "raid_degrade",
+        "io_latency_high"
+      ],
+      "resolution_summary": "更换故障盘后重建完成，性能恢复"
+    }
+  ]
+}

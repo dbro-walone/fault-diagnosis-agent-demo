@@ -1,0 +1,121 @@
+{
+  "evidence": [
+    {
+      "evidence_id": "ev-raid-degrade-alarm",
+      "evidence_type": "alarm",
+      "source_ref": "alm-raid-degrade-8802",
+      "task_id": "task-query-disk-alarm",
+      "candidate_id": "cand-disk-sector-fault",
+      "stance": "support",
+      "strength": 0.85,
+      "summary": "命中 RAID 组降级严重告警",
+      "detail": "RAID 组 raid-01a 降级，故障盘 disk-01a",
+      "time_alignment_ms": 1500,
+      "quality": "high"
+    },
+    {
+      "evidence_id": "ev-disk-fault-alarm",
+      "evidence_type": "alarm",
+      "source_ref": "alm-disk-01a-fault",
+      "task_id": "task-query-disk-alarm",
+      "candidate_id": "cand-disk-sector-fault",
+      "stance": "support",
+      "strength": 0.8,
+      "summary": "命中磁盘 01A 扇区重映射告警",
+      "detail": "sector_reallocated 51 sectors",
+      "time_alignment_ms": 1600,
+      "quality": "high"
+    },
+    {
+      "evidence_id": "ev-sector-fp",
+      "evidence_type": "log_fingerprint",
+      "source_ref": "fp-sector-fault",
+      "task_id": "task-match-sector-fp",
+      "candidate_id": "cand-disk-sector-fault",
+      "stance": "support",
+      "strength": 0.88,
+      "summary": "命中扇区坏道指纹（51 扇区）",
+      "detail": "sector reallocation threshold exceeded",
+      "time_alignment_ms": 4200,
+      "quality": "high"
+    },
+    {
+      "evidence_id": "ev-rebuild-fp",
+      "evidence_type": "log_fingerprint",
+      "source_ref": "fp-raid-rebuild",
+      "task_id": "task-match-sector-fp",
+      "candidate_id": "cand-disk-sector-fault",
+      "stance": "support",
+      "strength": 0.82,
+      "summary": "命中 RAID 重建指纹",
+      "detail": "degraded, rebuild started",
+      "time_alignment_ms": 2600,
+      "quality": "high"
+    },
+    {
+      "evidence_id": "ev-backup-latency",
+      "evidence_type": "kpi",
+      "source_ref": "kpi-lun-backup-latency",
+      "task_id": "task-verify-lun-kpi",
+      "candidate_id": "cand-disk-sector-fault",
+      "stance": "support",
+      "strength": 0.78,
+      "summary": "备份 LUN 时延 3.0→45ms",
+      "detail": "同窗升高，重建期间持续",
+      "time_alignment_ms": 800,
+      "quality": "high"
+    },
+    {
+      "evidence_id": "ev-host-normal",
+      "evidence_type": "kpi",
+      "source_ref": "kpi-host-cpu",
+      "task_id": "task-check-competitors",
+      "candidate_id": "cand-host-bottleneck",
+      "stance": "contradict",
+      "strength": 0.85,
+      "summary": "客户端 CPU 正常，削弱主机瓶颈候选",
+      "detail": "CPU ~33%，无本地饱和",
+      "time_alignment_ms": 900,
+      "quality": "high"
+    },
+    {
+      "evidence_id": "ev-latency-contend",
+      "evidence_type": "kpi",
+      "source_ref": "kpi-lun-backup-latency",
+      "task_id": "task-verify-lun-kpi",
+      "candidate_id": "cand-lun-contention",
+      "stance": "contradict",
+      "strength": 0.6,
+      "summary": "时延升高但 IO 量未激增，削弱 IO 争抢候选",
+      "detail": "IOPS 平稳，仅时延上升",
+      "time_alignment_ms": 800,
+      "quality": "medium"
+    },
+    {
+      "evidence_id": "ev-disk-read-err",
+      "evidence_type": "kpi",
+      "source_ref": "kpi-disk-01a-read-err",
+      "task_id": "task-check-competitors",
+      "candidate_id": "cand-disk-sector-fault",
+      "stance": "support",
+      "strength": 0.9,
+      "summary": "磁盘读错误 0→58 持续上升",
+      "detail": "与扇区坏道告警同窗",
+      "time_alignment_ms": 700,
+      "quality": "high"
+    },
+    {
+      "evidence_id": "ev-similar-disk",
+      "evidence_type": "similar_case",
+      "source_ref": "case-20260728-021",
+      "task_id": "task-search-similar",
+      "candidate_id": "cand-disk-sector-fault",
+      "stance": "support",
+      "strength": 0.7,
+      "summary": "相似历史案例：扇区坏道致 RAID 降级",
+      "detail": "历史根因 DISK_SECTOR_FAULT",
+      "time_alignment_ms": null,
+      "quality": "medium"
+    }
+  ]
+}

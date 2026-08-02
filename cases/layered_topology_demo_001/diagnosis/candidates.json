@@ -1,0 +1,40 @@
+{
+  "candidates": [
+    {
+      "candidate_id": "cand-disk-sector-fault",
+      "fault_mode_code": "DISK_SECTOR_FAULT",
+      "object_id": "disk-01a",
+      "display_name": "磁盘扇区坏道致 RAID 降级",
+      "initial_confidence": 0.35,
+      "generation_basis": [
+        "sym-backup-latency-high",
+        "pattern-disk-fault"
+      ],
+      "status": "confirmed"
+    },
+    {
+      "candidate_id": "cand-lun-contention",
+      "fault_mode_code": "LUN_IO_CONTENTION",
+      "object_id": "lun-backup-01",
+      "display_name": "备份 LUN IO 争抢",
+      "initial_confidence": 0.25,
+      "generation_basis": [
+        "sym-backup-latency-high",
+        "pattern-io-contention"
+      ],
+      "status": "excluded"
+    },
+    {
+      "candidate_id": "cand-host-bottleneck",
+      "fault_mode_code": "HOST_RESOURCE_BOTTLENECK",
+      "object_id": "host-if-01",
+      "display_name": "访问链路/主机瓶颈",
+      "initial_confidence": 0.2,
+      "generation_basis": [
+        "sym-backup-latency-high",
+        "pattern-host-bottleneck"
+      ],
+      "status": "excluded"
+    }
+  ]
+}

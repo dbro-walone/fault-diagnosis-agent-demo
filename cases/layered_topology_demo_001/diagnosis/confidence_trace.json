@@ -1,0 +1,98 @@
+{
+  "traces": [
+    {
+      "candidate_id": "cand-disk-sector-fault",
+      "trace": [
+        {
+          "sequence": 1,
+          "stage": "candidate_generation",
+          "confidence": 0.35,
+          "evidence_refs": [],
+          "reason": "依据备份 LUN 时延现象和分层拓扑路径生成候选"
+        },
+        {
+          "sequence": 2,
+          "stage": "evidence_collection",
+          "confidence": 0.66,
+          "evidence_refs": [
+            "ev-raid-degrade-alarm",
+            "ev-disk-fault-alarm"
+          ],
+          "reason": "命中 RAID 降级与磁盘故障告警"
+        },
+        {
+          "sequence": 3,
+          "stage": "evidence_fusion",
+          "confidence": 0.95,
+          "evidence_refs": [
+            "ev-sector-fp",
+            "ev-rebuild-fp",
+            "ev-disk-read-err",
+            "ev-backup-latency"
+          ],
+          "reason": "扇区指纹、重建日志与磁盘读错误同窗，备份 LUN 时延升高"
+        }
+      ]
+    },
+    {
+      "candidate_id": "cand-lun-contention",
+      "trace": [
+        {
+          "sequence": 1,
+          "stage": "candidate_generation",
+          "confidence": 0.25,
+          "evidence_refs": [],
+          "reason": "备份 LUN 时延升高，IO 争抢为候选"
+        },
+        {
+          "sequence": 2,
+          "stage": "evidence_collection",
+          "confidence": 0.18,
+          "evidence_refs": [
+            "ev-latency-contend"
+          ],
+          "reason": "IO 量未激增，削弱争抢假设"
+        },
+        {
+          "sequence": 3,
+          "stage": "evidence_fusion",
+          "confidence": 0.08,
+          "evidence_refs": [
+            "ev-latency-contend"
+          ],
+          "reason": "争抢假设被进一步削弱"
+        }
+      ]
+    },
+    {
+      "candidate_id": "cand-host-bottleneck",
+      "trace": [
+        {
+          "sequence": 1,
+          "stage": "candidate_generation",
+          "confidence": 0.2,
+          "evidence_refs": [],
+          "reason": "备份业务变慢，访问链路/主机瓶颈为候选"
+        },
+        {
+          "sequence": 2,
+          "stage": "evidence_collection",
+          "confidence": 0.12,
+          "evidence_refs": [
+            "ev-host-normal"
+          ],
+          "reason": "客户端 CPU 正常，削弱"
+        },
+        {
+          "sequence": 3,
+          "stage": "evidence_fusion",
+          "confidence": 0.06,
+          "evidence_refs": [
+            "ev-host-normal"
+          ],
+          "reason": "客户端无本地饱和，排除"
+        }
+      ]
+    }
+  ]
+}

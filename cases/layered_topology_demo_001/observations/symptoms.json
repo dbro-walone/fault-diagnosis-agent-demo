@@ -1,0 +1,15 @@
+{
+  "symptoms": [
+    {
+      "symptom_id": "sym-backup-latency-high",
+      "source": "kpi",
+      "raw_description": "备份业务 LUN 时延突增，IO 明显变慢",
+      "normalized_type": "IO_LATENCY_HIGH",
+      "object_id": "lun-backup-01",
+      "detected_at": "2026-08-02T10:00:02.000+08:00",
+      "value": 45.0,
+      "unit": "ms",
+      "baseline": 3.0
+    }
+  ]
+}

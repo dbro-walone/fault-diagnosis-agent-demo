@@ -1,0 +1,946 @@
+{
+  "resources": [
+    {
+      "resource_id": "db-app-01",
+      "resource_type": "BUSINESS_APP",
+      "name": "数据库业务",
+      "parent_id": null,
+      "device_id": null,
+      "zone": "BUSINESS_SIDE",
+      "location": "external",
+      "attributes": {
+        "service": "db",
+        "health": "NORMAL",
+        "topo_layer": "S1_1"
+      },
+      "display": {
+        "label": "数据库业务",
+        "default_expanded": true,
+        "aggregate_group": null
+      }
+    },
+    {
+      "resource_id": "credit-app-01",
+      "resource_type": "BUSINESS_APP",
+      "name": "信用卡业务",
+      "parent_id": null,
+      "device_id": null,
+      "zone": "BUSINESS_SIDE",
+      "location": "external",
+      "attributes": {
+        "service": "credit",
+        "health": "NORMAL",
+        "topo_layer": "S1_1"
+      },
+      "display": {
+        "label": "信用卡业务",
+        "default_expanded": true,
+        "aggregate_group": null
+      }
+    },
+    {
+      "resource_id": "backup-app-01",
+      "resource_type": "BUSINESS_APP",
+      "name": "备份业务",
+      "parent_id": null,
+      "device_id": null,
+      "zone": "BUSINESS_SIDE",
+      "location": "external",
+      "attributes": {
+        "service": "backup",
+        "health": "WARNING",
+        "topo_layer": "S1_1"
+      },
+      "display": {
+        "label": "备份业务",
+        "default_expanded": true,
+        "aggregate_group": null
+      }
+    },
+    {
+      "resource_id": "archive-app-01",
+      "resource_type": "BUSINESS_APP",
+      "name": "归档业务",
+      "parent_id": null,
+      "device_id": null,
+      "zone": "BUSINESS_SIDE",
+      "location": "external",
+      "attributes": {
+        "service": "archive",
+        "health": "NORMAL",
+        "topo_layer": "S1_1"
+      },
+      "display": {
+        "label": "归档业务",
+        "default_expanded": true,
+        "aggregate_group": null
+      }
+    },
+    {
+      "resource_id": "file-share-app-01",
+      "resource_type": "BUSINESS_APP",
+      "name": "文件共享业务",
+      "parent_id": null,
+      "device_id": null,
+      "zone": "BUSINESS_SIDE",
+      "location": "external",
+      "attributes": {
+        "service": "file",
+        "health": "NORMAL",
+        "topo_layer": "S1_1"
+      },
+      "display": {
+        "label": "文件共享业务",
+        "default_expanded": true,
+        "aggregate_group": null
+      }
+    },
+    {
+      "resource_id": "bs-db-01",
+      "resource_type": "BUSINESS_SERVICE",
+      "name": "数据库业务服务",
+      "parent_id": null,
+      "device_id": null,
+      "zone": "BUSINESS_SIDE",
+      "location": "external",
+      "attributes": {
+        "health": "NORMAL",
+        "topo_layer": "S1_2"
+      },
+      "display": {
+        "label": "数据库业务服务",
+        "default_expanded": true,
+        "aggregate_group": null
+      }
+    },
+    {
+      "resource_id": "bs-credit-01",
+      "resource_type": "BUSINESS_SERVICE",
+      "name": "信用卡业务服务",
+      "parent_id": null,
+      "device_id": null,
+      "zone": "BUSINESS_SIDE",
+      "location": "external",
+      "attributes": {
+        "health": "NORMAL",
+        "topo_layer": "S1_2"
+      },
+      "display": {
+        "label": "信用卡业务服务",
+        "default_expanded": true,
+        "aggregate_group": null
+      }
+    },
+    {
+      "resource_id": "bs-backup-01",
+      "resource_type": "BUSINESS_SERVICE",
+      "name": "备份业务服务",
+      "parent_id": null,
+      "device_id": null,
+      "zone": "BUSINESS_SIDE",
+      "location": "external",
+      "attributes": {
+        "health": "WARNING",
+        "topo_layer": "S1_2"
+      },
+      "display": {
+        "label": "备份业务服务",
+        "default_expanded": true,
+        "aggregate_group": null
+      }
+    },
+    {
+      "resource_id": "file-client-01",
+      "resource_type": "STORAGE_CLIENT",
+      "name": "文件客户端",
+      "parent_id": null,
+      "device_id": null,
+      "zone": "BUSINESS_SIDE",
+      "location": "external",
+      "attributes": {
+        "health": "NORMAL",
+        "topo_layer": "S1_3"
+      },
+      "display": {
+        "label": "文件客户端",
+        "default_expanded": true,
+        "aggregate_group": null
+      }
+    },
+    {
+      "resource_id": "client-os-01",
+      "resource_type": "CLIENT_OS",
+      "name": "客户端OS",
+      "parent_id": null,
+      "device_id": null,
+      "zone": "BUSINESS_SIDE",
+      "location": "external",
+      "attributes": {
+        "health": "NORMAL",
+        "topo_layer": "S1_3"
+      },
+      "display": {
+        "label": "客户端OS",
+        "default_expanded": true,
+        "aggregate_group": null
+      }
+    },
+    {
+      "resource_id": "mount-point-01",
+      "resource_type": "MOUNT_POINT",
+      "name": "挂载点",
+      "parent_id": null,
+      "device_id": null,
+      "zone": "BUSINESS_SIDE",
+      "location": "external",
+      "attributes": {
+        "health": "NORMAL",
+        "topo_layer": "S1_3"
+      },
+      "display": {
+        "label": "挂载点",
+        "default_expanded": true,
+        "aggregate_group": null
+      }
+    },
+    {
+      "resource_id": "host-if-01",
+      "resource_type": "HOST_INTERFACE",
+      "name": "主机网卡接口-01",
+      "parent_id": null,
+      "device_id": null,
+      "zone": "ACCESS_SIDE",
+      "location": "external",
+      "attributes": {
+        "health": "NORMAL",
+        "topo_layer": "S2_1"
+      },
+      "display": {
+        "label": "主机网卡接口-01",
+        "default_expanded": true,
+        "aggregate_group": null
+      }
+    },
+    {
+      "resource_id": "host-if-02",
+      "resource_type": "HOST_INTERFACE",
+      "name": "主机网卡接口-02",
+      "parent_id": null,
+      "device_id": null,
+      "zone": "ACCESS_SIDE",
+      "location": "external",
+      "attributes": {
+        "health": "NORMAL",
+        "topo_layer": "S2_1"
+      },
+      "display": {
+        "label": "主机网卡接口-02",
+        "default_expanded": true,
+        "aggregate_group": null
+      }
+    },
+    {
+      "resource_id": "host-if-03",
+      "resource_type": "HOST_INTERFACE",
+      "name": "主机网卡接口-03",
+      "parent_id": null,
+      "device_id": null,
+      "zone": "ACCESS_SIDE",
+      "location": "external",
+      "attributes": {
+        "health": "NORMAL",
+        "topo_layer": "S2_1"
+      },
+      "display": {
+        "label": "主机网卡接口-03",
+        "default_expanded": true,
+        "aggregate_group": null
+      }
+    },
+    {
+      "resource_id": "fab-a",
+      "resource_type": "NETWORK_FABRIC",
+      "name": "SAN Fabric-A",
+      "parent_id": null,
+      "device_id": null,
+      "zone": "NETWORK_SIDE",
+      "location": "external",
+      "attributes": {
+        "fabric": "a",
+        "health": "NORMAL",
+        "topo_layer": "S2_2"
+      },
+      "display": {
+        "label": "SAN Fabric-A",
+        "default_expanded": true,
+        "aggregate_group": null
+      }
+    },
+    {
+      "resource_id": "fab-b",
+      "resource_type": "NETWORK_FABRIC",
+      "name": "SAN Fabric-B",
+      "parent_id": null,
+      "device_id": null,
+      "zone": "NETWORK_SIDE",
+      "location": "external",
+      "attributes": {
+        "fabric": "b",
+        "health": "NORMAL",
+        "topo_layer": "S2_2"
+      },
+      "display": {
+        "label": "SAN Fabric-B",
+        "default_expanded": true,
+        "aggregate_group": null
+      }
+    },
+    {
+      "resource_id": "fab-c",
+      "resource_type": "NETWORK_FABRIC",
+      "name": "ETH Fabric-C",
+      "parent_id": null,
+      "device_id": null,
+      "zone": "NETWORK_SIDE",
+      "location": "external",
+      "attributes": {
+        "fabric": "c",
+        "health": "NORMAL",
+        "topo_layer": "S2_2"
+      },
+      "display": {
+        "label": "ETH Fabric-C",
+        "default_expanded": true,
+        "aggregate_group": null
+      }
+    },
+    {
+      "resource_id": "link-host-fab-a",
+      "resource_type": "ACCESS_LINK",
+      "name": "主机-FabricA访问链路",
+      "parent_id": null,
+      "device_id": null,
+      "zone": "NETWORK_SIDE",
+      "location": "external",
+      "attributes": {
+        "health": "NORMAL",
+        "topo_layer": "S2_3"
+      },
+      "display": {
+        "label": "主机-FabricA访问链路",
+        "default_expanded": true,
+        "aggregate_group": null
+      }
+    },
+    {
+      "resource_id": "link-host-fab-b",
+      "resource_type": "ACCESS_LINK",
+      "name": "主机-FabricB访问链路",
+      "parent_id": null,
+      "device_id": null,
+      "zone": "NETWORK_SIDE",
+      "location": "external",
+      "attributes": {
+        "health": "NORMAL",
+        "topo_layer": "S2_3"
+      },
+      "display": {
+        "label": "主机-FabricB访问链路",
+        "default_expanded": true,
+        "aggregate_group": null
+      }
+    },
+    {
+      "resource_id": "link-host-fab-c",
+      "resource_type": "ACCESS_LINK",
+      "name": "主机-FabricC访问链路",
+      "parent_id": null,
+      "device_id": null,
+      "zone": "NETWORK_SIDE",
+      "location": "external",
+      "attributes": {
+        "health": "NORMAL",
+        "topo_layer": "S2_3"
+      },
+      "display": {
+        "label": "主机-FabricC访问链路",
+        "default_expanded": true,
+        "aggregate_group": null
+      }
+    },
+    {
+      "resource_id": "link-fab-stor-a",
+      "resource_type": "ACCESS_LINK",
+      "name": "FabricA-存储访问链路",
+      "parent_id": null,
+      "device_id": null,
+      "zone": "NETWORK_SIDE",
+      "location": "external",
+      "attributes": {
+        "health": "NORMAL",
+        "topo_layer": "S2_3"
+      },
+      "display": {
+        "label": "FabricA-存储访问链路",
+        "default_expanded": true,
+        "aggregate_group": null
+      }
+    },
+    {
+      "resource_id": "link-fab-stor-b",
+      "resource_type": "ACCESS_LINK",
+      "name": "FabricB-存储访问链路",
+      "parent_id": null,
+      "device_id": null,
+      "zone": "NETWORK_SIDE",
+      "location": "external",
+      "attributes": {
+        "health": "NORMAL",
+        "topo_layer": "S2_3"
+      },
+      "display": {
+        "label": "FabricB-存储访问链路",
+        "default_expanded": true,
+        "aggregate_group": null
+      }
+    },
+    {
+      "resource_id": "link-fab-stor-c",
+      "resource_type": "ACCESS_LINK",
+      "name": "FabricC-存储访问链路",
+      "parent_id": null,
+      "device_id": null,
+      "zone": "NETWORK_SIDE",
+      "location": "external",
+      "attributes": {
+        "health": "NORMAL",
+        "topo_layer": "S2_3"
+      },
+      "display": {
+        "label": "FabricC-存储访问链路",
+        "default_expanded": true,
+        "aggregate_group": null
+      }
+    },
+    {
+      "resource_id": "fc-port-01a",
+      "resource_type": "FC_PORT",
+      "name": "FC端口-01A",
+      "parent_id": null,
+      "device_id": "storage-01",
+      "zone": "FRONTEND_ACCESS",
+      "location": "internal_boundary",
+      "attributes": {
+        "controller": "a",
+        "health": "NORMAL",
+        "topo_layer": "S3_1"
+      },
+      "display": {
+        "label": "FC端口-01A",
+        "default_expanded": true,
+        "aggregate_group": null
+      }
+    },
+    {
+      "resource_id": "fc-port-01b",
+      "resource_type": "FC_PORT",
+      "name": "FC端口-01B",
+      "parent_id": null,
+      "device_id": "storage-01",
+      "zone": "FRONTEND_ACCESS",
+      "location": "internal_boundary",
+      "attributes": {
+        "controller": "b",
+        "health": "NORMAL",
+        "topo_layer": "S3_1"
+      },
+      "display": {
+        "label": "FC端口-01B",
+        "default_expanded": true,
+        "aggregate_group": null
+      }
+    },
+    {
+      "resource_id": "eth-port-01a",
+      "resource_type": "ETH_PORT",
+      "name": "ETH端口-01A",
+      "parent_id": null,
+      "device_id": "storage-01",
+      "zone": "FRONTEND_ACCESS",
+      "location": "internal_boundary",
+      "attributes": {
+        "controller": "a",
+        "health": "NORMAL",
+        "topo_layer": "S3_1"
+      },
+      "display": {
+        "label": "ETH端口-01A",
+        "default_expanded": true,
+        "aggregate_group": null
+      }
+    },
+    {
+      "resource_id": "lif-01a",
+      "resource_type": "LIF",
+      "name": "LIF-01A",
+      "parent_id": null,
+      "device_id": "storage-01",
+      "zone": "FRONTEND_ACCESS",
+      "location": "internal_boundary",
+      "attributes": {
+        "controller": "a",
+        "health": "NORMAL",
+        "topo_layer": "S3_1"
+      },
+      "display": {
+        "label": "LIF-01A",
+        "default_expanded": true,
+        "aggregate_group": null
+      }
+    },
+    {
+      "resource_id": "ctl-01a",
+      "resource_type": "CONTROLLER",
+      "name": "控制器-01A",
+      "parent_id": "storage-01",
+      "device_id": "storage-01",
+      "zone": "CONTROL_SERVICE",
+      "location": "internal",
+      "attributes": {
+        "role": "active",
+        "health": "NORMAL",
+        "topo_layer": "S3_2"
+      },
+      "display": {
+        "label": "控制器-01A",
+        "default_expanded": true,
+        "aggregate_group": null
+      }
+    },
+    {
+      "resource_id": "ctl-01b",
+      "resource_type": "CONTROLLER",
+      "name": "控制器-01B",
+      "parent_id": "storage-01",
+      "device_id": "storage-01",
+      "zone": "CONTROL_SERVICE",
+      "location": "internal",
+      "attributes": {
+        "role": "standby",
+        "health": "NORMAL",
+        "topo_layer": "S3_2"
+      },
+      "display": {
+        "label": "控制器-01B",
+        "default_expanded": true,
+        "aggregate_group": null
+      }
+    },
+    {
+      "resource_id": "cpu-01a",
+      "resource_type": "CPU",
+      "name": "控制器CPU-01A",
+      "parent_id": "storage-01",
+      "device_id": "storage-01",
+      "zone": "CONTROL_SERVICE",
+      "location": "internal",
+      "attributes": {
+        "role": "active",
+        "health": "NORMAL",
+        "topo_layer": "S3_2"
+      },
+      "display": {
+        "label": "控制器CPU-01A",
+        "default_expanded": true,
+        "aggregate_group": null
+      }
+    },
+    {
+      "resource_id": "mem-01a",
+      "resource_type": "MEMORY",
+      "name": "控制器内存-01A",
+      "parent_id": "storage-01",
+      "device_id": "storage-01",
+      "zone": "CONTROL_SERVICE",
+      "location": "internal",
+      "attributes": {
+        "role": "active",
+        "health": "NORMAL",
+        "topo_layer": "S3_2"
+      },
+      "display": {
+        "label": "控制器内存-01A",
+        "default_expanded": true,
+        "aggregate_group": null
+      }
+    },
+    {
+      "resource_id": "cache-01a",
+      "resource_type": "CACHE",
+      "name": "控制器缓存-01A",
+      "parent_id": "storage-01",
+      "device_id": "storage-01",
+      "zone": "CONTROL_SERVICE",
+      "location": "internal",
+      "attributes": {
+        "role": "active",
+        "health": "NORMAL",
+        "topo_layer": "S3_2"
+      },
+      "display": {
+        "label": "控制器缓存-01A",
+        "default_expanded": true,
+        "aggregate_group": null
+      }
+    },
+    {
+      "resource_id": "svc-block-01",
+      "resource_type": "BLOCK_SERVICE",
+      "name": "Block服务-01",
+      "parent_id": "storage-01",
+      "device_id": "storage-01",
+      "zone": "CONTROL_SERVICE",
+      "location": "internal",
+      "attributes": {
+        "health": "NORMAL",
+        "topo_layer": "S3_3"
+      },
+      "display": {
+        "label": "Block服务-01",
+        "default_expanded": true,
+        "aggregate_group": null
+      }
+    },
+    {
+      "resource_id": "svc-nas-01",
+      "resource_type": "NAS_SERVICE",
+      "name": "NAS服务-01",
+      "parent_id": "storage-01",
+      "device_id": "storage-01",
+      "zone": "CONTROL_SERVICE",
+      "location": "internal",
+      "attributes": {
+        "health": "NORMAL",
+        "topo_layer": "S3_3"
+      },
+      "display": {
+        "label": "NAS服务-01",
+        "default_expanded": true,
+        "aggregate_group": null
+      }
+    },
+    {
+      "resource_id": "svc-object-01",
+      "resource_type": "OBJECT_SERVICE",
+      "name": "Object服务-01",
+      "parent_id": "storage-01",
+      "device_id": "storage-01",
+      "zone": "CONTROL_SERVICE",
+      "location": "internal",
+      "attributes": {
+        "health": "NORMAL",
+        "topo_layer": "S3_3"
+      },
+      "display": {
+        "label": "Object服务-01",
+        "default_expanded": true,
+        "aggregate_group": null
+      }
+    },
+    {
+      "resource_id": "svc-snapshot-01",
+      "resource_type": "SNAPSHOT_SERVICE",
+      "name": "快照服务-01",
+      "parent_id": "storage-01",
+      "device_id": "storage-01",
+      "zone": "CONTROL_SERVICE",
+      "location": "internal",
+      "attributes": {
+        "health": "NORMAL",
+        "topo_layer": "S3_3"
+      },
+      "display": {
+        "label": "快照服务-01",
+        "default_expanded": true,
+        "aggregate_group": null
+      }
+    },
+    {
+      "resource_id": "svc-qos-01",
+      "resource_type": "QOS_SERVICE",
+      "name": "QoS服务-01",
+      "parent_id": "storage-01",
+      "device_id": "storage-01",
+      "zone": "CONTROL_SERVICE",
+      "location": "internal",
+      "attributes": {
+        "health": "NORMAL",
+        "topo_layer": "S3_3"
+      },
+      "display": {
+        "label": "QoS服务-01",
+        "default_expanded": true,
+        "aggregate_group": null
+      }
+    },
+    {
+      "resource_id": "svc-repl-01",
+      "resource_type": "REPLICATION_SERVICE",
+      "name": "复制服务-01",
+      "parent_id": "storage-01",
+      "device_id": "storage-01",
+      "zone": "CONTROL_SERVICE",
+      "location": "internal",
+      "attributes": {
+        "health": "NORMAL",
+        "topo_layer": "S3_3"
+      },
+      "display": {
+        "label": "复制服务-01",
+        "default_expanded": true,
+        "aggregate_group": null
+      }
+    },
+    {
+      "resource_id": "pool-01a",
+      "resource_type": "POOL",
+      "name": "存储池-01A",
+      "parent_id": "storage-01",
+      "device_id": "storage-01",
+      "zone": "LOGICAL_RESOURCE",
+      "location": "internal",
+      "attributes": {
+        "health": "WARNING",
+        "topo_layer": "S3_4"
+      },
+      "display": {
+        "label": "存储池-01A",
+        "default_expanded": true,
+        "aggregate_group": null
+      }
+    },
+    {
+      "resource_id": "raid-01a",
+      "resource_type": "RAID",
+      "name": "RAID组-01A",
+      "parent_id": "storage-01",
+      "device_id": "storage-01",
+      "zone": "LOGICAL_RESOURCE",
+      "location": "internal",
+      "attributes": {
+        "health": "WARNING",
+        "topo_layer": "S3_4"
+      },
+      "display": {
+        "label": "RAID组-01A",
+        "default_expanded": true,
+        "aggregate_group": null
+      }
+    },
+    {
+      "resource_id": "lun-01a",
+      "resource_type": "LUN",
+      "name": "LUN-01A",
+      "parent_id": "storage-01",
+      "device_id": "storage-01",
+      "zone": "LOGICAL_RESOURCE",
+      "location": "internal",
+      "attributes": {
+        "health": "NORMAL",
+        "topo_layer": "S3_4"
+      },
+      "display": {
+        "label": "LUN-01A",
+        "default_expanded": true,
+        "aggregate_group": null
+      }
+    },
+    {
+      "resource_id": "lun-backup-01",
+      "resource_type": "LUN",
+      "name": "LUN-BACKUP-01",
+      "parent_id": "storage-01",
+      "device_id": "storage-01",
+      "zone": "LOGICAL_RESOURCE",
+      "location": "internal",
+      "attributes": {
+        "health": "WARNING",
+        "topo_layer": "S3_4"
+      },
+      "display": {
+        "label": "LUN-BACKUP-01",
+        "default_expanded": true,
+        "aggregate_group": null
+      }
+    },
+    {
+      "resource_id": "fs-01a",
+      "resource_type": "FILESYSTEM",
+      "name": "文件系统-01A",
+      "parent_id": "storage-01",
+      "device_id": "storage-01",
+      "zone": "LOGICAL_RESOURCE",
+      "location": "internal",
+      "attributes": {
+        "health": "NORMAL",
+        "topo_layer": "S3_4"
+      },
+      "display": {
+        "label": "文件系统-01A",
+        "default_expanded": true,
+        "aggregate_group": null
+      }
+    },
+    {
+      "resource_id": "disk-domain-01a",
+      "resource_type": "DISK_DOMAIN",
+      "name": "磁盘域-01A",
+      "parent_id": "storage-01",
+      "device_id": "storage-01",
+      "zone": "LOGICAL_RESOURCE",
+      "location": "internal",
+      "attributes": {
+        "health": "NORMAL",
+        "topo_layer": "S3_4"
+      },
+      "display": {
+        "label": "磁盘域-01A",
+        "default_expanded": true,
+        "aggregate_group": null
+      }
+    },
+    {
+      "resource_id": "enc-01a",
+      "resource_type": "ENCLOSURE",
+      "name": "机框-01A",
+      "parent_id": "storage-01",
+      "device_id": "storage-01",
+      "zone": "PHYSICAL_RESOURCE",
+      "location": "internal",
+      "attributes": {
+        "media": "HDD",
+        "health": "NORMAL",
+        "topo_layer": "S3_5"
+      },
+      "display": {
+        "label": "机框-01A",
+        "default_expanded": true,
+        "aggregate_group": null
+      }
+    },
+    {
+      "resource_id": "disk-01a",
+      "resource_type": "DISK",
+      "name": "磁盘-01A",
+      "parent_id": "enc-01a",
+      "device_id": "storage-01",
+      "zone": "PHYSICAL_RESOURCE",
+      "location": "internal",
+      "attributes": {
+        "media": "SSD",
+        "health": "FAULT",
+        "topo_layer": "S3_5"
+      },
+      "display": {
+        "label": "磁盘-01A",
+        "default_expanded": true,
+        "aggregate_group": null
+      }
+    },
+    {
+      "resource_id": "disk-01b",
+      "resource_type": "DISK",
+      "name": "磁盘-01B",
+      "parent_id": "enc-01a",
+      "device_id": "storage-01",
+      "zone": "PHYSICAL_RESOURCE",
+      "location": "internal",
+      "attributes": {
+        "media": "SSD",
+        "health": "NORMAL",
+        "topo_layer": "S3_5"
+      },
+      "display": {
+        "label": "磁盘-01B",
+        "default_expanded": true,
+        "aggregate_group": null
+      }
+    },
+    {
+      "resource_id": "disk-01c",
+      "resource_type": "DISK",
+      "name": "磁盘-01C",
+      "parent_id": "enc-01a",
+      "device_id": "storage-01",
+      "zone": "PHYSICAL_RESOURCE",
+      "location": "internal",
+      "attributes": {
+        "media": "HDD",
+        "health": "NORMAL",
+        "topo_layer": "S3_5"
+      },
+      "display": {
+        "label": "磁盘-01C",
+        "default_expanded": true,
+        "aggregate_group": null
+      }
+    },
+    {
+      "resource_id": "psu-01a",
+      "resource_type": "POWER",
+      "name": "电源-01A",
+      "parent_id": "storage-01",
+      "device_id": "storage-01",
+      "zone": "PHYSICAL_RESOURCE",
+      "location": "internal",
+      "attributes": {
+        "media": "HDD",
+        "health": "NORMAL",
+        "topo_layer": "S3_5"
+      },
+      "display": {
+        "label": "电源-01A",
+        "default_expanded": true,
+        "aggregate_group": null
+      }
+    },
+    {
+      "resource_id": "fan-01a",
+      "resource_type": "FAN",
+      "name": "风扇-01A",
+      "parent_id": "storage-01",
+      "device_id": "storage-01",
+      "zone": "PHYSICAL_RESOURCE",
+      "location": "internal",
+      "attributes": {
+        "media": "HDD",
+        "health": "NORMAL",
+        "topo_layer": "S3_5"
+      },
+      "display": {
+        "label": "风扇-01A",
+        "default_expanded": true,
+        "aggregate_group": null
+      }
+    },
+    {
+      "resource_id": "bbu-01a",
+      "resource_type": "BBU",
+      "name": "BBU-01A",
+      "parent_id": "storage-01",
+      "device_id": "storage-01",
+      "zone": "PHYSICAL_RESOURCE",
+      "location": "internal",
+      "attributes": {
+        "media": "HDD",
+        "health": "NORMAL",
+        "topo_layer": "S3_5"
+      },
+      "display": {
+        "label": "BBU-01A",
+        "default_expanded": true,
+        "aggregate_group": null
+      }
+    }
+  ]
+}

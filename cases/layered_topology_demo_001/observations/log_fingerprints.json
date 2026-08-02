@@ -1,0 +1,50 @@
+{
+  "fingerprints": [
+    {
+      "fingerprint_id": "fp-sector-fault",
+      "name": "扇区坏道指纹",
+      "template": "sector reallocation",
+      "fault_mode_codes": [
+        "DISK_SECTOR_FAULT"
+      ],
+      "window": {
+        "start": "2026-08-02T09:59:55.000+08:00",
+        "end": "2026-08-02T10:00:00.000+08:00"
+      },
+      "hit_count": 51,
+      "matched_log_ids": [
+        "log-disk-01a-sector"
+      ]
+    },
+    {
+      "fingerprint_id": "fp-raid-rebuild",
+      "name": "RAID 重建指纹",
+      "template": "degraded, rebuild",
+      "fault_mode_codes": [
+        "DISK_SECTOR_FAULT"
+      ],
+      "window": {
+        "start": "2026-08-02T10:00:04.000+08:00",
+        "end": "2026-08-02T10:00:30.000+08:00"
+      },
+      "hit_count": 1,
+      "matched_log_ids": [
+        "log-raid-rebuild"
+      ]
+    },
+    {
+      "fingerprint_id": "fp-host-normal",
+      "name": "主机正常指纹",
+      "template": "cpu/io normal",
+      "fault_mode_codes": [],
+      "window": {
+        "start": "2026-08-02T10:00:18.000+08:00",
+        "end": "2026-08-02T10:00:22.000+08:00"
+      },
+      "hit_count": 1,
+      "matched_log_ids": [
+        "log-host-normal"
+      ]
+    }
+  ]
+}

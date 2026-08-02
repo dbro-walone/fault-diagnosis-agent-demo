@@ -1,0 +1,16 @@
+{
+  "fault_patterns": [
+    {
+      "pattern_id": "pattern-disk-fault",
+      "fault_mode_code": "DISK_SECTOR_FAULT",
+      "symptom_codes": [
+        "IO_LATENCY_HIGH"
+      ],
+      "resource_types": [
+        "DISK",
+        "RAID"
+      ],
+      "description": "磁盘扇区坏道→RAID降级→重建→LUN时延升高（S3.5→S3.4→S3.3 影响链）"
+    }
+  ]
+}

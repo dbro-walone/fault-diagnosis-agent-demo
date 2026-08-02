@@ -29,6 +29,13 @@
       "name": "SSD 磁盘扇区故障致 RAID 降级归档业务变慢",
       "fault_mode_code": "DISK_RAID_DEGRADE",
       "status": "VALIDATED"
+    },
+    {
+      "case_id": "layered_topology_demo_001",
+      "path": "layered_topology_demo_001",
+      "name": "分层拓扑演示：备份业务磁盘扇区故障致 RAID 降级",
+      "fault_mode_code": "DISK_SECTOR_FAULT",
+      "status": "VALIDATED"
     }
   ]
 }

@@ -1,0 +1,103 @@
+{
+  "playback_id": "story-layered-topology-v1",
+  "total_duration_ms": 96000,
+  "scenes": [
+    {
+      "scene_id": "scene-01",
+      "sequence": 1,
+      "stage_code": "NORMAL_BASELINE",
+      "title": "正常基线",
+      "start_offset_ms": 0,
+      "duration_ms": 9000,
+      "focus_resource_ids": [
+        "backup-app-01",
+        "storage-01"
+      ]
+    },
+    {
+      "scene_id": "scene-02",
+      "sequence": 2,
+      "stage_code": "SYMPTOM_TRIGGERED",
+      "title": "故障现象触发",
+      "start_offset_ms": 9000,
+      "duration_ms": 10000,
+      "focus_resource_ids": [
+        "lun-backup-01"
+      ]
+    },
+    {
+      "scene_id": "scene-03",
+      "sequence": 3,
+      "stage_code": "SCOPE_LOCALIZED",
+      "title": "现象映射与范围锁定",
+      "start_offset_ms": 19000,
+      "duration_ms": 11000,
+      "focus_resource_ids": [
+        "client-os-01",
+        "lun-backup-01"
+      ]
+    },
+    {
+      "scene_id": "scene-04",
+      "sequence": 4,
+      "stage_code": "CANDIDATES_GENERATED",
+      "title": "候选根因生成",
+      "start_offset_ms": 30000,
+      "duration_ms": 12000,
+      "focus_resource_ids": [
+        "disk-01a",
+        "lun-backup-01"
+      ]
+    },
+    {
+      "scene_id": "scene-05",
+      "sequence": 5,
+      "stage_code": "EVIDENCE_COLLECTING",
+      "title": "Agent沿分层路径取证",
+      "start_offset_ms": 42000,
+      "duration_ms": 20000,
+      "focus_resource_ids": [
+        "disk-01a",
+        "raid-01a",
+        "lun-backup-01"
+      ]
+    },
+    {
+      "scene_id": "scene-06",
+      "sequence": 6,
+      "stage_code": "CANDIDATES_EVALUATED",
+      "title": "候选验证与排除",
+      "start_offset_ms": 62000,
+      "duration_ms": 14000,
+      "focus_resource_ids": [
+        "disk-01a",
+        "host-if-01"
+      ]
+    },
+    {
+      "scene_id": "scene-07",
+      "sequence": 7,
+      "stage_code": "DIAGNOSIS_COMPLETED",
+      "title": "根因诊断完成",
+      "start_offset_ms": 76000,
+      "duration_ms": 13000,
+      "focus_resource_ids": [
+        "disk-01a",
+        "raid-01a",
+        "lun-backup-01",
+        "backup-app-01"
+      ]
+    },
+    {
+      "scene_id": "scene-08",
+      "sequence": 8,
+      "stage_code": "FUTURE_REPAIR_PREVIEW",
+      "title": "修复闭环能力预告",
+      "start_offset_ms": 89000,
+      "duration_ms": 7000,
+      "focus_resource_ids": [
+        "disk-01a"
+      ]
+    }
+  ]
+}

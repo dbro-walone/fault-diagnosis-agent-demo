@@ -1,0 +1,32 @@
+{
+  "alarms": [
+    {
+      "alarm_id": "alm-raid-degrade-8802",
+      "alarm_code": "RAID_GROUP_DEGRADED",
+      "name": "RAID组降级",
+      "object_id": "raid-01a",
+      "severity": "critical",
+      "occurred_at": "2026-08-02T10:00:03.500+08:00",
+      "cleared_at": null,
+      "status": "active",
+      "raw_fields": {
+        "raid_group": "raid-01a",
+        "degraded_disk": "disk-01a"
+      }
+    },
+    {
+      "alarm_id": "alm-disk-01a-fault",
+      "alarm_code": "DISK_FAULT",
+      "name": "磁盘故障",
+      "object_id": "disk-01a",
+      "severity": "major",
+      "occurred_at": "2026-08-02T10:00:03.600+08:00",
+      "cleared_at": null,
+      "status": "active",
+      "raw_fields": {
+        "error_type": "sector_reallocated",
+        "sector_count": 51
+      }
+    }
+  ]
+}
