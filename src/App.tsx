@@ -21,6 +21,7 @@ import { LensId } from '../schemas'
 import {
   listCases,
   createDiagnosisRuntime,
+  loadAdaptedCase,
   ProjectionStore,
   activeDiagnosisPath,
   type DiagnosisRuntime,
@@ -348,7 +349,9 @@ export default function App() {
   const vms = useMemo(() => {
     if (!snapshot) return null
     const store = new ProjectionStore()
-    store.bind(snapshot)
+    // issue#6 阶段B：传入 Case 全量观测 Fact（原始日志/未被证据引用的告警），
+    // 供"对象观测三标签"补全 items 内容（快照内已发现 Fact 优先，回放不泄露未来）。
+    store.bind(snapshot, { observationsFacts: loadAdaptedCase(runtime?.caseId ?? '').facts })
     return {
       store,
       knowledge: store.knowledgeSnapshot(),
@@ -357,7 +360,7 @@ export default function App() {
       planner: store.plannerTargets(),
       timeline: store.timeline(),
     }
-  }, [snapshot])
+  }, [snapshot, runtime])
 
   return (
     <div className="relative h-screen w-screen overflow-hidden bg-[#0f1117] text-[#e2e8f0]">

@@ -65,4 +65,10 @@ export {
   type PlannerTargetVM,
   type PlannerReplanVM,
   type PlannerTargetStatus,
+  type ObjectObservationPanelVM,
+  type ObjectObservationVM,
+  type ObjectObsCategoryVM,
+  type ObjectObsItemVM,
+  type ObjectObsKind,
+  type ObjectObsStatus,
 } from './projection-store'

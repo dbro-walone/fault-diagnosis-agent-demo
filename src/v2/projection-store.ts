@@ -149,6 +149,58 @@ export interface PlannerTargetsVM {
   has_replan: boolean
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// issue#6 阶段B — 对象观测三标签（告警｜性能｜日志）
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * 对象某类观测的查询状态（issue#6：不要求机械查询全部数据）。
+ * - QUERIED_ABNORMAL / QUERIED_NORMAL：已由 Skill 任务查询并得到异常/正常结果；
+ * - NOT_QUERIED：本次诊断未查询该类观测；
+ * - DATA_MISSING：任务失败或查询无数据；
+ * - PARTIAL：只覆盖了部分范围（查询范围不完整）。
+ */
+export type ObjectObsStatus =
+  | 'QUERIED_ABNORMAL'
+  | 'QUERIED_NORMAL'
+  | 'NOT_QUERIED'
+  | 'DATA_MISSING'
+  | 'PARTIAL'
+
+export type ObjectObsKind = 'alarms' | 'perf' | 'logs'
+
+export interface ObjectObsItemVM {
+  id: string
+  kind: 'alarm' | 'kpi' | 'log' | 'fingerprint'
+  title: string
+  detail: string
+  time: string | null
+  abnormal: boolean
+}
+
+export interface ObjectObsCategoryVM {
+  kind: ObjectObsKind
+  status: ObjectObsStatus
+  status_label: string
+  items: ObjectObsItemVM[]
+  /** 完成该对象该类查询的 Skill 任务。 */
+  queried_by: string[]
+}
+
+export interface ObjectObservationVM {
+  object_id: string
+  display_name: string
+  is_focus: boolean
+  alarms: ObjectObsCategoryVM
+  perf: ObjectObsCategoryVM
+  logs: ObjectObsCategoryVM
+}
+
+export interface ObjectObservationPanelVM {
+  focus_object_id: string | null
+  objects: ObjectObservationVM[]
+}
+
 export interface FactSummaryVM {
   fact_id: string
   fact_type: FactType
@@ -293,6 +345,55 @@ const MODE_LABEL: Record<RuntimeMode, string> = {
   REPLAY: '回放',
 }
 
+// —— issue#6 阶段B — 对象观测三标签 ——
+
+const OBS_STATUS_LABEL: Record<ObjectObsStatus, string> = {
+  QUERIED_ABNORMAL: '已查询—异常',
+  QUERIED_NORMAL: '已查询—正常',
+  NOT_QUERIED: '未查询',
+  DATA_MISSING: '数据缺失',
+  PARTIAL: '范围不完整',
+}
+
+const SEVERITY_LABEL: Record<string, string> = {
+  CRITICAL: '严重',
+  MAJOR: '主要',
+  MINOR: '次要',
+  WARNING: '警告',
+  INFO: '提示',
+  CLEARED: '已清除',
+}
+
+/** 任务终态集合（对象观测查询以终态任务为准，运行中的任务视为未完成查询）。 */
+const OBS_TERMINAL_TASK_STATUSES: ReadonlySet<TaskStatus> = new Set([
+  TaskStatus.SUCCEEDED,
+  TaskStatus.PARTIAL,
+  TaskStatus.DATA_MISSING,
+  TaskStatus.FAILED,
+  TaskStatus.SKIPPED,
+])
+
+/** 观测类别 → 关联 Skill 与 Fact 类型（docs/09 §8 口径：QUERY_ALARM→告警、QUERY_KPI→性能、日志指纹/日志→日志）。 */
+const OBS_CATEGORIES: Record<
+  ObjectObsKind,
+  { label: string; skills: string[]; factTypes: FactType[] }
+> = {
+  alarms: { label: '告警', skills: ['alarm_query'], factTypes: [FactType.ALARM] },
+  perf: {
+    label: '性能',
+    // link_health_query 亦产出 KPI 事实（如 FC 端口错误计数），并入性能类别。
+    skills: ['kpi_query', 'link_health_query'],
+    factTypes: [FactType.KPI_WINDOW],
+  },
+  logs: {
+    label: '日志',
+    skills: ['log_fingerprint_query', 'log_query'],
+    factTypes: [FactType.LOG, FactType.LOG_FINGERPRINT],
+  },
+}
+
+const OBS_KINDS: ObjectObsKind[] = ['alarms', 'perf', 'logs']
+
 function evidenceTypeLabel(t: string): string {
   return EVIDENCE_TYPE_LABEL[t] ?? t
 }
@@ -339,10 +440,17 @@ function formatPercent(v: unknown): string {
 export class ProjectionStore {
   private snapshot: DiagnosisSessionSnapshot | null = null
   private _userSelection: UserSelection = { ...EMPTY_USER_SELECTION }
+  /** issue#6 阶段B：Case 全量观测 Fact（含未被 Evidence 引用的原始日志/告警），仅作 items 内容补充。 */
+  private observationsFacts: CanonicalFact[] | null = null
 
-  /** 绑定 Runtime 快照（只读消费，不改写 Runtime）。 */
-  bind(snapshot: DiagnosisSessionSnapshot): void {
+  /**
+   * 绑定 Runtime 快照（只读消费，不改写 Runtime）。
+   * context.observationsFacts：Case 适配后的全量观测 Fact，供对象观测 items 补充原始内容
+   * （原始日志行、未被证据引用的告警等）。未提供时回退快照内已发现 Fact。
+   */
+  bind(snapshot: DiagnosisSessionSnapshot, context?: { observationsFacts?: CanonicalFact[] }): void {
     this.snapshot = snapshot
+    this.observationsFacts = context?.observationsFacts ?? null
   }
 
   get userSelection(): UserSelection {
@@ -438,6 +546,35 @@ export class ProjectionStore {
       replans: s.planner_replans,
       has_replan: s.planner_replans.length > 0,
     }
+  }
+
+  // —— 对象观测三标签（issue#6 阶段B）——
+  /**
+   * 按"对象 × 告警/性能/日志"维度聚合各被排查对象的查询状态与结果（docs/07 §2）。
+   *
+   * 规则（纯函数、确定性，禁止 case_id 特判）：
+   * - 某对象某类观测"是否被查询"由已终态的 Skill 任务判定（skill_id 类别映射：
+   *   alarm_query→告警、kpi_query/link_health_query→性能、日志指纹/日志→日志）；
+   * - items 仅取这些任务产出的、指向该对象的 Fact（快照内已发现 + observations 全量补充）；
+   * - 异常与否：告警按 severity、KPI 按峰值是否超阈值、日志按 ERROR/FATAL 级别；
+   * - 任务 DATA_MISSING/FAILED → 数据缺失；PARTIAL → 范围不完整；
+   *   未查询 → 不强行扫数据（符合"不要求机械查询全部数据"）。
+   */
+  objectObservationPanel(): ObjectObservationPanelVM {
+    const s = this.require()
+    const allFacts = allObservationFacts(this.snapshot!, this.observationsFacts)
+    const focus = focusObjectId(s)
+    const vms: ObjectObservationVM[] = investigatedObjectIds(s).map((objectId) =>
+      buildObjectObservation(s, objectId, allFacts, focus === objectId),
+    )
+    vms.sort((a, b) => {
+      if (a.is_focus !== b.is_focus) return a.is_focus ? -1 : 1
+      const aq = hasAnyObservationQuery(a)
+      const bq = hasAnyObservationQuery(b)
+      if (aq !== bq) return aq ? -1 : 1
+      return a.display_name.localeCompare(b.display_name, 'zh')
+    })
+    return { focus_object_id: focus, objects: vms }
   }
 
   // —— 候选根因 ——
@@ -636,6 +773,245 @@ function derivePlannerTargetStatus(s: DiagnosisSessionSnapshot, t: PlannerTarget
   if (laterResolved) return 'verified_ok'
 
   return 'pending'
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// issue#6 阶段B — 对象观测三标签辅助
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** 合并快照内已发现 Fact 与 observations 全量 Fact（快照优先，保发现顺序）。 */
+function allObservationFacts(snapshot: DiagnosisSessionSnapshot, observations: CanonicalFact[] | null): CanonicalFact[] {
+  const byId = new Map<string, CanonicalFact>()
+  for (const f of snapshot.facts) byId.set(f.fact_id, f)
+  for (const f of observations ?? []) if (!byId.has(f.fact_id)) byId.set(f.fact_id, f)
+  return [...byId.values()]
+}
+
+/** 被排查对象集合：Planner 目标 ∪ 任务目标对象 ∪ 候选对象（随快照推进增长）。 */
+function investigatedObjectIds(s: DiagnosisSessionSnapshot): string[] {
+  const ids = new Set<string>()
+  const push = (v: unknown) => {
+    if (typeof v === 'string' && v) ids.add(v)
+    else if (Array.isArray(v)) v.forEach(push)
+  }
+  for (const t of s.tasks) push(t.target_object_refs)
+  for (const t of s.planner_targets) push(t.target_resource)
+  for (const c of s.candidates) push(c.object_id)
+  return [...ids]
+}
+
+/**
+ * 当前焦点对象：Planner 当前位置（active 目标资源）> agent_focus > 当前行动目标。
+ * 与 PlannerTargetRow 的"当前位置"共用 derivePlannerTargetStatus，保证面板跟随诊断推进。
+ */
+function focusObjectId(s: DiagnosisSessionSnapshot): string | null {
+  const active = s.planner_targets.find((t) => derivePlannerTargetStatus(s, t) === 'active')
+  if (active) return active.target_resource
+  const focusObj = s.session.agent_focus?.object_refs?.[0]
+  if (focusObj) return focusObj
+  return s.current_activity?.target_object_refs?.[0] ?? null
+}
+
+function buildObjectObservation(
+  s: DiagnosisSessionSnapshot,
+  objectId: string,
+  allFacts: CanonicalFact[],
+  isFocus: boolean,
+): ObjectObservationVM {
+  return {
+    object_id: objectId,
+    display_name: displayNameOf(allFacts, objectId),
+    is_focus: isFocus,
+    alarms: buildObservationCategory(s, objectId, 'alarms', allFacts),
+    perf: buildObservationCategory(s, objectId, 'perf', allFacts),
+    logs: buildObservationCategory(s, objectId, 'logs', allFacts),
+  }
+}
+
+function buildObservationCategory(
+  s: DiagnosisSessionSnapshot,
+  objectId: string,
+  kind: ObjectObsKind,
+  allFacts: CanonicalFact[],
+): ObjectObsCategoryVM {
+  const cat = OBS_CATEGORIES[kind]
+  const terminalTasks = s.tasks.filter(
+    (t) =>
+      cat.skills.includes(t.skill_id ?? '') &&
+      (t.target_object_refs ?? []).includes(objectId) &&
+      OBS_TERMINAL_TASK_STATUSES.has(t.status),
+  )
+  if (terminalTasks.length === 0) {
+    return { kind, status: 'NOT_QUERIED', status_label: OBS_STATUS_LABEL.NOT_QUERIED, items: [], queried_by: [] }
+  }
+
+  const execIds = new Set(terminalTasks.map((t) => `exec-${t.task_id}`))
+  const produced = allFacts.filter(
+    (f) =>
+      execIds.has(f.source.execution_id) &&
+      (f.object_refs ?? []).includes(objectId) &&
+      cat.factTypes.includes(f.fact_type),
+  )
+  const items = buildObservationItems(kind, produced, allFacts)
+
+  let status: ObjectObsStatus
+  if (terminalTasks.some((t) => t.status === TaskStatus.DATA_MISSING || t.status === TaskStatus.FAILED)) {
+    status = 'DATA_MISSING'
+  } else if (terminalTasks.some((t) => t.status === TaskStatus.PARTIAL)) {
+    status = 'PARTIAL'
+  } else {
+    status = items.some((i) => i.abnormal) ? 'QUERIED_ABNORMAL' : 'QUERIED_NORMAL'
+  }
+  return {
+    kind,
+    status,
+    status_label: OBS_STATUS_LABEL[status],
+    items,
+    queried_by: terminalTasks.map((t) => t.task_id),
+  }
+}
+
+function buildObservationItems(kind: ObjectObsKind, produced: CanonicalFact[], allFacts: CanonicalFact[]): ObjectObsItemVM[] {
+  switch (kind) {
+    case 'alarms':
+      return produced.map((f) => {
+        const p = f.payload
+        return {
+          id: f.fact_id,
+          kind: 'alarm',
+          title: String(p['name'] ?? p['alarm_code'] ?? '告警'),
+          detail: severityLabelOf(String(p['severity'] ?? '')),
+          time: (p['occurred_at'] as string) ?? f.occurred_at ?? null,
+          abnormal: isAbnormalSeverity(String(p['severity'] ?? '')),
+        }
+      })
+    case 'perf':
+      return produced.map((f) => {
+        const p = f.payload
+        const unit = p['unit'] ? ` ${String(p['unit'])}` : ''
+        return {
+          id: f.fact_id,
+          kind: 'kpi',
+          title: String(p['metric_name'] ?? '指标'),
+          detail: `峰值 ${p['peak_value'] ?? '-'}${unit} · 基线 ${p['baseline'] ?? '-'}${unit}`,
+          time: (p['peak_at'] as string) ?? null,
+          abnormal: kpiAbnormal(p),
+        }
+      })
+    case 'logs':
+      return buildLogItems(produced, allFacts)
+  }
+}
+
+/** 日志条目：指纹摘要 + 其匹配的原始日志样例（时间/级别/消息，去重限流）。 */
+function buildLogItems(produced: CanonicalFact[], allFacts: CanonicalFact[]): ObjectObsItemVM[] {
+  const items: ObjectObsItemVM[] = []
+  const fingerprintFacts = produced.filter((f) => f.fact_type === FactType.LOG_FINGERPRINT)
+  const rawLogFacts = produced.filter((f) => f.fact_type === FactType.LOG)
+  let sampleCount = 0
+  for (const f of fingerprintFacts) {
+    const p = f.payload
+    const codes = Array.isArray(p['fault_mode_codes']) ? (p['fault_mode_codes'] as string[]).join('、') : ''
+    items.push({
+      id: f.fact_id,
+      kind: 'fingerprint',
+      title: String(p['name'] ?? '日志指纹'),
+      detail: `命中 ${p['hit_count'] ?? 0} 次${codes ? ` · ${codes}` : ''}`,
+      time: f.observed_range?.start ?? null,
+      abnormal: matchedLogsHaveAbnormal(f, allFacts),
+    })
+    // 展开指纹匹配的原始日志样例（同消息去重，最多 4 条，避免 7 条同内容刷屏）。
+    const matchedIds = Array.isArray(p['matched_log_ids']) ? (p['matched_log_ids'] as string[]) : []
+    const matched = allFacts.filter(
+      (fact) =>
+        fact.fact_type === FactType.LOG && fact.source.source_refs.some((r) => matchedIds.includes(r)),
+    )
+    const seen = new Set<string>()
+    for (const lg of matched) {
+      if (sampleCount >= 4) break
+      const level = String(lg.payload['level'] ?? '')
+      const msg = String(lg.payload['message'] ?? '')
+      const key = `${level}|${lg.payload['component'] ?? ''}|${msg}`
+      if (seen.has(key)) continue
+      seen.add(key)
+      sampleCount++
+      items.push({
+        id: lg.fact_id,
+        kind: 'log',
+        title: truncate(msg, 42),
+        detail: `${level} · ${lg.payload['component'] ?? ''}`,
+        time: lg.occurred_at ?? null,
+        abnormal: isAbnormalLogLevel(level),
+      })
+    }
+  }
+  for (const lg of rawLogFacts) {
+    items.push({
+      id: lg.fact_id,
+      kind: 'log',
+      title: truncate(String(lg.payload['message'] ?? ''), 42),
+      detail: `${lg.payload['level'] ?? ''} · ${lg.payload['component'] ?? ''}`,
+      time: lg.occurred_at ?? null,
+      abnormal: isAbnormalLogLevel(String(lg.payload['level'] ?? '')),
+    })
+  }
+  return items
+}
+
+function displayNameOf(allFacts: CanonicalFact[], objectId: string): string {
+  for (const f of allFacts) {
+    if (f.fact_type === FactType.RESOURCE_STATE && (f.object_refs ?? []).includes(objectId)) {
+      const n = f.payload['name']
+      if (typeof n === 'string' && n) return n
+    }
+  }
+  return objectId
+}
+
+function hasAnyObservationQuery(vm: ObjectObservationVM): boolean {
+  return OBS_KINDS.some((k) => vm[k].status !== 'NOT_QUERIED')
+}
+
+function severityLabelOf(severity: string): string {
+  return SEVERITY_LABEL[severity.toUpperCase()] ?? severity
+}
+
+function isAbnormalSeverity(severity: string): boolean {
+  const s = severity.toUpperCase()
+  return s === 'CRITICAL' || s === 'MAJOR'
+}
+
+function isAbnormalLogLevel(level: string): boolean {
+  const s = level.toUpperCase()
+  return s === 'ERROR' || s === 'FATAL' || s === 'CRITICAL' || s === 'SEVERE'
+}
+
+/** KPI 峰值是否超阈值（warning/critical 高低向），无阈值或未超 → 正常。 */
+function kpiAbnormal(p: Record<string, unknown>): boolean {
+  const peak = typeof p['peak_value'] === 'number' ? p['peak_value'] : NaN
+  if (!Number.isFinite(peak)) return false
+  const thresholds = (p['thresholds'] ?? {}) as Record<string, unknown>
+  const hit = (key: string, high: boolean) => {
+    const v = thresholds[key]
+    if (typeof v !== 'number') return false
+    return high ? peak >= v : peak <= v
+  }
+  if (hit('critical_high', true) || hit('critical_low', false) || hit('critical', true)) return true
+  if (hit('warning_high', true) || hit('warning_low', false) || hit('warning', true)) return true
+  return false
+}
+
+/** 指纹匹配的原始日志中是否存在 ERROR/FATAL 级（决定指纹条目异常与否）。 */
+function matchedLogsHaveAbnormal(f: CanonicalFact, allFacts: CanonicalFact[]): boolean {
+  const matchedIds = new Set(
+    Array.isArray(f.payload['matched_log_ids']) ? (f.payload['matched_log_ids'] as string[]) : [],
+  )
+  return allFacts.some(
+    (fact) =>
+      fact.fact_type === FactType.LOG &&
+      fact.source.source_refs.some((r) => matchedIds.has(r)) &&
+      isAbnormalLogLevel(String(fact.payload['level'] ?? '')),
+  )
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

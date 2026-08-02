@@ -11,7 +11,7 @@ const server = await createServer({
 let failures = 0
 try {
   const v2 = await server.ssrLoadModule('/src/v2/index.ts')
-  const { listCases, createDiagnosisRuntime, replayCase, ProjectionStore } = v2
+  const { listCases, createDiagnosisRuntime, loadAdaptedCase, replayCase, ProjectionStore } = v2
 
   const cases = listCases()
   console.log(`\nDiscovered ${cases.length} cases via V2 manifest.`)
@@ -56,6 +56,20 @@ try {
         typeof planner.has_replan === 'boolean' &&
         (entry.caseId !== 'controller_warm_reset_001' || (planner.targets.length === 5 && planner.has_replan))
 
+      // issue#6 阶段B：对象观测三标签 VM 必须可计算；焦点对象存在、三类标签状态合法。
+      const obsStore = new ProjectionStore()
+      obsStore.bind(liveSnap, { observationsFacts: loadAdaptedCase(entry.caseId).facts })
+      const obs = obsStore.objectObservationPanel()
+      const obsStatusOk = new Set([
+        'QUERIED_ABNORMAL', 'QUERIED_NORMAL', 'NOT_QUERIED', 'DATA_MISSING', 'PARTIAL',
+      ])
+      const obsOk =
+        Array.isArray(obs.objects) &&
+        obs.objects.every((o) =>
+          ['alarms', 'perf', 'logs'].every((k) => obsStatusOk.has(o[k].status) && Array.isArray(o[k].items)),
+        ) &&
+        (obs.focus_object_id == null || obs.objects.some((o) => o.object_id === obs.focus_object_id))
+
       const ok =
         snap.events.length > 0 &&
         liveSnap.events.length === snap.events.length &&
@@ -63,10 +77,12 @@ try {
         cl.items.length > 0 &&
         typeof ks.leading_score_label === 'string' &&
         back.cursor === rt.liveHead &&
-        plannerOk
+        plannerOk &&
+        obsOk
 
       const status = ok ? 'OK' : 'FAIL'
       if (!ok) failures += 1
+      const focusObs = obs.objects.find((o) => o.object_id === obs.focus_object_id)
       console.log(
         `${tag} ${status} · events=${snap.events.length} facts=${snap.facts.length} ` +
           `evidences=${snap.evidences.length} candidates=${snap.candidates.length} ` +
@@ -74,7 +90,11 @@ try {
           `leading="${cl.items[0]?.display_name ?? '-'}"(${ks.leading_score_label}) ` +
           `chain=${ks.chain_progress.satisfied}/${ks.chain_progress.total} ` +
           `evidenceChainItems=${ec.items.length} factDetail=${fd ? 'yes' : 'no'} ` +
-          `plannerTargets=${planner.targets.length} replan=${planner.has_replan ? 'yes' : 'no'}`,
+          `plannerTargets=${planner.targets.length} replan=${planner.has_replan ? 'yes' : 'no'} ` +
+          `obsObjects=${obs.objects.length} obsFocus=${obs.focus_object_id ?? 'none'}` +
+          (focusObs
+            ? `(告警:${focusObs.alarms.status_label}|性能:${focusObs.perf.status_label}|日志:${focusObs.logs.status_label})`
+            : ''),
       )
       if (!ok) {
         console.log(`   events(replay)=${snap.events.length} live=${liveSnap.events.length} timeline=${tl.length}`)

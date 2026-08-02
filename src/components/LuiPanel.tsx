@@ -16,10 +16,12 @@ import { useMemo, useState } from 'react'
 import {
   Activity,
   AlertTriangle,
+  Bell,
   ChevronRight,
   Crosshair,
   FastForward,
   FileSearch,
+  FileText,
   History,
   Layers,
   ListChecks,
@@ -27,6 +29,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   Pause,
+  Pin,
   Play,
   RefreshCw,
   RotateCcw,
@@ -48,6 +51,12 @@ import {
   type EvidenceChainItemVM,
   type FactDetailVM,
   type KnowledgeSnapshotVM,
+  type ObjectObsCategoryVM,
+  type ObjectObsItemVM,
+  type ObjectObsKind,
+  type ObjectObservationPanelVM,
+  type ObjectObservationVM,
+  type ObjectObsStatus,
   type PlannerReplanVM,
   type PlannerTargetVM,
   type PlannerTargetsVM,
@@ -98,6 +107,9 @@ export default function LuiPanel(props: LuiPanelProps) {
   const { knowledge, action, candidates, snapshot, store } = props
   const [tab, setTab] = useState<WorkspaceTab>('chain')
 
+  // issue#6 阶段B：对象观测三标签 View Model（跟随 agent_focus / Planner 当前位置）。
+  const observation = useMemo(() => store.objectObservationPanel(), [store])
+
   // When the user drills into a fact, jump to the detail tab.
   const selectFact = (id: string | null) => {
     props.onSelectFact(id)
@@ -126,6 +138,9 @@ export default function LuiPanel(props: LuiPanelProps) {
 
         {/* issue#6 阶段A：Planner 目标区（目标资源/故障模式/验证问题/期望发现/当前范围 + 重规划差异） */}
         <PlannerTargetsView planner={props.planner} />
+
+        {/* issue#6 阶段B：对象观测三标签（当前焦点对象 告警｜性能｜日志 查询状态与结果） */}
+        <ObjectObservationView vm={observation} />
 
         {/* Layer 3 — 主内容区（证据链/计划/历史/详情）：提高到诊断态势下方，更大更醒目 */}
         <div className="flex min-h-[240px] flex-1 flex-col overflow-hidden rounded-lg border border-white/8 bg-black/20">
@@ -568,6 +583,239 @@ function ReplanBanner({ replan }: { replan: PlannerReplanVM }) {
         <div>
           <span className="text-[#64748b]">暂停目标：</span>
           {paused}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// issue#6 阶段B — 对象观测三标签（告警｜性能｜日志）
+// ─────────────────────────────────────────────────────────────────────────────
+
+const OBS_KIND_LABEL: Record<ObjectObsKind, string> = {
+  alarms: '告警',
+  perf: '性能',
+  logs: '日志',
+}
+
+const OBS_KIND_ICON: Record<ObjectObsKind, React.ReactNode> = {
+  alarms: <Bell className="h-3 w-3" />,
+  perf: <Activity className="h-3 w-3" />,
+  logs: <FileText className="h-3 w-3" />,
+}
+
+function obsStatusTone(status: ObjectObsStatus): { badge: string; dot: string } {
+  switch (status) {
+    case 'QUERIED_ABNORMAL':
+      return { badge: 'bg-status-fault/15 text-status-fault', dot: 'bg-status-fault' }
+    case 'QUERIED_NORMAL':
+      return { badge: 'bg-status-recovered/15 text-status-recovered', dot: 'bg-status-recovered' }
+    case 'DATA_MISSING':
+      return { badge: 'bg-orange-400/15 text-orange-400', dot: 'bg-orange-400' }
+    case 'PARTIAL':
+      return { badge: 'bg-yellow-400/15 text-yellow-400', dot: 'bg-yellow-400' }
+    default:
+      return { badge: 'bg-white/5 text-[#64748b]', dot: 'bg-status-muted' }
+  }
+}
+
+/** 对象总体色：取最严重类别状态。 */
+function overallObsTone(vm: ObjectObservationVM): string {
+  const order: ObjectObsStatus[] = ['QUERIED_ABNORMAL', 'DATA_MISSING', 'PARTIAL', 'QUERIED_NORMAL', 'NOT_QUERIED']
+  const statuses = [vm.alarms.status, vm.perf.status, vm.logs.status]
+  for (const st of order) if (statuses.includes(st)) return obsStatusTone(st).dot
+  return 'bg-status-muted'
+}
+
+/** 默认展开标签：优先有异常发现的类别，其次已查询类别，回退告警。 */
+function defaultObsTab(vm: ObjectObservationVM): ObjectObsKind {
+  const kinds: ObjectObsKind[] = ['alarms', 'perf', 'logs']
+  const abnormal = kinds.find((k) => vm[k].status === 'QUERIED_ABNORMAL')
+  if (abnormal) return abnormal
+  const queried = kinds.find((k) => vm[k].status === 'QUERIED_NORMAL' || vm[k].status === 'PARTIAL' || vm[k].status === 'DATA_MISSING')
+  if (queried) return queried
+  return 'alarms'
+}
+
+function fmtObsTime(iso: string | null): string {
+  if (!iso) return ''
+  const t = iso.slice(11, 19)
+  return t.length === 8 ? t : ''
+}
+
+function ObjectObservationView({ vm }: { vm: ObjectObservationPanelVM }) {
+  const [pinnedId, setPinnedId] = useState<string | null>(null)
+  const [tabByObject, setTabByObject] = useState<Record<string, ObjectObsKind>>({})
+
+  const displayId = pinnedId ?? vm.focus_object_id ?? vm.objects[0]?.object_id ?? null
+  // 早期焦点（如 symptom 业务对象）可能尚未进入被排查集合，回退到首个被排查对象。
+  const current = vm.objects.find((o) => o.object_id === displayId) ?? vm.objects[0] ?? null
+  const activeTab: ObjectObsKind = current ? (tabByObject[current.object_id] ?? defaultObsTab(current)) : 'alarms'
+
+  const pickTab = (kind: ObjectObsKind) => {
+    if (!current) return
+    setTabByObject((cur) => ({ ...cur, [current.object_id]: kind }))
+  }
+
+  if (vm.objects.length === 0) {
+    return (
+      <section className="rounded-lg border border-white/8 bg-white/[0.02] p-2.5">
+        <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-[#94a3b8]">
+          <Crosshair className="h-3.5 w-3.5 text-status-evidence" />
+          对象观测
+        </div>
+        <div className="mt-1.5 text-[10px] text-[#64748b]">等待对象查询任务启动…</div>
+      </section>
+    )
+  }
+
+  return (
+    <section className="rounded-lg border border-white/8 bg-white/[0.02] p-2.5">
+      <div className="mb-1.5 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-[#94a3b8]">
+        <Crosshair className="h-3.5 w-3.5 text-status-evidence" />
+        对象观测
+        <span className="ml-auto flex items-center gap-1 text-[9px] font-medium normal-case tracking-normal">
+          {pinnedId && (
+            <button
+              type="button"
+              onClick={() => setPinnedId(null)}
+              className="flex items-center gap-0.5 rounded bg-white/5 px-1.5 py-0.5 text-[#64748b] hover:bg-white/10 hover:text-[#cbd5e1]"
+              title="恢复跟随 Agent 焦点"
+            >
+              <Pin className="h-3 w-3" />
+              跟随焦点
+            </button>
+          )}
+          {current && (
+            <span className={cn('flex items-center gap-1 rounded px-1.5 py-0.5', current.is_focus ? 'bg-status-active/15 text-status-active' : 'bg-white/5 text-[#94a3b8]')}>
+              {current.is_focus && <Activity className="h-3 w-3" />}
+              {current.display_name}
+            </span>
+          )}
+        </span>
+      </div>
+
+      {/* 被排查对象切换条（点击固定查看；再次点击恢复跟随焦点） */}
+      <div className="mb-2 flex items-center gap-1 overflow-x-auto pb-0.5">
+        {vm.objects.map((o) => {
+          const pinned = o.object_id === pinnedId
+          const isFocus = o.is_focus
+          return (
+            <button
+              key={o.object_id}
+              type="button"
+              onClick={() => setPinnedId(pinned ? null : o.object_id)}
+              title={o.object_id}
+              className={cn(
+                'flex shrink-0 items-center gap-1 rounded px-1.5 py-0.5 text-[8px] transition-colors',
+                pinned || isFocus
+                  ? 'bg-status-active/15 text-status-active'
+                  : 'bg-white/[0.03] text-[#94a3b8] hover:bg-white/10',
+              )}
+            >
+              <span className={cn('h-1.5 w-1.5 shrink-0 rounded-full', overallObsTone(o))} />
+              {o.display_name}
+              {o.is_focus && <span className="text-[7px] text-status-active">●</span>}
+            </button>
+          )
+        })}
+      </div>
+
+      {/* 三标签：告警｜性能｜日志 */}
+      {current && (
+        <>
+          <div className="grid grid-cols-3 gap-1">
+            {(['alarms', 'perf', 'logs'] as ObjectObsKind[]).map((kind) => {
+              const cat = current[kind]
+              const tone = obsStatusTone(cat.status)
+              const active = activeTab === kind
+              return (
+                <button
+                  key={kind}
+                  type="button"
+                  onClick={() => pickTab(kind)}
+                  className={cn(
+                    'rounded-md border px-1.5 py-1 text-left transition-colors',
+                    active ? 'border-white/25 bg-white/[0.07]' : 'border-white/8 bg-black/10 hover:bg-white/[0.04]',
+                  )}
+                >
+                  <div className="flex items-center gap-1">
+                    <span className={cn('text-[#cbd5e1]', active && 'text-status-active')}>{OBS_KIND_ICON[kind]}</span>
+                    <span className="text-[9px] font-semibold text-[#cbd5e1]">{OBS_KIND_LABEL[kind]}</span>
+                    <span className={cn('ml-auto rounded px-1 py-0.5 text-[7px] font-medium', tone.badge)}>
+                      {cat.status_label}
+                    </span>
+                  </div>
+                </button>
+              )
+            })}
+          </div>
+          <ObsItemsPanel cat={current[activeTab]} />
+        </>
+      )}
+    </section>
+  )
+}
+
+function ObsItemsPanel({ cat }: { cat: ObjectObsCategoryVM }) {
+  if (cat.status === 'NOT_QUERIED') {
+    return (
+      <div className="mt-1.5 rounded border border-white/[0.05] bg-black/15 px-2 py-1.5 text-[9px] leading-relaxed text-[#64748b]">
+        未查询该对象此项观测（诊断按需推进，不强制扫描全部数据）
+      </div>
+    )
+  }
+  if (cat.status === 'DATA_MISSING') {
+    return (
+      <div className="mt-1.5 rounded border border-status-warning/20 bg-status-warning/[0.05] px-2 py-1.5 text-[9px] leading-relaxed text-status-warning">
+        查询失败或无可用数据（数据缺失）
+      </div>
+    )
+  }
+  if (cat.status === 'PARTIAL') {
+    return (
+      <div className="mt-1.5 rounded border border-yellow-400/20 bg-yellow-400/[0.05] px-2 py-1.5 text-[9px] leading-relaxed text-yellow-400">
+        仅覆盖部分查询范围（范围不完整）
+      </div>
+    )
+  }
+  if (cat.items.length === 0) {
+    return (
+      <div className="mt-1.5 rounded border border-white/[0.05] bg-black/15 px-2 py-1.5 text-[9px] leading-relaxed text-[#94a3b8]">
+        查询完成，未发现异常条目
+      </div>
+    )
+  }
+  return (
+    <div className="mt-1.5 space-y-1">
+      {cat.items.map((item) => (
+        <ObsItemRow key={`${item.kind}-${item.id}`} item={item} />
+      ))}
+    </div>
+  )
+}
+
+function ObsItemRow({ item }: { item: ObjectObsItemVM }) {
+  return (
+    <div
+      className={cn(
+        'flex items-start gap-1.5 rounded border px-1.5 py-1',
+        item.abnormal ? 'border-status-fault/20 bg-status-fault/[0.04]' : 'border-white/[0.05] bg-black/20',
+      )}
+    >
+      <span className={cn('mt-1 h-1.5 w-1.5 shrink-0 rounded-full', item.abnormal ? 'bg-status-fault' : 'bg-status-muted')} />
+      <div className="min-w-0 flex-1">
+        <div className="flex items-baseline justify-between gap-1">
+          <span className={cn('truncate text-[9px] font-medium', item.abnormal ? 'text-status-fault' : 'text-[#cbd5e1]')} title={item.title}>
+            {item.title}
+          </span>
+          {fmtObsTime(item.time) && (
+            <span className="shrink-0 text-[8px] tabular text-[#475569]">{fmtObsTime(item.time)}</span>
+          )}
+        </div>
+        <div className="mt-0.5 truncate text-[8px] text-[#64748b]" title={item.detail}>
+          {item.detail}
         </div>
       </div>
     </div>
