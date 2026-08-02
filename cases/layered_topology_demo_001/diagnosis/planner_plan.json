@@ -1,0 +1,36 @@
+{
+  "plan_id": "plan-layered_topology_demo_001-001",
+  "original_scope": "分层拓扑路径（host-if-01 → lun-backup-01 → disk-01a）",
+  "targets": [
+    {
+      "seq": 1,
+      "target_resource": "lun-backup-01",
+      "target_fault_mode": "LUN IO 争用",
+      "verify_question": "LUN 自身是否出现 IO 争用或时延异常",
+      "expected_finding": "如命中则 LUN IO/时延异常；否则为底层故障影响",
+      "topo_path": ["host-if-01", "lun-backup-01", "disk-01a"],
+      "scope": "业务专属路径",
+      "round": 1
+    },
+    {
+      "seq": 2,
+      "target_resource": "host-if-01",
+      "target_fault_mode": "主机接口瓶颈",
+      "verify_question": "主机侧接口是否出现拥塞或链路异常",
+      "expected_finding": "如命中则主机接口错误计数或带宽打满",
+      "topo_path": ["host-if-01", "lun-backup-01"],
+      "scope": "业务专属路径",
+      "round": 1
+    },
+    {
+      "seq": 3,
+      "target_resource": "disk-01a",
+      "target_fault_mode": "磁盘扇区故障",
+      "verify_question": "底层磁盘是否出现扇区故障",
+      "expected_finding": "如命中则磁盘扇区错误日志与读延迟一致",
+      "topo_path": ["lun-backup-01", "disk-01a"],
+      "scope": "底层资源",
+      "round": 1
+    }
+  ]
+}

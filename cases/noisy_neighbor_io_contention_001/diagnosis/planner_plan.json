@@ -1,0 +1,77 @@
+{
+  "plan_id": "plan-noisy_neighbor_io_contention_001-001",
+  "original_scope": "受害业务路径（host-b → lun-b → fc-port-0a → controller-0a → storage-pool-01）",
+  "targets": [
+    {
+      "seq": 1,
+      "target_resource": "lun-b",
+      "target_fault_mode": "LUN-B 时延突增",
+      "verify_question": "受害 LUN 自身 IO 是否异常且与现象时间窗一致",
+      "expected_finding": "如命中则 LUN-B 时延/iops 异常；否则为受外部影响",
+      "topo_path": ["business-b", "host-b", "san-fabric-01", "fc-port-0a", "controller-0a", "lun-b", "storage-pool-01"],
+      "scope": "受害业务路径",
+      "round": 1
+    },
+    {
+      "seq": 2,
+      "target_resource": "host-b",
+      "target_fault_mode": "Host-B 资源瓶颈",
+      "verify_question": "受害主机自身 CPU/IO 是否成为瓶颈",
+      "expected_finding": "如命中则 Host-B 资源占用突增，否则排除主机本体",
+      "topo_path": ["business-b", "host-b", "san-fabric-01", "lun-b"],
+      "scope": "受害业务路径",
+      "round": 1
+    },
+    {
+      "seq": 3,
+      "target_resource": "fc-port-0a",
+      "target_fault_mode": "FC 端口链路抖动",
+      "verify_question": "共享 FC 链路是否出现抖动或错误计数增长",
+      "expected_finding": "如命中则链路错误计数异常；否则排除链路问题",
+      "topo_path": ["host-b", "san-fabric-01", "fc-port-0a", "controller-0a"],
+      "scope": "共享资源",
+      "round": 1
+    },
+    {
+      "seq": 4,
+      "target_resource": "controller-0a",
+      "target_fault_mode": "共享控制器队列压力",
+      "verify_question": "共享控制器队列深度是否被兄弟消费者抬高",
+      "expected_finding": "如命中则队列深度/带宽利用率突增且与受害时延同步",
+      "topo_path": ["fc-port-0a", "controller-0a", "lun-a", "lun-b", "storage-pool-01"],
+      "scope": "共享资源",
+      "round": 1
+    },
+    {
+      "seq": 5,
+      "target_resource": "storage-pool-01",
+      "target_fault_mode": "共享存储池带宽争用",
+      "verify_question": "共享存储池带宽是否被兄弟 LUN 争用",
+      "expected_finding": "如命中则池带宽利用率突增且与受害时延同步",
+      "topo_path": ["lun-a", "lun-b", "storage-pool-01", "ssd-group-01"],
+      "scope": "共享资源",
+      "round": 1
+    },
+    {
+      "seq": 6,
+      "target_resource": "host-a",
+      "target_fault_mode": "Host-A 批处理 IO 突增（施压者）",
+      "verify_question": "兄弟消费者 Host-A 是否产生 IO 突增抢占共享资源",
+      "expected_finding": "如命中则 Host-A/LUN-A IO 突增先于受害时延，且共享资源队列同步抬升",
+      "topo_path": ["business-a", "host-a", "san-fabric-01", "fc-port-0a", "controller-0a", "lun-a", "storage-pool-01"],
+      "scope": "共享消费者反向追溯",
+      "round": 2
+    }
+  ],
+  "replans": [
+    {
+      "round": 2,
+      "trigger_task_id": "task-expand-shared-consumers",
+      "reason": "受害路径与共享资源均未定位根因，反向追溯共享资源的兄弟消费者",
+      "original_scope": "受害业务路径（host-b → lun-b → fc-port-0a → controller-0a → storage-pool-01）",
+      "new_scope": "受害路径 + 共享消费者反向追溯（Host-A / LUN-A）",
+      "added_targets": ["host-a"],
+      "paused_targets": []
+    }
+  ]
+}

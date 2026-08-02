@@ -57,6 +57,9 @@ export function createEmptySnapshot(
     current_activity: null,
     background_activity_ids: [],
     plans: [],
+    planner_targets: [],
+    planner_replans: [],
+    planner_original_scope: null,
     tasks: [],
     skill_executions: [],
     facts: [],
@@ -251,6 +254,17 @@ function handlePlan(s: DiagnosisSessionSnapshot, p: Record<string, unknown>): vo
       tasks: stringArray(p['task_refs']),
     },
   ]
+  // issue#6 阶段A：Planner 目标列表随 PLAN 事件下发（重规划时更新为最新轮次目标）。
+  if (Array.isArray(p['planner_targets'])) {
+    s.planner_targets = p['planner_targets'] as DiagnosisSessionSnapshot['planner_targets']
+  }
+  if (typeof p['planner_original_scope'] === 'string') {
+    s.planner_original_scope = p['planner_original_scope']
+  }
+  const replan = p['replan']
+  if (replan && typeof replan === 'object') {
+    s.planner_replans = [...s.planner_replans, replan as DiagnosisSessionSnapshot['planner_replans'][number]]
+  }
 }
 
 function handleTaskStatus(s: DiagnosisSessionSnapshot, p: Record<string, unknown>): void {

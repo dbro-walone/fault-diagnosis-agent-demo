@@ -3,8 +3,8 @@
   "session": {
     "session_id": "session-controller_warm_reset_001",
     "case_id": "controller_warm_reset_001",
-    "version": 64,
-    "last_sequence": 64,
+    "version": 65,
+    "last_sequence": 65,
     "mode": "LIVE",
     "phase": "CONCLUSION_CHECK",
     "terminal_status": "ROOT_CAUSE_CONFIRMED",
@@ -520,7 +520,7 @@
           }
         ]
       },
-      "created_sequence": 36
+      "created_sequence": 37
     },
     {
       "fact_id": "fact-case-20260618-023",
@@ -550,7 +550,7 @@
         ],
         "resolution_summary": "控制器恢复后保持备用状态，业务由对端控制器承载；历史处置仅作参考。"
       },
-      "created_sequence": 41
+      "created_sequence": 42
     }
   ],
   "evidences": [
@@ -574,7 +574,7 @@
       "time_alignment_ms": 278,
       "quality": "HIGH",
       "created_by": "reasoning-engine",
-      "created_sequence": 44
+      "created_sequence": 45
     },
     {
       "evidence_id": "ev-warm-reset-fingerprint",
@@ -596,7 +596,7 @@
       "time_alignment_ms": 505,
       "quality": "HIGH",
       "created_by": "reasoning-engine",
-      "created_sequence": 45
+      "created_sequence": 46
     },
     {
       "evidence_id": "ev-watchdog-timeout-log",
@@ -618,7 +618,7 @@
       "time_alignment_ms": 818,
       "quality": "HIGH",
       "created_by": "reasoning-engine",
-      "created_sequence": 46
+      "created_sequence": 47
     },
     {
       "evidence_id": "ev-controller-throughput-zero",
@@ -640,7 +640,7 @@
       "time_alignment_ms": 120,
       "quality": "HIGH",
       "created_by": "reasoning-engine",
-      "created_sequence": 47
+      "created_sequence": 48
     },
     {
       "evidence_id": "ev-controller0b-takeover",
@@ -662,7 +662,7 @@
       "time_alignment_ms": 230,
       "quality": "HIGH",
       "created_by": "reasoning-engine",
-      "created_sequence": 48
+      "created_sequence": 49
     },
     {
       "evidence_id": "ev-topology-failover",
@@ -685,7 +685,7 @@
       "time_alignment_ms": 230,
       "quality": "HIGH",
       "created_by": "reasoning-engine",
-      "created_sequence": 49
+      "created_sequence": 50
     },
     {
       "evidence_id": "ev-similar-case",
@@ -707,7 +707,7 @@
       "time_alignment_ms": null,
       "quality": "MEDIUM",
       "created_by": "reasoning-engine",
-      "created_sequence": 50
+      "created_sequence": 51
     },
     {
       "evidence_id": "ev-fc-crc-normal",
@@ -729,7 +729,7 @@
       "time_alignment_ms": null,
       "quality": "HIGH",
       "created_by": "reasoning-engine",
-      "created_sequence": 51
+      "created_sequence": 52
     },
     {
       "evidence_id": "ev-san-no-alarm",
@@ -751,7 +751,7 @@
       "time_alignment_ms": null,
       "quality": "HIGH",
       "created_by": "reasoning-engine",
-      "created_sequence": 52
+      "created_sequence": 53
     },
     {
       "evidence_id": "ev-pool-utilization-normal",
@@ -773,7 +773,7 @@
       "time_alignment_ms": null,
       "quality": "HIGH",
       "created_by": "reasoning-engine",
-      "created_sequence": 53
+      "created_sequence": 54
     }
   ],
   "candidates": [
@@ -1122,7 +1122,74 @@
           "task-query-topology",
           "task-check-pool",
           "task-search-similar-case"
-        ]
+        ],
+        "planner_targets": [
+          {
+            "seq": 1,
+            "target_resource": "lun-db01",
+            "target_fault_mode": "LUN 时延突增",
+            "verify_question": "LUN 自身时延是否出现突增并贴合现象时间窗",
+            "expected_finding": "如命中则 LUN 平均时延远超基线且与现象时间一致",
+            "topo_path": [
+              "db-business-01",
+              "db-host-01",
+              "san-fabric-a",
+              "fc-port-0a",
+              "controller-0a",
+              "block-service-01",
+              "lun-db01"
+            ],
+            "scope": "业务专属路径",
+            "round": 1
+          },
+          {
+            "seq": 2,
+            "target_resource": "db-host-01",
+            "target_fault_mode": "主机 IO 路径异常",
+            "verify_question": "数据库主机是否出现 IO 队列堆积或链路异常",
+            "expected_finding": "如命中则 Host 侧 IO 等待与 LUN 时延同步升高",
+            "topo_path": [
+              "db-business-01",
+              "db-host-01",
+              "san-fabric-a",
+              "fc-port-0a"
+            ],
+            "scope": "业务专属路径",
+            "round": 1
+          },
+          {
+            "seq": 3,
+            "target_resource": "fc-port-0a",
+            "target_fault_mode": "FC 端口链路抖动",
+            "verify_question": "FC 端口是否出现链路抖动或错误计数增长",
+            "expected_finding": "如命中则 CRC 错误/链路重置计数异常且与切换时间吻合",
+            "topo_path": [
+              "db-host-01",
+              "san-fabric-a",
+              "fc-port-0a",
+              "controller-0a"
+            ],
+            "scope": "业务专属路径",
+            "round": 1
+          },
+          {
+            "seq": 4,
+            "target_resource": "controller-0a",
+            "target_fault_mode": "控制器热复位",
+            "verify_question": "控制器是否发生 Watchdog 超时热复位并触发主备接管",
+            "expected_finding": "如命中则出现热复位日志指纹、Watchdog 超时与接管切换记录",
+            "topo_path": [
+              "fc-port-0a",
+              "controller-0a",
+              "controller-0b",
+              "block-service-01",
+              "lun-db01"
+            ],
+            "scope": "业务专属路径",
+            "round": 1
+          }
+        ],
+        "planner_original_scope": "业务专属路径（lun-db01 → db-host-01 → fc-port-0a → controller-0a）"
       }
     },
     {
@@ -1183,8 +1250,8 @@
         "ui_role": "PRIMARY",
         "goal": "查询控制器告警",
         "action_text": "执行 alarm_query：查询控制器告警",
-        "reason_text": "按 Planner 优先级验证候选相关对象与时间窗",
-        "expected_result_text": "期望命中与候选对象、时间窗一致的告警生命周期",
+        "reason_text": "控制器是否发生 Watchdog 超时热复位并触发主备接管",
+        "expected_result_text": "如命中则出现热复位日志指纹、Watchdog 超时与接管切换记录",
         "target_object_refs": [
           "controller-0a"
         ]
@@ -1347,8 +1414,8 @@
         "ui_role": "BACKGROUND",
         "goal": "匹配热复位日志指纹",
         "action_text": "执行 log_fingerprint_query：匹配热复位日志指纹",
-        "reason_text": "按 Planner 优先级验证候选相关对象与时间窗",
-        "expected_result_text": "期望命中可解释故障机理的日志指纹序列",
+        "reason_text": "控制器是否发生 Watchdog 超时热复位并触发主备接管",
+        "expected_result_text": "如命中则出现热复位日志指纹、Watchdog 超时与接管切换记录",
         "target_object_refs": [
           "controller-0a"
         ]
@@ -1483,9 +1550,9 @@
           "display_name": "对齐控制器与LUN KPI",
           "goal": "对齐控制器与LUN KPI",
           "target_object_refs": [
-            "kpi-controller-0a-throughput",
-            "kpi-controller-0b-throughput",
-            "kpi-lun-db01-latency"
+            "controller-0a",
+            "controller-0b",
+            "lun-db01"
           ],
           "input": {
             "series_ids": [
@@ -1526,12 +1593,12 @@
         "ui_role": "BACKGROUND",
         "goal": "对齐控制器与LUN KPI",
         "action_text": "执行 kpi_query：对齐控制器与LUN KPI",
-        "reason_text": "按 Planner 优先级验证候选相关对象与时间窗",
-        "expected_result_text": "期望获得对象指标基线、阈值与异常窗口的时序对齐",
+        "reason_text": "LUN 自身时延是否出现突增并贴合现象时间窗",
+        "expected_result_text": "如命中则 LUN 平均时延远超基线且与现象时间一致",
         "target_object_refs": [
-          "kpi-controller-0a-throughput",
-          "kpi-controller-0b-throughput",
-          "kpi-lun-db01-latency"
+          "controller-0a",
+          "controller-0b",
+          "lun-db01"
         ]
       }
     },
@@ -1823,8 +1890,8 @@
         "ui_role": "BACKGROUND",
         "goal": "检查FC端口状态与错误计数",
         "action_text": "执行 link_health_query：检查FC端口状态与错误计数",
-        "reason_text": "按 Planner 优先级验证候选相关对象与时间窗",
-        "expected_result_text": "期望确认链路状态与错误计数是否异常",
+        "reason_text": "FC 端口是否出现链路抖动或错误计数增长",
+        "expected_result_text": "如命中则 CRC 错误/链路重置计数异常且与切换时间吻合",
         "target_object_refs": [
           "fc-port-0a",
           "fc-port-0b"
@@ -2010,8 +2077,8 @@
         "ui_role": "BACKGROUND",
         "goal": "查询块业务路径与主备关系",
         "action_text": "执行 topology_query：查询块业务路径与主备关系",
-        "reason_text": "按 Planner 优先级验证候选相关对象与时间窗",
-        "expected_result_text": "期望获得上下游、主备/共享/复制等关系子图",
+        "reason_text": "LUN 自身时延是否出现突增并贴合现象时间窗",
+        "expected_result_text": "如命中则 LUN 平均时延远超基线且与现象时间一致",
         "target_object_refs": [
           "lun-db01"
         ]
@@ -2092,10 +2159,118 @@
       "event_id": "evt-0033",
       "session_id": "session-controller_warm_reset_001",
       "sequence": 33,
+      "event_type": "PLAN_REPLANNED",
+      "producer": "planner",
+      "correlation_id": null,
+      "causation_id": "evt-0031",
+      "payload": {
+        "plan_id": "plan-controller_warm_reset_001-002",
+        "previous_plan_id": "plan-controller_warm_reset_001-001",
+        "phase": "CANDIDATE_EVIDENCE",
+        "reason": "业务专属路径未发现后端资源瓶颈，扩展至共享存储池验证后端争用",
+        "task_refs": [
+          "task-check-pool"
+        ],
+        "planner_targets": [
+          {
+            "seq": 1,
+            "target_resource": "lun-db01",
+            "target_fault_mode": "LUN 时延突增",
+            "verify_question": "LUN 自身时延是否出现突增并贴合现象时间窗",
+            "expected_finding": "如命中则 LUN 平均时延远超基线且与现象时间一致",
+            "topo_path": [
+              "db-business-01",
+              "db-host-01",
+              "san-fabric-a",
+              "fc-port-0a",
+              "controller-0a",
+              "block-service-01",
+              "lun-db01"
+            ],
+            "scope": "业务专属路径",
+            "round": 1
+          },
+          {
+            "seq": 2,
+            "target_resource": "db-host-01",
+            "target_fault_mode": "主机 IO 路径异常",
+            "verify_question": "数据库主机是否出现 IO 队列堆积或链路异常",
+            "expected_finding": "如命中则 Host 侧 IO 等待与 LUN 时延同步升高",
+            "topo_path": [
+              "db-business-01",
+              "db-host-01",
+              "san-fabric-a",
+              "fc-port-0a"
+            ],
+            "scope": "业务专属路径",
+            "round": 1
+          },
+          {
+            "seq": 3,
+            "target_resource": "fc-port-0a",
+            "target_fault_mode": "FC 端口链路抖动",
+            "verify_question": "FC 端口是否出现链路抖动或错误计数增长",
+            "expected_finding": "如命中则 CRC 错误/链路重置计数异常且与切换时间吻合",
+            "topo_path": [
+              "db-host-01",
+              "san-fabric-a",
+              "fc-port-0a",
+              "controller-0a"
+            ],
+            "scope": "业务专属路径",
+            "round": 1
+          },
+          {
+            "seq": 4,
+            "target_resource": "controller-0a",
+            "target_fault_mode": "控制器热复位",
+            "verify_question": "控制器是否发生 Watchdog 超时热复位并触发主备接管",
+            "expected_finding": "如命中则出现热复位日志指纹、Watchdog 超时与接管切换记录",
+            "topo_path": [
+              "fc-port-0a",
+              "controller-0a",
+              "controller-0b",
+              "block-service-01",
+              "lun-db01"
+            ],
+            "scope": "业务专属路径",
+            "round": 1
+          },
+          {
+            "seq": 5,
+            "target_resource": "storage-pool-01",
+            "target_fault_mode": "存储池共享资源争用",
+            "verify_question": "存储池是否出现突发负载或共享资源争用",
+            "expected_finding": "如命中则池利用率突增且与现象时间一致，否则排除后端瓶颈",
+            "topo_path": [
+              "lun-db01",
+              "storage-pool-01",
+              "disk-group-01"
+            ],
+            "scope": "共享资源",
+            "round": 2
+          }
+        ],
+        "replan": {
+          "round": 2,
+          "reason": "业务专属路径未发现后端资源瓶颈，扩展至共享存储池验证后端争用",
+          "original_scope": "业务专属路径（lun-db01 → db-host-01 → fc-port-0a → controller-0a）",
+          "new_scope": "业务专属路径 + 共享资源（storage-pool-01 / disk-group-01）",
+          "added_targets": [
+            "storage-pool-01"
+          ],
+          "paused_targets": []
+        }
+      }
+    },
+    {
+      "event_id": "evt-0034",
+      "session_id": "session-controller_warm_reset_001",
+      "sequence": 34,
       "event_type": "TASK_STATUS_CHANGED",
       "producer": "planner",
       "correlation_id": "exec-task-check-pool",
-      "causation_id": "evt-0007",
+      "causation_id": "evt-0033",
       "payload": {
         "task": {
           "task_id": "task-check-pool",
@@ -2106,7 +2281,7 @@
           "display_name": "检查存储池负载",
           "goal": "检查存储池负载",
           "target_object_refs": [
-            "kpi-pool-utilization"
+            "storage-pool-01"
           ],
           "input": {
             "series_ids": [
@@ -2128,14 +2303,14 @@
       }
     },
     {
-      "event_id": "evt-0034",
+      "event_id": "evt-0035",
       "session_id": "session-controller_warm_reset_001",
-      "sequence": 34,
+      "sequence": 35,
       "event_type": "SKILL_STARTED",
       "occurred_at": "2026-07-30T14:32:25.220+08:00",
       "producer": "skill-executor",
       "correlation_id": "exec-task-check-pool",
-      "causation_id": "evt-0033",
+      "causation_id": "evt-0034",
       "payload": {
         "execution_id": "exec-task-check-pool",
         "task_id": "task-check-pool",
@@ -2143,22 +2318,22 @@
         "ui_role": "BACKGROUND",
         "goal": "检查存储池负载",
         "action_text": "执行 kpi_query：检查存储池负载",
-        "reason_text": "按 Planner 优先级验证候选相关对象与时间窗",
-        "expected_result_text": "期望获得对象指标基线、阈值与异常窗口的时序对齐",
+        "reason_text": "存储池是否出现突发负载或共享资源争用",
+        "expected_result_text": "如命中则池利用率突增且与现象时间一致，否则排除后端瓶颈",
         "target_object_refs": [
-          "kpi-pool-utilization"
+          "storage-pool-01"
         ]
       }
     },
     {
-      "event_id": "evt-0035",
+      "event_id": "evt-0036",
       "session_id": "session-controller_warm_reset_001",
-      "sequence": 35,
+      "sequence": 36,
       "event_type": "SKILL_COMPLETED",
       "occurred_at": "2026-07-30T14:32:25.680+08:00",
       "producer": "skill-executor",
       "correlation_id": "exec-task-check-pool",
-      "causation_id": "evt-0033",
+      "causation_id": "evt-0034",
       "payload": {
         "execution_id": "exec-task-check-pool",
         "result_summary": "检查存储池负载",
@@ -2166,13 +2341,13 @@
       }
     },
     {
-      "event_id": "evt-0036",
+      "event_id": "evt-0037",
       "session_id": "session-controller_warm_reset_001",
-      "sequence": 36,
+      "sequence": 37,
       "event_type": "FACT_DISCOVERED",
       "producer": "fact-normalizer",
       "correlation_id": "exec-task-check-pool",
-      "causation_id": "evt-0035",
+      "causation_id": "evt-0036",
       "payload": {
         "fact_refs": [
           "fact-kpi-pool-utilization"
@@ -2260,26 +2435,26 @@
       }
     },
     {
-      "event_id": "evt-0037",
+      "event_id": "evt-0038",
       "session_id": "session-controller_warm_reset_001",
-      "sequence": 37,
+      "sequence": 38,
       "event_type": "TASK_STATUS_CHANGED",
       "producer": "planner",
       "correlation_id": "exec-task-check-pool",
-      "causation_id": "evt-0036",
+      "causation_id": "evt-0037",
       "payload": {
         "task_id": "task-check-pool",
         "status": "SUCCEEDED"
       }
     },
     {
-      "event_id": "evt-0038",
+      "event_id": "evt-0039",
       "session_id": "session-controller_warm_reset_001",
-      "sequence": 38,
+      "sequence": 39,
       "event_type": "TASK_STATUS_CHANGED",
       "producer": "planner",
       "correlation_id": "exec-task-search-similar-case",
-      "causation_id": "evt-0007",
+      "causation_id": "evt-0033",
       "payload": {
         "task": {
           "task_id": "task-search-similar-case",
@@ -2312,14 +2487,14 @@
       }
     },
     {
-      "event_id": "evt-0039",
+      "event_id": "evt-0040",
       "session_id": "session-controller_warm_reset_001",
-      "sequence": 39,
+      "sequence": 40,
       "event_type": "SKILL_STARTED",
       "occurred_at": "2026-07-30T14:32:25.250+08:00",
       "producer": "skill-executor",
       "correlation_id": "exec-task-search-similar-case",
-      "causation_id": "evt-0038",
+      "causation_id": "evt-0039",
       "payload": {
         "execution_id": "exec-task-search-similar-case",
         "task_id": "task-search-similar-case",
@@ -2333,14 +2508,14 @@
       }
     },
     {
-      "event_id": "evt-0040",
+      "event_id": "evt-0041",
       "session_id": "session-controller_warm_reset_001",
-      "sequence": 40,
+      "sequence": 41,
       "event_type": "SKILL_COMPLETED",
       "occurred_at": "2026-07-30T14:32:26.340+08:00",
       "producer": "skill-executor",
       "correlation_id": "exec-task-search-similar-case",
-      "causation_id": "evt-0038",
+      "causation_id": "evt-0039",
       "payload": {
         "execution_id": "exec-task-search-similar-case",
         "result_summary": "检索相似历史案例",
@@ -2348,13 +2523,13 @@
       }
     },
     {
-      "event_id": "evt-0041",
+      "event_id": "evt-0042",
       "session_id": "session-controller_warm_reset_001",
-      "sequence": 41,
+      "sequence": 42,
       "event_type": "FACT_DISCOVERED",
       "producer": "fact-normalizer",
       "correlation_id": "exec-task-search-similar-case",
-      "causation_id": "evt-0040",
+      "causation_id": "evt-0041",
       "payload": {
         "fact_refs": [
           "fact-case-20260618-023"
@@ -2393,34 +2568,34 @@
       }
     },
     {
-      "event_id": "evt-0042",
+      "event_id": "evt-0043",
       "session_id": "session-controller_warm_reset_001",
-      "sequence": 42,
+      "sequence": 43,
       "event_type": "TASK_STATUS_CHANGED",
       "producer": "planner",
       "correlation_id": "exec-task-search-similar-case",
-      "causation_id": "evt-0041",
+      "causation_id": "evt-0042",
       "payload": {
         "task_id": "task-search-similar-case",
         "status": "SUCCEEDED"
       }
     },
     {
-      "event_id": "evt-0043",
+      "event_id": "evt-0044",
       "session_id": "session-controller_warm_reset_001",
-      "sequence": 43,
+      "sequence": 44,
       "event_type": "DIAGNOSIS_PHASE_CHANGED",
       "producer": "planner",
       "correlation_id": null,
-      "causation_id": "evt-0042",
+      "causation_id": "evt-0043",
       "payload": {
         "phase": "COMPETING_EXPLANATION"
       }
     },
     {
-      "event_id": "evt-0044",
+      "event_id": "evt-0045",
       "session_id": "session-controller_warm_reset_001",
-      "sequence": 44,
+      "sequence": 45,
       "event_type": "EVIDENCE_CREATED",
       "producer": "reasoning",
       "correlation_id": null,
@@ -2451,9 +2626,9 @@
       }
     },
     {
-      "event_id": "evt-0045",
+      "event_id": "evt-0046",
       "session_id": "session-controller_warm_reset_001",
-      "sequence": 45,
+      "sequence": 46,
       "event_type": "EVIDENCE_CREATED",
       "producer": "reasoning",
       "correlation_id": null,
@@ -2484,9 +2659,9 @@
       }
     },
     {
-      "event_id": "evt-0046",
+      "event_id": "evt-0047",
       "session_id": "session-controller_warm_reset_001",
-      "sequence": 46,
+      "sequence": 47,
       "event_type": "EVIDENCE_CREATED",
       "producer": "reasoning",
       "correlation_id": null,
@@ -2517,9 +2692,9 @@
       }
     },
     {
-      "event_id": "evt-0047",
+      "event_id": "evt-0048",
       "session_id": "session-controller_warm_reset_001",
-      "sequence": 47,
+      "sequence": 48,
       "event_type": "EVIDENCE_CREATED",
       "producer": "reasoning",
       "correlation_id": null,
@@ -2550,9 +2725,9 @@
       }
     },
     {
-      "event_id": "evt-0048",
+      "event_id": "evt-0049",
       "session_id": "session-controller_warm_reset_001",
-      "sequence": 48,
+      "sequence": 49,
       "event_type": "EVIDENCE_CREATED",
       "producer": "reasoning",
       "correlation_id": null,
@@ -2583,9 +2758,9 @@
       }
     },
     {
-      "event_id": "evt-0049",
+      "event_id": "evt-0050",
       "session_id": "session-controller_warm_reset_001",
-      "sequence": 49,
+      "sequence": 50,
       "event_type": "EVIDENCE_CREATED",
       "producer": "reasoning",
       "correlation_id": null,
@@ -2617,13 +2792,13 @@
       }
     },
     {
-      "event_id": "evt-0050",
+      "event_id": "evt-0051",
       "session_id": "session-controller_warm_reset_001",
-      "sequence": 50,
+      "sequence": 51,
       "event_type": "EVIDENCE_CREATED",
       "producer": "reasoning",
       "correlation_id": null,
-      "causation_id": "evt-0041",
+      "causation_id": "evt-0042",
       "payload": {
         "evidence_ref": "ev-similar-case",
         "evidence": {
@@ -2650,9 +2825,9 @@
       }
     },
     {
-      "event_id": "evt-0051",
+      "event_id": "evt-0052",
       "session_id": "session-controller_warm_reset_001",
-      "sequence": 51,
+      "sequence": 52,
       "event_type": "EVIDENCE_CREATED",
       "producer": "reasoning",
       "correlation_id": null,
@@ -2683,9 +2858,9 @@
       }
     },
     {
-      "event_id": "evt-0052",
+      "event_id": "evt-0053",
       "session_id": "session-controller_warm_reset_001",
-      "sequence": 52,
+      "sequence": 53,
       "event_type": "EVIDENCE_CREATED",
       "producer": "reasoning",
       "correlation_id": null,
@@ -2716,13 +2891,13 @@
       }
     },
     {
-      "event_id": "evt-0053",
+      "event_id": "evt-0054",
       "session_id": "session-controller_warm_reset_001",
-      "sequence": 53,
+      "sequence": 54,
       "event_type": "EVIDENCE_CREATED",
       "producer": "reasoning",
       "correlation_id": null,
-      "causation_id": "evt-0036",
+      "causation_id": "evt-0037",
       "payload": {
         "evidence_ref": "ev-pool-utilization-normal",
         "evidence": {
@@ -2749,13 +2924,13 @@
       }
     },
     {
-      "event_id": "evt-0054",
+      "event_id": "evt-0055",
       "session_id": "session-controller_warm_reset_001",
-      "sequence": 54,
+      "sequence": 55,
       "event_type": "CANDIDATE_UPDATED",
       "producer": "reasoning",
       "correlation_id": null,
-      "causation_id": "evt-0044",
+      "causation_id": "evt-0045",
       "payload": {
         "candidate_id": "cand-controller-warm-reset",
         "score_before": 42,
@@ -2768,13 +2943,13 @@
       }
     },
     {
-      "event_id": "evt-0055",
+      "event_id": "evt-0056",
       "session_id": "session-controller_warm_reset_001",
-      "sequence": 55,
+      "sequence": 56,
       "event_type": "CANDIDATE_UPDATED",
       "producer": "reasoning",
       "correlation_id": null,
-      "causation_id": "evt-0051",
+      "causation_id": "evt-0052",
       "payload": {
         "candidate_id": "cand-fc-link-flap",
         "score_before": 28,
@@ -2787,13 +2962,13 @@
       }
     },
     {
-      "event_id": "evt-0056",
+      "event_id": "evt-0057",
       "session_id": "session-controller_warm_reset_001",
-      "sequence": 56,
+      "sequence": 57,
       "event_type": "CANDIDATE_UPDATED",
       "producer": "reasoning",
       "correlation_id": null,
-      "causation_id": "evt-0052",
+      "causation_id": "evt-0053",
       "payload": {
         "candidate_id": "cand-san-link-fault",
         "score_before": 18,
@@ -2806,13 +2981,13 @@
       }
     },
     {
-      "event_id": "evt-0057",
+      "event_id": "evt-0058",
       "session_id": "session-controller_warm_reset_001",
-      "sequence": 57,
+      "sequence": 58,
       "event_type": "CANDIDATE_UPDATED",
       "producer": "reasoning",
       "correlation_id": null,
-      "causation_id": "evt-0053",
+      "causation_id": "evt-0054",
       "payload": {
         "candidate_id": "cand-pool-bottleneck",
         "score_before": 12,
@@ -2825,13 +3000,13 @@
       }
     },
     {
-      "event_id": "evt-0058",
+      "event_id": "evt-0059",
       "session_id": "session-controller_warm_reset_001",
-      "sequence": 58,
+      "sequence": 59,
       "event_type": "CANDIDATE_UPDATED",
       "producer": "reasoning",
       "correlation_id": null,
-      "causation_id": "evt-0045",
+      "causation_id": "evt-0046",
       "payload": {
         "candidate_id": "cand-controller-warm-reset",
         "score_before": 68,
@@ -2849,13 +3024,13 @@
       }
     },
     {
-      "event_id": "evt-0059",
+      "event_id": "evt-0060",
       "session_id": "session-controller_warm_reset_001",
-      "sequence": 59,
+      "sequence": 60,
       "event_type": "CANDIDATE_UPDATED",
       "producer": "reasoning",
       "correlation_id": null,
-      "causation_id": "evt-0051",
+      "causation_id": "evt-0052",
       "payload": {
         "candidate_id": "cand-fc-link-flap",
         "score_before": 17,
@@ -2869,13 +3044,13 @@
       }
     },
     {
-      "event_id": "evt-0060",
+      "event_id": "evt-0061",
       "session_id": "session-controller_warm_reset_001",
-      "sequence": 60,
+      "sequence": 61,
       "event_type": "CANDIDATE_UPDATED",
       "producer": "reasoning",
       "correlation_id": null,
-      "causation_id": "evt-0052",
+      "causation_id": "evt-0053",
       "payload": {
         "candidate_id": "cand-san-link-fault",
         "score_before": 9,
@@ -2889,13 +3064,13 @@
       }
     },
     {
-      "event_id": "evt-0061",
+      "event_id": "evt-0062",
       "session_id": "session-controller_warm_reset_001",
-      "sequence": 61,
+      "sequence": 62,
       "event_type": "CANDIDATE_UPDATED",
       "producer": "reasoning",
       "correlation_id": null,
-      "causation_id": "evt-0053",
+      "causation_id": "evt-0054",
       "payload": {
         "candidate_id": "cand-pool-bottleneck",
         "score_before": 6,
@@ -2909,25 +3084,25 @@
       }
     },
     {
-      "event_id": "evt-0062",
+      "event_id": "evt-0063",
       "session_id": "session-controller_warm_reset_001",
-      "sequence": 62,
+      "sequence": 63,
       "event_type": "DIAGNOSIS_PHASE_CHANGED",
       "producer": "planner",
       "correlation_id": null,
-      "causation_id": "evt-0061",
+      "causation_id": "evt-0062",
       "payload": {
         "phase": "CONCLUSION_CHECK"
       }
     },
     {
-      "event_id": "evt-0063",
+      "event_id": "evt-0064",
       "session_id": "session-controller_warm_reset_001",
-      "sequence": 63,
+      "sequence": 64,
       "event_type": "ROOT_CAUSE_CONFIRMED",
       "producer": "reasoning",
       "correlation_id": null,
-      "causation_id": "evt-0058",
+      "causation_id": "evt-0059",
       "payload": {
         "candidate_ref": "cand-controller-warm-reset",
         "score": 96,
@@ -2943,13 +3118,13 @@
       }
     },
     {
-      "event_id": "evt-0064",
+      "event_id": "evt-0065",
       "session_id": "session-controller_warm_reset_001",
-      "sequence": 64,
+      "sequence": 65,
       "event_type": "DIAGNOSIS_COMPLETED",
       "producer": "runtime",
       "correlation_id": null,
-      "causation_id": "evt-0063",
+      "causation_id": "evt-0064",
       "payload": {
         "conclusion": {
           "diagnosis_id": "diag-controller-warm-reset-001",
@@ -3035,17 +3210,17 @@
           },
           {
             "scene_id": "scene-06",
-            "sequence": 43,
+            "sequence": 44,
             "title": "候选验证与排除"
           },
           {
             "scene_id": "scene-07",
-            "sequence": 62,
+            "sequence": 63,
             "title": "根因诊断完成"
           },
           {
             "scene_id": "scene-08",
-            "sequence": 62,
+            "sequence": 63,
             "title": "修复闭环能力预告"
           }
         ]

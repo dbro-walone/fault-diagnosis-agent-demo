@@ -24,6 +24,7 @@ import {
   CandidateStatus,
   DiagnosisPhase,
   EvidenceEffect,
+  FactType,
   RuntimeMode,
   TaskStatus,
   TerminalStatus,
@@ -33,6 +34,8 @@ import {
   type DiagnosisSessionSnapshot,
   type Evidence,
   type PlanTask,
+  type PlannerPlan,
+  type PlannerTarget,
   type RuntimeEvent,
   type SkillExecution,
 } from './runtime-types'
@@ -71,6 +74,43 @@ class EventBuilder {
     this.events.push(event)
     return event
   }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Planner 目标（issue#6 阶段A）
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** 取某轮次下可见的 Planner 目标（round ≤ 指定轮次，按 seq 升序）。 */
+function targetsForRound(plan: PlannerPlan | null, round: number): PlannerTarget[] {
+  if (!plan) return []
+  return plan.targets
+    .filter((t) => (t.round ?? 1) <= round)
+    .sort((a, b) => a.seq - b.seq)
+}
+
+/**
+ * 找到与当前任务最贴合的 Planner 目标（issue#6 阶段A）。
+ * 匹配优先级：目标资源命中任务 target_object_refs → 目标资源命中任务产出的 Fact 对象。
+ * 用于把 reason_text / expected_result_text 从泛化文案替换为"该目标为什么验证/期望发现什么"。
+ * 无匹配时返回 null（回退泛化文案）。
+ */
+function planTargetForTask(adapted: AdaptedCase, task: PlanTask): PlannerTarget | null {
+  const plan = adapted.plannerPlan
+  if (!plan) return null
+  const taskObjs = new Set<string>(task.target_object_refs ?? [])
+  const factObjs = new Set<string>()
+  for (const ref of task.result_refs ?? []) {
+    const fact = adapted.factBySourceRef.get(ref)
+    // 相似案例引用的对象是启发式回退（案例根因对象在实例中的代表），不代表本任务验证目标。
+    if (fact && fact.fact_type !== FactType.SIMILAR_CASE_REFERENCE) {
+      for (const o of fact.object_refs ?? []) factObjs.add(o)
+    }
+  }
+  return (
+    [...plan.targets]
+      .sort((a, b) => a.seq - b.seq)
+      .find((t) => taskObjs.has(t.target_resource) || factObjs.has(t.target_resource)) ?? null
+  )
 }
 
 /** Skill 通用期望文案（按 skill_id，不按 case_id）。 */
@@ -330,11 +370,15 @@ export function generateEvents(adapted: AdaptedCase, failures: FailureInjection[
   // 5. 进入取证阶段
   const phaseCandidateEvidence = b.emit('DIAGNOSIS_PHASE_CHANGED', { phase: DiagnosisPhase.CANDIDATE_EVIDENCE },
     { producer: 'planner', causationId: phaseCandidateGen.event_id })
+  const plan = adapted.plannerPlan
   const planCreated = b.emit('PLAN_CREATED', {
     plan_id: `plan-${adapted.caseId}-001`,
     phase: DiagnosisPhase.CANDIDATE_EVIDENCE,
     primary_task_id: adapted.tasks[0]?.task_id ?? null,
     task_refs: adapted.tasks.map((t) => t.task_id),
+    // issue#6 阶段A：初始轮次（round=1）的 Planner 目标列表 + 初始诊断范围。
+    planner_targets: targetsForRound(plan, 1),
+    planner_original_scope: plan?.original_scope ?? null,
   }, { producer: 'planner', causationId: phaseCandidateEvidence.event_id })
 
   // 6. 逐任务取证：TASK(RUNNING) → SKILL_STARTED → SKILL_COMPLETED → FACT_DISCOVERED → TASK(SUCCEEDED)
@@ -347,9 +391,32 @@ export function generateEvents(adapted: AdaptedCase, failures: FailureInjection[
   let lastFactDiscoveredEventId: string | null = null // 触发重规划的事实证据（最近一次 FACT_DISCOVERED）
   let lastTaskEventId = planCreated.event_id // 最近任务完成事件，供阶段切换因果回溯
   for (const task of adapted.tasks) {
-    // 重规划：阶段切换到 replanning 时输出 PLAN_REPLANNED（docs/08 §8）。
-    // 因果：由前序任务产出的“事实证据”触发（EVIDENCE_CREATED 尚未生成，以最近 FACT_DISCOVERED 为直接前因）。
-    if (task.stage && task.stage !== prevStage && task.stage === 'replanning') {
+    // 重规划：输出 PLAN_REPLANNED（docs/08 §8）。
+    // issue#6 阶段A：优先按 Planner 计划的 replan 锚点触发（trigger_task_id，数据驱动），
+    // 携带”原范围→新范围、新增目标、暂停目标”差异；无 planner_plan 时回退
+    // 到 task.stage === 'replanning' 的旧机制（兼容无计划数据的 Case）。
+    // 因果：由前序任务产出的”事实证据”触发（EVIDENCE_CREATED 尚未生成，以最近 FACT_DISCOVERED 为直接前因）。
+    const planReplan = plan?.replans?.find((r) => r.trigger_task_id === task.task_id)
+    if (planReplan) {
+      planRound = Math.max(planRound + 1, planReplan.round)
+      const planReplanned = b.emit('PLAN_REPLANNED', {
+        plan_id: `plan-${adapted.caseId}-${String(planRound).padStart(3, '0')}`,
+        previous_plan_id: `plan-${adapted.caseId}-${String(planRound - 1).padStart(3, '0')}`,
+        phase: DiagnosisPhase.CANDIDATE_EVIDENCE,
+        reason: planReplan.reason,
+        task_refs: [task.task_id],
+        planner_targets: targetsForRound(plan, planReplan.round),
+        replan: {
+          round: planReplan.round,
+          reason: planReplan.reason,
+          original_scope: planReplan.original_scope,
+          new_scope: planReplan.new_scope,
+          added_targets: planReplan.added_targets,
+          paused_targets: planReplan.paused_targets,
+        },
+      }, { producer: 'planner', causationId: lastFactDiscoveredEventId ?? lastTaskEventId ?? planEventId })
+      planEventId = planReplanned.event_id
+    } else if (task.stage && task.stage !== prevStage && task.stage === 'replanning') {
       planRound += 1
       const planReplanned = b.emit('PLAN_REPLANNED', {
         plan_id: `plan-${adapted.caseId}-${String(planRound).padStart(3, '0')}`,
@@ -369,6 +436,9 @@ export function generateEvents(adapted: AdaptedCase, failures: FailureInjection[
       { task: { ...task, status: TaskStatus.RUNNING }, status: TaskStatus.RUNNING },
       { producer: 'planner', correlationId: execId, causationId: planEventId })
 
+    // issue#6 阶段A：reason/expected 优先取 Planner 目标"为什么验证/期望发现什么"，
+    // 无目标匹配时回退到 skill 泛化文案。
+    const planTarget = planTargetForTask(adapted, task)
     // SKILL_STARTED / SKILL_COMPLETED 的直接前因为任务派发（TASK_STATUS_CHANGED，或回退到计划事件）。
     b.emit('SKILL_STARTED', {
       execution_id: execId,
@@ -377,8 +447,8 @@ export function generateEvents(adapted: AdaptedCase, failures: FailureInjection[
       ui_role: uiRole,
       goal: task.display_name ?? task.goal ?? null,
       action_text: task.display_name ? `执行 ${task.skill_id}：${task.display_name}` : `执行 ${task.skill_id}`,
-      reason_text: '按 Planner 优先级验证候选相关对象与时间窗',
-      expected_result_text: expectedTextForSkill(task.skill_id ?? ''),
+      reason_text: planTarget?.verify_question ?? '按 Planner 优先级验证候选相关对象与时间窗',
+      expected_result_text: planTarget?.expected_finding ?? expectedTextForSkill(task.skill_id ?? ''),
       target_object_refs: task.target_object_refs ?? [],
     }, { producer: 'skill-executor', correlationId: execId, causationId: taskRunning.event_id, occurredAt: task.started_at ?? occurredAt })
 

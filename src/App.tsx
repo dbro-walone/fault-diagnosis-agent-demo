@@ -354,6 +354,7 @@ export default function App() {
       knowledge: store.knowledgeSnapshot(),
       action: store.currentAction(),
       candidates: store.candidateList(),
+      planner: store.plannerTargets(),
       timeline: store.timeline(),
     }
   }, [snapshot])
@@ -471,6 +472,7 @@ export default function App() {
           knowledge={vms.knowledge}
           action={vms.action}
           candidates={vms.candidates}
+          planner={vms.planner}
           snapshot={snapshot}
           store={vms.store}
           timelineEvents={vms.timeline}

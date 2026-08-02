@@ -27,6 +27,9 @@ import {
   type Evidence,
   type EvidenceEffectEntry,
   type PlanTask,
+  type PlannerPlan,
+  type PlannerReplan,
+  type PlannerTarget,
   type SkillExecution,
   type SymptomProjection,
 } from './runtime-types'
@@ -212,6 +215,14 @@ interface V1StoryboardScene {
   duration_ms?: number
 }
 
+/** V1 planner_plan.json —— Planner 优先级诊断目标（issue#6 阶段A）。 */
+interface V1PlannerPlan {
+  plan_id?: string
+  original_scope?: string
+  targets?: PlannerTarget[]
+  replans?: PlannerReplan[]
+}
+
 interface RawCasePackage {
   caseMeta: V1CaseMeta
   manifest: V1Manifest
@@ -230,6 +241,7 @@ interface RawCasePackage {
   normalizationChain?: string[]
   similarCases: V1SimilarCase[]
   storyboard: V1StoryboardScene[]
+  plannerPlan: PlannerPlan | null
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -436,6 +448,8 @@ export interface AdaptedCase {
   conclusion: Conclusion | null
   traceByCandidate: Map<string, TraceScorePoint[]>
   storyboard: V1StoryboardScene[]
+  /** issue#6 阶段A：Planner 优先级诊断目标计划（planner_plan.json）。 */
+  plannerPlan: PlannerPlan | null
   /** 资源/拓扑原始数据，供 Projection Store 构建图谱。 */
   resources: V1Resource[]
   edges: V1Edge[]
@@ -473,6 +487,7 @@ const similarModules = import.meta.glob<{ default: { similar_cases: V1SimilarCas
   { eager: true },
 )
 const storyboardModules = import.meta.glob<{ default: { scenes: V1StoryboardScene[] } }>('../../cases/*/playback/storyboard.json', { eager: true })
+const plannerPlanModules = import.meta.glob<{ default: V1PlannerPlan }>('../../cases/*/diagnosis/planner_plan.json', { eager: true })
 
 const PACKAGE_CACHE = new Map<string, RawCasePackage>()
 
@@ -516,9 +531,21 @@ function loadRawPackage(caseId: string): RawCasePackage {
     normalizationChain: find(symptomModules)?.normalization_chain,
     similarCases: find(similarModules)?.similar_cases ?? [],
     storyboard: find(storyboardModules)?.scenes ?? [],
+    plannerPlan: normalizePlannerPlan(find(plannerPlanModules)),
   }
   PACKAGE_CACHE.set(caseId, pkg)
   return pkg
+}
+
+/** 规整 V1 planner_plan.json → V2 PlannerPlan（缺失时返回 null）。 */
+function normalizePlannerPlan(raw: V1PlannerPlan | undefined): PlannerPlan | null {
+  if (!raw) return null
+  return {
+    plan_id: raw.plan_id ?? 'plan-unknown',
+    original_scope: raw.original_scope ?? '',
+    targets: raw.targets ?? [],
+    replans: raw.replans ?? [],
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -917,12 +944,13 @@ export function loadAdaptedCase(caseId: string): AdaptedCase {
     }
   }
 
+  const seriesToObject = new Map(pkg.kpis.map((k) => [k.series_id, k.object_id]))
   const executions: SkillExecution[] = pkg.tasks.map((t) => ({
     execution_id: `exec-${t.task_id}`,
     task_id: t.task_id,
     skill_id: skillCodeToSkillId(t.skill_code),
     status: mapTaskStatus(t.status),
-    target_object_refs: readObjectIds(t.input),
+    target_object_refs: readObjectIds(t.input, seriesToObject),
     started_at: t.started_at,
     ended_at: t.ended_at,
     source_refs: t.result_refs ?? [],
@@ -938,7 +966,7 @@ export function loadAdaptedCase(caseId: string): AdaptedCase {
     stage: t.stage,
     display_name: t.display_name,
     goal: t.display_name,
-    target_object_refs: readObjectIds(t.input),
+    target_object_refs: readObjectIds(t.input, seriesToObject),
     input: t.input,
     selection_reason: undefined,
     priority: 100 - i,
@@ -971,6 +999,7 @@ export function loadAdaptedCase(caseId: string): AdaptedCase {
     conclusion,
     traceByCandidate,
     storyboard: pkg.storyboard,
+    plannerPlan: pkg.plannerPlan,
     resources: pkg.resources,
     edges: pkg.edges,
   }
@@ -978,15 +1007,30 @@ export function loadAdaptedCase(caseId: string): AdaptedCase {
   return adapted
 }
 
-function readObjectIds(input: Record<string, unknown> | undefined): string[] {
+/**
+ * 从任务 input 提取目标对象 id（target_object_refs）。
+ * series_ids 是 KPI 查询的观测序列标识，不代表 CMDB 对象；此处按 KPI series
+ * 反查 object_id，使 target_object_refs 反映真实资源（issue#6 阶段A：Planner
+ * 目标状态"当前验证中"需要 target_object_refs 指向资源而非序列标识）。
+ */
+function readObjectIds(input: Record<string, unknown> | undefined, seriesToObject?: Map<string, string>): string[] {
   if (!input) return []
   const ids = new Set<string>()
   const push = (v: unknown) => {
     if (typeof v === 'string') ids.add(v)
     else if (Array.isArray(v)) v.forEach(push)
   }
-  for (const key of ['object_ids', 'object_id', 'start_object_id', 'start_object_ids', 'series_ids']) {
+  for (const key of ['object_ids', 'object_id', 'start_object_id', 'start_object_ids']) {
     push(input[key])
+  }
+  const series = input['series_ids']
+  if (seriesToObject && Array.isArray(series)) {
+    for (const s of series) {
+      if (typeof s !== 'string') continue
+      ids.add(seriesToObject.get(s) ?? s)
+    }
+  } else {
+    push(series)
   }
   return [...ids]
 }

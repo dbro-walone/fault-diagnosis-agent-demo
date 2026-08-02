@@ -20,6 +20,7 @@ import {
   type CanonicalFact,
   type DiagnosisSessionSnapshot,
   type Evidence,
+  type PlannerTarget,
   type RuntimeEvent,
 } from './runtime-types'
 
@@ -106,6 +107,46 @@ export interface CurrentActionVM {
   facts: FactSummaryVM[]
   evidence_refs: string[]
   candidate_update_refs: string[]
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// issue#6 阶段A — Planner 目标 View Model
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Planner 目标状态（issue#6 阶段A）：pending / active / verified_ok / verified_abnormal / excluded。 */
+export type PlannerTargetStatus = 'pending' | 'active' | 'verified_ok' | 'verified_abnormal' | 'excluded'
+
+export interface PlannerTargetVM {
+  seq: number
+  target_resource: string
+  target_fault_mode: string
+  verify_question: string
+  expected_finding: string
+  topo_path: string[]
+  scope: string
+  round: number
+  status: PlannerTargetStatus
+  status_label: string
+  is_active: boolean
+  /** 被重规划暂停的目标（replan.paused_targets 命中）。 */
+  is_paused: boolean
+}
+
+export interface PlannerReplanVM {
+  round: number
+  reason: string
+  original_scope: string
+  new_scope: string
+  added_targets: string[]
+  paused_targets: string[]
+}
+
+export interface PlannerTargetsVM {
+  targets: PlannerTargetVM[]
+  active_seq: number | null
+  original_scope: string | null
+  replans: PlannerReplanVM[]
+  has_replan: boolean
 }
 
 export interface FactSummaryVM {
@@ -226,6 +267,14 @@ const TASK_STATUS_LABEL: Record<TaskStatus, string> = {
   DATA_MISSING: '数据缺失',
   CANCELLED: '已取消',
   SKIPPED: '已跳过',
+}
+
+const PLANNER_TARGET_STATUS_LABEL: Record<PlannerTargetStatus, string> = {
+  pending: '待验证',
+  active: '验证中',
+  verified_ok: '已验证',
+  verified_abnormal: '命中故障',
+  excluded: '已排除',
 }
 
 const EVIDENCE_TYPE_LABEL: Record<string, string> = {
@@ -356,6 +405,38 @@ export class ProjectionStore {
       facts: factRefs.map((id) => factById.get(id)).filter(Boolean).map((f) => toFactSummary(f!)),
       evidence_refs: act?.evidence_refs ?? [],
       candidate_update_refs: act?.candidate_update_refs ?? [],
+    }
+  }
+
+  // —— Planner 目标（issue#6 阶段A）——
+  plannerTargets(): PlannerTargetsVM {
+    const s = this.require()
+    const paused = new Set<string>()
+    for (const r of s.planner_replans) for (const id of r.paused_targets) paused.add(id)
+    const targets: PlannerTargetVM[] = s.planner_targets.map((t) => {
+      const status = derivePlannerTargetStatus(s, t)
+      return {
+        seq: t.seq,
+        target_resource: t.target_resource,
+        target_fault_mode: t.target_fault_mode,
+        verify_question: t.verify_question,
+        expected_finding: t.expected_finding,
+        topo_path: t.topo_path,
+        scope: t.scope,
+        round: t.round ?? 1,
+        status,
+        status_label: PLANNER_TARGET_STATUS_LABEL[status],
+        is_active: status === 'active',
+        is_paused: paused.has(t.target_resource),
+      }
+    })
+    const activeTarget = targets.find((t) => t.is_active)
+    return {
+      targets,
+      active_seq: activeTarget?.seq ?? null,
+      original_scope: s.planner_original_scope,
+      replans: s.planner_replans,
+      has_replan: s.planner_replans.length > 0,
     }
   }
 
@@ -498,6 +579,63 @@ export function activeDiagnosisPath(snapshot: DiagnosisSessionSnapshot): string[
   for (const id of hopIds) push(id)
   for (const id of c?.impact_chain ?? []) push(id)
   return path
+}
+
+/**
+ * 推导 Planner 目标的当前状态（issue#6 阶段A，纯函数、确定性）。
+ *
+ * 规则（按优先级）：
+ *  1. 当前行动正验证该目标资源 → active；
+ *  2. 目标资源存在候选：CONFIRMED → verified_abnormal；WEAKENED → excluded；
+ *     仍未裁决的候选 → pending（不得标记为已验证）；
+ *  3. 非假设目标（无候选）：已由完成任务产出覆盖该资源的 Fact → verified_ok；
+ *  4. 非假设目标：后续目标（seq 更大）已完成假设裁决（排除/命中故障）→ 本 hop 视为已通过
+ *     → verified_ok；
+ *  5. 否则 pending。
+ */
+function derivePlannerTargetStatus(s: DiagnosisSessionSnapshot, t: PlannerTarget): PlannerTargetStatus {
+  // 1. 当前正在验证的目标资源：最近一个 RUNNING 任务（含 PRIMARY/BACKGROUND）的
+  //    target_object_refs。让"当前位置高亮"随诊断推进逐个目标移动（不依赖
+  //    current_activity —— 它只展示主活动，任务全并行时会长期停留在首任务）。
+  const runningTask = [...s.tasks].reverse().find((tsk) => tsk.status === TaskStatus.RUNNING)
+  const objs = new Set<string>()
+  if (runningTask) {
+    for (const o of runningTask.target_object_refs ?? []) objs.add(o)
+  }
+  if (objs.has(t.target_resource)) return 'active'
+
+  // 2. 候选状态裁决。
+  const cands = s.candidates.filter((c) => c.object_id === t.target_resource)
+  if (cands.some((c) => c.status === CandidateStatus.CONFIRMED)) return 'verified_abnormal'
+  if (cands.some((c) => c.status === CandidateStatus.WEAKENED)) return 'excluded'
+  if (cands.length > 0) return 'pending'
+
+  // 3. 非假设目标：已完成任务的产出覆盖该资源 → 已验证（非故障本体）。
+  const terminalTasks: TaskStatus[] = [
+    TaskStatus.SUCCEEDED,
+    TaskStatus.DATA_MISSING,
+    TaskStatus.FAILED,
+    TaskStatus.SKIPPED,
+  ]
+  const doneTaskIds = new Set(
+    s.tasks.filter((tsk) => terminalTasks.includes(tsk.status)).map((tsk) => tsk.task_id),
+  )
+  const covered = s.facts.some(
+    (f) =>
+      (f.object_refs ?? []).includes(t.target_resource) &&
+      doneTaskIds.has(f.source.execution_id.replace(/^exec-/, '')),
+  )
+  if (covered) return 'verified_ok'
+
+  // 4. 路径推进：后续目标已完成假设裁决（排除/命中故障）→ 本 hop 已通过。
+  const laterResolved = s.planner_targets.some((o) => {
+    if (o.seq <= t.seq) return false
+    const st = derivePlannerTargetStatus(s, o)
+    return st === 'verified_abnormal' || st === 'excluded'
+  })
+  if (laterResolved) return 'verified_ok'
+
+  return 'pending'
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

@@ -1,0 +1,56 @@
+{
+  "plan_id": "plan-remote_replication_lag_001-001",
+  "original_scope": "复制链路分段定位（源端 → 复制链路 → 目标端）",
+  "targets": [
+    {
+      "seq": 1,
+      "target_resource": "replication-session-rs01",
+      "target_fault_mode": "复制会话配置异常",
+      "verify_question": "复制会话配置与策略是否异常",
+      "expected_finding": "如命中则会话参数错误或策略冲突",
+      "topo_path": ["replication-session-rs01"],
+      "scope": "复制会话",
+      "round": 1
+    },
+    {
+      "seq": 2,
+      "target_resource": "repl-port-a",
+      "target_fault_mode": "复制端口异常",
+      "verify_question": "复制端口是否存在错误计数或链路异常",
+      "expected_finding": "如命中则端口错误计数增长且与 RPO 超标时间一致",
+      "topo_path": ["repl-port-a", "wan-path-01"],
+      "scope": "复制链路",
+      "round": 1
+    },
+    {
+      "seq": 3,
+      "target_resource": "wan-path-01",
+      "target_fault_mode": "复制网络拥塞",
+      "verify_question": "复制链路是否出现丢包或拥塞",
+      "expected_finding": "如命中则网络丢包/时延突增且与 RPO 超标一致",
+      "topo_path": ["repl-port-a", "wan-path-01", "repl-port-b"],
+      "scope": "复制链路",
+      "round": 1
+    },
+    {
+      "seq": 4,
+      "target_resource": "pool-a",
+      "target_fault_mode": "复制源端存储瓶颈",
+      "verify_question": "源端存储是否成为复制读取瓶颈",
+      "expected_finding": "如命中则源端 IO/带宽资源不足",
+      "topo_path": ["pool-a", "replication-session-rs01"],
+      "scope": "源端",
+      "round": 1
+    },
+    {
+      "seq": 5,
+      "target_resource": "pool-b",
+      "target_fault_mode": "复制目标端存储瓶颈",
+      "verify_question": "目标端存储是否成为复制写入瓶颈",
+      "expected_finding": "如命中则目标端写入队列堆积",
+      "topo_path": ["replication-session-rs01", "pool-b"],
+      "scope": "目标端",
+      "round": 1
+    }
+  ]
+}

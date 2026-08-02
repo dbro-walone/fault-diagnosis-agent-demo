@@ -1353,7 +1353,75 @@
           "task-query-network-logs",
           "task-check-port-alarms",
           "task-search-similar"
-        ]
+        ],
+        "planner_targets": [
+          {
+            "seq": 1,
+            "target_resource": "replication-session-rs01",
+            "target_fault_mode": "复制会话配置异常",
+            "verify_question": "复制会话配置与策略是否异常",
+            "expected_finding": "如命中则会话参数错误或策略冲突",
+            "topo_path": [
+              "replication-session-rs01"
+            ],
+            "scope": "复制会话",
+            "round": 1
+          },
+          {
+            "seq": 2,
+            "target_resource": "repl-port-a",
+            "target_fault_mode": "复制端口异常",
+            "verify_question": "复制端口是否存在错误计数或链路异常",
+            "expected_finding": "如命中则端口错误计数增长且与 RPO 超标时间一致",
+            "topo_path": [
+              "repl-port-a",
+              "wan-path-01"
+            ],
+            "scope": "复制链路",
+            "round": 1
+          },
+          {
+            "seq": 3,
+            "target_resource": "wan-path-01",
+            "target_fault_mode": "复制网络拥塞",
+            "verify_question": "复制链路是否出现丢包或拥塞",
+            "expected_finding": "如命中则网络丢包/时延突增且与 RPO 超标一致",
+            "topo_path": [
+              "repl-port-a",
+              "wan-path-01",
+              "repl-port-b"
+            ],
+            "scope": "复制链路",
+            "round": 1
+          },
+          {
+            "seq": 4,
+            "target_resource": "pool-a",
+            "target_fault_mode": "复制源端存储瓶颈",
+            "verify_question": "源端存储是否成为复制读取瓶颈",
+            "expected_finding": "如命中则源端 IO/带宽资源不足",
+            "topo_path": [
+              "pool-a",
+              "replication-session-rs01"
+            ],
+            "scope": "源端",
+            "round": 1
+          },
+          {
+            "seq": 5,
+            "target_resource": "pool-b",
+            "target_fault_mode": "复制目标端存储瓶颈",
+            "verify_question": "目标端存储是否成为复制写入瓶颈",
+            "expected_finding": "如命中则目标端写入队列堆积",
+            "topo_path": [
+              "replication-session-rs01",
+              "pool-b"
+            ],
+            "scope": "目标端",
+            "round": 1
+          }
+        ],
+        "planner_original_scope": "复制链路分段定位（源端 → 复制链路 → 目标端）"
       }
     },
     {
@@ -1414,8 +1482,8 @@
         "ui_role": "PRIMARY",
         "goal": "定位复制会话源端、链路与远端",
         "action_text": "执行 topology_query：定位复制会话源端、链路与远端",
-        "reason_text": "按 Planner 优先级验证候选相关对象与时间窗",
-        "expected_result_text": "期望获得上下游、主备/共享/复制等关系子图",
+        "reason_text": "复制会话配置与策略是否异常",
+        "expected_result_text": "如命中则会话参数错误或策略冲突",
         "target_object_refs": [
           "replication-session-rs01"
         ]
@@ -1510,9 +1578,7 @@
           "display_name": "查询RPO、积压与复制吞吐",
           "goal": "查询RPO、积压与复制吞吐",
           "target_object_refs": [
-            "kpi-rs01-rpo",
-            "kpi-rs01-backlog",
-            "kpi-rs01-throughput"
+            "replication-session-rs01"
           ],
           "input": {
             "series_ids": [
@@ -1553,12 +1619,10 @@
         "ui_role": "BACKGROUND",
         "goal": "查询RPO、积压与复制吞吐",
         "action_text": "执行 kpi_query：查询RPO、积压与复制吞吐",
-        "reason_text": "按 Planner 优先级验证候选相关对象与时间窗",
-        "expected_result_text": "期望获得对象指标基线、阈值与异常窗口的时序对齐",
+        "reason_text": "复制会话配置与策略是否异常",
+        "expected_result_text": "如命中则会话参数错误或策略冲突",
         "target_object_refs": [
-          "kpi-rs01-rpo",
-          "kpi-rs01-backlog",
-          "kpi-rs01-throughput"
+          "replication-session-rs01"
         ]
       }
     },
@@ -1791,8 +1855,8 @@
           "display_name": "查询复制链路丢包与重传",
           "goal": "查询复制链路丢包与重传",
           "target_object_refs": [
-            "kpi-wan-packet-loss",
-            "kpi-rs01-retransmits"
+            "wan-path-01",
+            "replication-session-rs01"
           ],
           "input": {
             "series_ids": [
@@ -1832,11 +1896,11 @@
         "ui_role": "BACKGROUND",
         "goal": "查询复制链路丢包与重传",
         "action_text": "执行 kpi_query：查询复制链路丢包与重传",
-        "reason_text": "按 Planner 优先级验证候选相关对象与时间窗",
-        "expected_result_text": "期望获得对象指标基线、阈值与异常窗口的时序对齐",
+        "reason_text": "复制会话配置与策略是否异常",
+        "expected_result_text": "如命中则会话参数错误或策略冲突",
         "target_object_refs": [
-          "kpi-wan-packet-loss",
-          "kpi-rs01-retransmits"
+          "wan-path-01",
+          "replication-session-rs01"
         ]
       }
     },
@@ -2059,8 +2123,8 @@
           "display_name": "检查源端后端与本地业务",
           "goal": "检查源端后端与本地业务",
           "target_object_refs": [
-            "kpi-pool-a-latency",
-            "kpi-lun-prod-latency"
+            "pool-a",
+            "lun-prod"
           ],
           "input": {
             "series_ids": [
@@ -2099,11 +2163,11 @@
         "ui_role": "BACKGROUND",
         "goal": "检查源端后端与本地业务",
         "action_text": "执行 kpi_query：检查源端后端与本地业务",
-        "reason_text": "按 Planner 优先级验证候选相关对象与时间窗",
-        "expected_result_text": "期望获得对象指标基线、阈值与异常窗口的时序对齐",
+        "reason_text": "源端存储是否成为复制读取瓶颈",
+        "expected_result_text": "如命中则源端 IO/带宽资源不足",
         "target_object_refs": [
-          "kpi-pool-a-latency",
-          "kpi-lun-prod-latency"
+          "pool-a",
+          "lun-prod"
         ]
       }
     },
@@ -2306,7 +2370,7 @@
           "display_name": "检查远端存储写入能力",
           "goal": "检查远端存储写入能力",
           "target_object_refs": [
-            "kpi-pool-b-write-latency"
+            "pool-b"
           ],
           "input": {
             "series_ids": [
@@ -2343,10 +2407,10 @@
         "ui_role": "BACKGROUND",
         "goal": "检查远端存储写入能力",
         "action_text": "执行 kpi_query：检查远端存储写入能力",
-        "reason_text": "按 Planner 优先级验证候选相关对象与时间窗",
-        "expected_result_text": "期望获得对象指标基线、阈值与异常窗口的时序对齐",
+        "reason_text": "目标端存储是否成为复制写入瓶颈",
+        "expected_result_text": "如命中则目标端写入队列堆积",
         "target_object_refs": [
-          "kpi-pool-b-write-latency"
+          "pool-b"
         ]
       }
     },
@@ -2523,8 +2587,8 @@
         "ui_role": "BACKGROUND",
         "goal": "检查复制会话状态与配置",
         "action_text": "执行 query_resource：检查复制会话状态与配置",
-        "reason_text": "按 Planner 优先级验证候选相关对象与时间窗",
-        "expected_result_text": "期望获得与候选对象、时间一致的观测事实",
+        "reason_text": "复制会话配置与策略是否异常",
+        "expected_result_text": "如命中则会话参数错误或策略冲突",
         "target_object_refs": [
           "replication-session-rs01"
         ]
@@ -2661,8 +2725,8 @@
         "ui_role": "BACKGROUND",
         "goal": "匹配链路拥塞、丢包与恢复日志",
         "action_text": "执行 log_fingerprint_query：匹配链路拥塞、丢包与恢复日志",
-        "reason_text": "按 Planner 优先级验证候选相关对象与时间窗",
-        "expected_result_text": "期望命中可解释故障机理的日志指纹序列",
+        "reason_text": "复制会话配置与策略是否异常",
+        "expected_result_text": "如命中则会话参数错误或策略冲突",
         "target_object_refs": [
           "wan-path-01",
           "replication-session-rs01"
@@ -2800,8 +2864,8 @@
         "ui_role": "BACKGROUND",
         "goal": "检查复制端口物理告警",
         "action_text": "执行 alarm_query：检查复制端口物理告警",
-        "reason_text": "按 Planner 优先级验证候选相关对象与时间窗",
-        "expected_result_text": "期望命中与候选对象、时间窗一致的告警生命周期",
+        "reason_text": "复制端口是否存在错误计数或链路异常",
+        "expected_result_text": "如命中则端口错误计数增长且与 RPO 超标时间一致",
         "target_object_refs": [
           "repl-port-a",
           "repl-port-b"

@@ -1,0 +1,36 @@
+{
+  "plan_id": "plan-disk_raid_degrade_001-001",
+  "original_scope": "RAID 降级路径（lun-arch02 → disk-group → disk-02a）",
+  "targets": [
+    {
+      "seq": 1,
+      "target_resource": "lun-arch02",
+      "target_fault_mode": "LUN IO 争用",
+      "verify_question": "LUN 自身是否出现 IO 争用或时延异常",
+      "expected_finding": "如命中则 LUN IO/时延异常；否则为底层故障影响",
+      "topo_path": ["lun-arch02", "disk-group-01", "disk-02a"],
+      "scope": "业务专属路径",
+      "round": 1
+    },
+    {
+      "seq": 2,
+      "target_resource": "host-02",
+      "target_fault_mode": "主机资源瓶颈",
+      "verify_question": "主机侧是否出现资源瓶颈或链路异常",
+      "expected_finding": "如命中则主机 CPU/IO 资源不足",
+      "topo_path": ["host-02", "lun-arch02"],
+      "scope": "业务专属路径",
+      "round": 1
+    },
+    {
+      "seq": 3,
+      "target_resource": "disk-02a",
+      "target_fault_mode": "磁盘故障 RAID 降级",
+      "verify_question": "磁盘是否故障导致 RAID 组降级",
+      "expected_finding": "如命中则磁盘状态异常且 RAID 降级告警一致",
+      "topo_path": ["disk-group-01", "disk-02a"],
+      "scope": "底层资源",
+      "round": 1
+    }
+  ]
+}

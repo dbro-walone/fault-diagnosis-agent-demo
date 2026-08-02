@@ -1194,7 +1194,89 @@
           "task-check-competitors",
           "task-query-batch-logs",
           "task-search-similar"
-        ]
+        ],
+        "planner_targets": [
+          {
+            "seq": 1,
+            "target_resource": "lun-b",
+            "target_fault_mode": "LUN-B 时延突增",
+            "verify_question": "受害 LUN 自身 IO 是否异常且与现象时间窗一致",
+            "expected_finding": "如命中则 LUN-B 时延/iops 异常；否则为受外部影响",
+            "topo_path": [
+              "business-b",
+              "host-b",
+              "san-fabric-01",
+              "fc-port-0a",
+              "controller-0a",
+              "lun-b",
+              "storage-pool-01"
+            ],
+            "scope": "受害业务路径",
+            "round": 1
+          },
+          {
+            "seq": 2,
+            "target_resource": "host-b",
+            "target_fault_mode": "Host-B 资源瓶颈",
+            "verify_question": "受害主机自身 CPU/IO 是否成为瓶颈",
+            "expected_finding": "如命中则 Host-B 资源占用突增，否则排除主机本体",
+            "topo_path": [
+              "business-b",
+              "host-b",
+              "san-fabric-01",
+              "lun-b"
+            ],
+            "scope": "受害业务路径",
+            "round": 1
+          },
+          {
+            "seq": 3,
+            "target_resource": "fc-port-0a",
+            "target_fault_mode": "FC 端口链路抖动",
+            "verify_question": "共享 FC 链路是否出现抖动或错误计数增长",
+            "expected_finding": "如命中则链路错误计数异常；否则排除链路问题",
+            "topo_path": [
+              "host-b",
+              "san-fabric-01",
+              "fc-port-0a",
+              "controller-0a"
+            ],
+            "scope": "共享资源",
+            "round": 1
+          },
+          {
+            "seq": 4,
+            "target_resource": "controller-0a",
+            "target_fault_mode": "共享控制器队列压力",
+            "verify_question": "共享控制器队列深度是否被兄弟消费者抬高",
+            "expected_finding": "如命中则队列深度/带宽利用率突增且与受害时延同步",
+            "topo_path": [
+              "fc-port-0a",
+              "controller-0a",
+              "lun-a",
+              "lun-b",
+              "storage-pool-01"
+            ],
+            "scope": "共享资源",
+            "round": 1
+          },
+          {
+            "seq": 5,
+            "target_resource": "storage-pool-01",
+            "target_fault_mode": "共享存储池带宽争用",
+            "verify_question": "共享存储池带宽是否被兄弟 LUN 争用",
+            "expected_finding": "如命中则池带宽利用率突增且与受害时延同步",
+            "topo_path": [
+              "lun-a",
+              "lun-b",
+              "storage-pool-01",
+              "ssd-group-01"
+            ],
+            "scope": "共享资源",
+            "round": 1
+          }
+        ],
+        "planner_original_scope": "受害业务路径（host-b → lun-b → fc-port-0a → controller-0a → storage-pool-01）"
       }
     },
     {
@@ -1253,8 +1335,8 @@
         "ui_role": "PRIMARY",
         "goal": "映射Host-B业务与LUN",
         "action_text": "执行 business_mapping：映射Host-B业务与LUN",
-        "reason_text": "按 Planner 优先级验证候选相关对象与时间窗",
-        "expected_result_text": "期望将业务对象映射到具体的 Host/LUN/资源",
+        "reason_text": "受害 LUN 自身 IO 是否异常且与现象时间窗一致",
+        "expected_result_text": "如命中则 LUN-B 时延/iops 异常；否则为受外部影响",
         "target_object_refs": [
           "business-b"
         ]
@@ -1306,9 +1388,8 @@
           "display_name": "验证Host-B业务影响与自身资源",
           "goal": "验证Host-B业务影响与自身资源",
           "target_object_refs": [
-            "kpi-lun-b-latency",
-            "kpi-lun-b-iops",
-            "kpi-host-b-cpu"
+            "lun-b",
+            "host-b"
           ],
           "input": {
             "series_ids": [
@@ -1349,12 +1430,11 @@
         "ui_role": "BACKGROUND",
         "goal": "验证Host-B业务影响与自身资源",
         "action_text": "执行 kpi_query：验证Host-B业务影响与自身资源",
-        "reason_text": "按 Planner 优先级验证候选相关对象与时间窗",
-        "expected_result_text": "期望获得对象指标基线、阈值与异常窗口的时序对齐",
+        "reason_text": "受害 LUN 自身 IO 是否异常且与现象时间窗一致",
+        "expected_result_text": "如命中则 LUN-B 时延/iops 异常；否则为受外部影响",
         "target_object_refs": [
-          "kpi-lun-b-latency",
-          "kpi-lun-b-iops",
-          "kpi-host-b-cpu"
+          "lun-b",
+          "host-b"
         ]
       }
     },
@@ -1605,8 +1685,8 @@
         "ui_role": "BACKGROUND",
         "goal": "沿Host-B路径定位共享资源",
         "action_text": "执行 topology_query：沿Host-B路径定位共享资源",
-        "reason_text": "按 Planner 优先级验证候选相关对象与时间窗",
-        "expected_result_text": "期望获得上下游、主备/共享/复制等关系子图",
+        "reason_text": "受害 LUN 自身 IO 是否异常且与现象时间窗一致",
+        "expected_result_text": "如命中则 LUN-B 时延/iops 异常；否则为受外部影响",
         "target_object_refs": [
           "host-b"
         ]
@@ -1658,8 +1738,8 @@
           "display_name": "查询共享控制器与存储池压力",
           "goal": "查询共享控制器与存储池压力",
           "target_object_refs": [
-            "kpi-controller-queue-depth",
-            "kpi-pool-bandwidth-util"
+            "controller-0a",
+            "storage-pool-01"
           ],
           "input": {
             "series_ids": [
@@ -1700,11 +1780,11 @@
         "ui_role": "BACKGROUND",
         "goal": "查询共享控制器与存储池压力",
         "action_text": "执行 kpi_query：查询共享控制器与存储池压力",
-        "reason_text": "按 Planner 优先级验证候选相关对象与时间窗",
-        "expected_result_text": "期望获得对象指标基线、阈值与异常窗口的时序对齐",
+        "reason_text": "共享控制器队列深度是否被兄弟消费者抬高",
+        "expected_result_text": "如命中则队列深度/带宽利用率突增且与受害时延同步",
         "target_object_refs": [
-          "kpi-controller-queue-depth",
-          "kpi-pool-bandwidth-util"
+          "controller-0a",
+          "storage-pool-01"
         ]
       }
     },
@@ -1842,10 +1922,119 @@
         "plan_id": "plan-noisy_neighbor_io_contention_001-002",
         "previous_plan_id": "plan-noisy_neighbor_io_contention_001-001",
         "phase": "CANDIDATE_EVIDENCE",
-        "reason": "新增反向追溯任务以定位共享资源与兄弟消费者",
+        "reason": "受害路径与共享资源均未定位根因，反向追溯共享资源的兄弟消费者",
         "task_refs": [
           "task-expand-shared-consumers"
-        ]
+        ],
+        "planner_targets": [
+          {
+            "seq": 1,
+            "target_resource": "lun-b",
+            "target_fault_mode": "LUN-B 时延突增",
+            "verify_question": "受害 LUN 自身 IO 是否异常且与现象时间窗一致",
+            "expected_finding": "如命中则 LUN-B 时延/iops 异常；否则为受外部影响",
+            "topo_path": [
+              "business-b",
+              "host-b",
+              "san-fabric-01",
+              "fc-port-0a",
+              "controller-0a",
+              "lun-b",
+              "storage-pool-01"
+            ],
+            "scope": "受害业务路径",
+            "round": 1
+          },
+          {
+            "seq": 2,
+            "target_resource": "host-b",
+            "target_fault_mode": "Host-B 资源瓶颈",
+            "verify_question": "受害主机自身 CPU/IO 是否成为瓶颈",
+            "expected_finding": "如命中则 Host-B 资源占用突增，否则排除主机本体",
+            "topo_path": [
+              "business-b",
+              "host-b",
+              "san-fabric-01",
+              "lun-b"
+            ],
+            "scope": "受害业务路径",
+            "round": 1
+          },
+          {
+            "seq": 3,
+            "target_resource": "fc-port-0a",
+            "target_fault_mode": "FC 端口链路抖动",
+            "verify_question": "共享 FC 链路是否出现抖动或错误计数增长",
+            "expected_finding": "如命中则链路错误计数异常；否则排除链路问题",
+            "topo_path": [
+              "host-b",
+              "san-fabric-01",
+              "fc-port-0a",
+              "controller-0a"
+            ],
+            "scope": "共享资源",
+            "round": 1
+          },
+          {
+            "seq": 4,
+            "target_resource": "controller-0a",
+            "target_fault_mode": "共享控制器队列压力",
+            "verify_question": "共享控制器队列深度是否被兄弟消费者抬高",
+            "expected_finding": "如命中则队列深度/带宽利用率突增且与受害时延同步",
+            "topo_path": [
+              "fc-port-0a",
+              "controller-0a",
+              "lun-a",
+              "lun-b",
+              "storage-pool-01"
+            ],
+            "scope": "共享资源",
+            "round": 1
+          },
+          {
+            "seq": 5,
+            "target_resource": "storage-pool-01",
+            "target_fault_mode": "共享存储池带宽争用",
+            "verify_question": "共享存储池带宽是否被兄弟 LUN 争用",
+            "expected_finding": "如命中则池带宽利用率突增且与受害时延同步",
+            "topo_path": [
+              "lun-a",
+              "lun-b",
+              "storage-pool-01",
+              "ssd-group-01"
+            ],
+            "scope": "共享资源",
+            "round": 1
+          },
+          {
+            "seq": 6,
+            "target_resource": "host-a",
+            "target_fault_mode": "Host-A 批处理 IO 突增（施压者）",
+            "verify_question": "兄弟消费者 Host-A 是否产生 IO 突增抢占共享资源",
+            "expected_finding": "如命中则 Host-A/LUN-A IO 突增先于受害时延，且共享资源队列同步抬升",
+            "topo_path": [
+              "business-a",
+              "host-a",
+              "san-fabric-01",
+              "fc-port-0a",
+              "controller-0a",
+              "lun-a",
+              "storage-pool-01"
+            ],
+            "scope": "共享消费者反向追溯",
+            "round": 2
+          }
+        ],
+        "replan": {
+          "round": 2,
+          "reason": "受害路径与共享资源均未定位根因，反向追溯共享资源的兄弟消费者",
+          "original_scope": "受害业务路径（host-b → lun-b → fc-port-0a → controller-0a → storage-pool-01）",
+          "new_scope": "受害路径 + 共享消费者反向追溯（Host-A / LUN-A）",
+          "added_targets": [
+            "host-a"
+          ],
+          "paused_targets": []
+        }
       }
     },
     {
@@ -1912,8 +2101,8 @@
         "ui_role": "BACKGROUND",
         "goal": "反向展开共享资源消费者",
         "action_text": "执行 topology_query：反向展开共享资源消费者",
-        "reason_text": "按 Planner 优先级验证候选相关对象与时间窗",
-        "expected_result_text": "期望获得上下游、主备/共享/复制等关系子图",
+        "reason_text": "受害 LUN 自身 IO 是否异常且与现象时间窗一致",
+        "expected_result_text": "如命中则 LUN-B 时延/iops 异常；否则为受外部影响",
         "target_object_refs": [
           "controller-0a",
           "storage-pool-01"
@@ -2041,11 +2230,10 @@
           "display_name": "对齐Host-A、共享资源与Host-B KPI",
           "goal": "对齐Host-A、共享资源与Host-B KPI",
           "target_object_refs": [
-            "kpi-lun-a-iops",
-            "kpi-lun-a-throughput",
-            "kpi-controller-queue-depth",
-            "kpi-pool-bandwidth-util",
-            "kpi-lun-b-latency"
+            "lun-a",
+            "controller-0a",
+            "storage-pool-01",
+            "lun-b"
           ],
           "input": {
             "series_ids": [
@@ -2090,14 +2278,13 @@
         "ui_role": "BACKGROUND",
         "goal": "对齐Host-A、共享资源与Host-B KPI",
         "action_text": "执行 kpi_query：对齐Host-A、共享资源与Host-B KPI",
-        "reason_text": "按 Planner 优先级验证候选相关对象与时间窗",
-        "expected_result_text": "期望获得对象指标基线、阈值与异常窗口的时序对齐",
+        "reason_text": "受害 LUN 自身 IO 是否异常且与现象时间窗一致",
+        "expected_result_text": "如命中则 LUN-B 时延/iops 异常；否则为受外部影响",
         "target_object_refs": [
-          "kpi-lun-a-iops",
-          "kpi-lun-a-throughput",
-          "kpi-controller-queue-depth",
-          "kpi-pool-bandwidth-util",
-          "kpi-lun-b-latency"
+          "lun-a",
+          "controller-0a",
+          "storage-pool-01",
+          "lun-b"
         ]
       }
     },
@@ -2284,8 +2471,8 @@
         "ui_role": "BACKGROUND",
         "goal": "检查链路、控制器和后端硬件竞争候选",
         "action_text": "执行 alarm_query：检查链路、控制器和后端硬件竞争候选",
-        "reason_text": "按 Planner 优先级验证候选相关对象与时间窗",
-        "expected_result_text": "期望命中与候选对象、时间窗一致的告警生命周期",
+        "reason_text": "共享 FC 链路是否出现抖动或错误计数增长",
+        "expected_result_text": "如命中则链路错误计数异常；否则排除链路问题",
         "target_object_refs": [
           "fc-port-0a",
           "controller-0a",
@@ -2494,8 +2681,8 @@
         "ui_role": "BACKGROUND",
         "goal": "查询Host-A批处理与恢复日志",
         "action_text": "执行 log_fingerprint_query：查询Host-A批处理与恢复日志",
-        "reason_text": "按 Planner 优先级验证候选相关对象与时间窗",
-        "expected_result_text": "期望命中可解释故障机理的日志指纹序列",
+        "reason_text": "共享存储池带宽是否被兄弟 LUN 争用",
+        "expected_result_text": "如命中则池带宽利用率突增且与受害时延同步",
         "target_object_refs": [
           "host-a",
           "lun-a",

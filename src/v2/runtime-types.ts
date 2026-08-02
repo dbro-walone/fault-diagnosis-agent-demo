@@ -289,6 +289,52 @@ export interface MinimumEvidenceChain {
 // Planner / Skill / 活动投影
 // ─────────────────────────────────────────────────────────────────────────────
 
+/**
+ * Planner 诊断目标（issue#6 阶段A）。
+ * Planner 依据图谱故障知识 + 拓扑上下游资源输出一组优先级目标，
+ * 每个目标描述"目标资源 + 目标故障模式 + 验证问题 + 期望发现 + 诊断范围"。
+ * round 表示目标所属规划轮次（1 = 初始计划，2+ = 重规划新增）。
+ */
+export interface PlannerTarget {
+  seq: number
+  target_resource: string
+  target_fault_mode: string
+  verify_question: string
+  expected_finding: string
+  topo_path: string[]
+  scope: string
+  round?: number
+}
+
+/** 重规划定义（planner_plan.json 中声明，由 trigger_task_id 锚定触发任务）。 */
+export interface PlannerReplan {
+  round: number
+  trigger_task_id: string
+  reason: string
+  original_scope: string
+  new_scope: string
+  added_targets: string[]
+  paused_targets: string[]
+}
+
+/** Planner 计划（Case 数据 planner_plan.json）。 */
+export interface PlannerPlan {
+  plan_id: string
+  original_scope: string
+  targets: PlannerTarget[]
+  replans?: PlannerReplan[]
+}
+
+/** 已发生的重规划信息（Snapshot 侧，去掉 trigger_task_id 后供投影展示）。 */
+export interface PlannerReplanInfo {
+  round: number
+  reason: string
+  original_scope: string
+  new_scope: string
+  added_targets: string[]
+  paused_targets: string[]
+}
+
 /** 计划任务（docs/08 §6）。ui_role 决定 primary/background。 */
 export interface PlanTask {
   task_id: string
@@ -474,6 +520,12 @@ export interface DiagnosisSessionSnapshot {
   current_activity?: ActivityProjection | null
   background_activity_ids?: string[]
   plans: Array<{ plan_id: string; phase: string; primary_task_id: string | null; tasks: string[] }>
+  /** issue#6 阶段A：Planner 当前规划目标列表（含全部轮次，round 标注轮次）。 */
+  planner_targets: PlannerTarget[]
+  /** 已发生的重规划差异（原范围→新范围、新增目标、暂停目标）。 */
+  planner_replans: PlannerReplanInfo[]
+  /** 初始诊断范围描述（planner_plan.json original_scope）。 */
+  planner_original_scope: string | null
   tasks: PlanTask[]
   skill_executions: SkillExecution[]
   facts: CanonicalFact[]

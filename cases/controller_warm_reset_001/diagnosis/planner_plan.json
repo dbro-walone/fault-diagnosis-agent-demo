@@ -1,0 +1,67 @@
+{
+  "plan_id": "plan-controller_warm_reset_001-001",
+  "original_scope": "业务专属路径（lun-db01 → db-host-01 → fc-port-0a → controller-0a）",
+  "targets": [
+    {
+      "seq": 1,
+      "target_resource": "lun-db01",
+      "target_fault_mode": "LUN 时延突增",
+      "verify_question": "LUN 自身时延是否出现突增并贴合现象时间窗",
+      "expected_finding": "如命中则 LUN 平均时延远超基线且与现象时间一致",
+      "topo_path": ["db-business-01", "db-host-01", "san-fabric-a", "fc-port-0a", "controller-0a", "block-service-01", "lun-db01"],
+      "scope": "业务专属路径",
+      "round": 1
+    },
+    {
+      "seq": 2,
+      "target_resource": "db-host-01",
+      "target_fault_mode": "主机 IO 路径异常",
+      "verify_question": "数据库主机是否出现 IO 队列堆积或链路异常",
+      "expected_finding": "如命中则 Host 侧 IO 等待与 LUN 时延同步升高",
+      "topo_path": ["db-business-01", "db-host-01", "san-fabric-a", "fc-port-0a"],
+      "scope": "业务专属路径",
+      "round": 1
+    },
+    {
+      "seq": 3,
+      "target_resource": "fc-port-0a",
+      "target_fault_mode": "FC 端口链路抖动",
+      "verify_question": "FC 端口是否出现链路抖动或错误计数增长",
+      "expected_finding": "如命中则 CRC 错误/链路重置计数异常且与切换时间吻合",
+      "topo_path": ["db-host-01", "san-fabric-a", "fc-port-0a", "controller-0a"],
+      "scope": "业务专属路径",
+      "round": 1
+    },
+    {
+      "seq": 4,
+      "target_resource": "controller-0a",
+      "target_fault_mode": "控制器热复位",
+      "verify_question": "控制器是否发生 Watchdog 超时热复位并触发主备接管",
+      "expected_finding": "如命中则出现热复位日志指纹、Watchdog 超时与接管切换记录",
+      "topo_path": ["fc-port-0a", "controller-0a", "controller-0b", "block-service-01", "lun-db01"],
+      "scope": "业务专属路径",
+      "round": 1
+    },
+    {
+      "seq": 5,
+      "target_resource": "storage-pool-01",
+      "target_fault_mode": "存储池共享资源争用",
+      "verify_question": "存储池是否出现突发负载或共享资源争用",
+      "expected_finding": "如命中则池利用率突增且与现象时间一致，否则排除后端瓶颈",
+      "topo_path": ["lun-db01", "storage-pool-01", "disk-group-01"],
+      "scope": "共享资源",
+      "round": 2
+    }
+  ],
+  "replans": [
+    {
+      "round": 2,
+      "trigger_task_id": "task-check-pool",
+      "reason": "业务专属路径未发现后端资源瓶颈，扩展至共享存储池验证后端争用",
+      "original_scope": "业务专属路径（lun-db01 → db-host-01 → fc-port-0a → controller-0a）",
+      "new_scope": "业务专属路径 + 共享资源（storage-pool-01 / disk-group-01）",
+      "added_targets": ["storage-pool-01"],
+      "paused_targets": []
+    }
+  ]
+}

@@ -61,4 +61,8 @@ export {
   type FactSummaryVM,
   type TimelineEventVM,
   type ChainProgressVM,
+  type PlannerTargetsVM,
+  type PlannerTargetVM,
+  type PlannerReplanVM,
+  type PlannerTargetStatus,
 } from './projection-store'

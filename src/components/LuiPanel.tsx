@@ -28,6 +28,7 @@ import {
   PanelLeftOpen,
   Pause,
   Play,
+  RefreshCw,
   RotateCcw,
   ShieldCheck,
   ShieldQuestion,
@@ -47,6 +48,9 @@ import {
   type EvidenceChainItemVM,
   type FactDetailVM,
   type KnowledgeSnapshotVM,
+  type PlannerReplanVM,
+  type PlannerTargetVM,
+  type PlannerTargetsVM,
   type ProjectionStore,
   type TimelineEventVM,
 } from '../v2'
@@ -58,6 +62,8 @@ export interface LuiPanelProps {
   knowledge: KnowledgeSnapshotVM
   action: CurrentActionVM
   candidates: CandidateListVM
+  /** issue#6 阶段A：Planner 优先级目标列表 + 重规划差异。 */
+  planner: PlannerTargetsVM
   snapshot: DiagnosisSessionSnapshot
   store: ProjectionStore
   timelineEvents: TimelineEventVM[]
@@ -117,6 +123,9 @@ export default function LuiPanel(props: LuiPanelProps) {
           snapshot={snapshot}
           onReturnAgentView={props.onReturnAgentView}
         />
+
+        {/* issue#6 阶段A：Planner 目标区（目标资源/故障模式/验证问题/期望发现/当前范围 + 重规划差异） */}
+        <PlannerTargetsView planner={props.planner} />
 
         {/* Layer 3 — 主内容区（证据链/计划/历史/详情）：提高到诊断态势下方，更大更醒目 */}
         <div className="flex min-h-[240px] flex-1 flex-col overflow-hidden rounded-lg border border-white/8 bg-black/20">
@@ -398,6 +407,170 @@ function DiagnosisSituation({
         )}
       </div>
     </section>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// issue#6 阶段A — Planner 目标区
+// ─────────────────────────────────────────────────────────────────────────────
+
+function PlannerTargetsView({ planner }: { planner: PlannerTargetsVM }) {
+  const { targets, replans, original_scope, has_replan } = planner
+  const lastReplan = replans[replans.length - 1]
+  return (
+    <section className="rounded-lg border border-white/8 bg-white/[0.02] p-2.5">
+      <div className="mb-2 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-[#94a3b8]">
+        <Target className="h-3.5 w-3.5 text-status-active" />
+        Planner 目标
+        {planner.active_seq != null && (
+          <span className="ml-auto rounded bg-status-active/15 px-1.5 py-0.5 text-[9px] font-bold text-status-active">
+            当前位置 #{planner.active_seq}
+          </span>
+        )}
+      </div>
+
+      {original_scope && (
+        <div className="mb-1.5 flex items-start gap-1 text-[9px] text-[#64748b]">
+          <span className="shrink-0">范围：</span>
+          <span className="min-w-0 flex-1 leading-relaxed text-[#94a3b8]" title={original_scope}>
+            {original_scope}
+          </span>
+        </div>
+      )}
+
+      {targets.length === 0 ? (
+        <div className="py-2 text-center text-[10px] text-[#64748b]">等待 Planner 生成目标…</div>
+      ) : (
+        <div className="space-y-1.5">
+          {targets.map((t) => (
+            <PlannerTargetRow key={t.seq} target={t} />
+          ))}
+        </div>
+      )}
+
+      {has_replan && lastReplan && <ReplanBanner replan={lastReplan} />}
+    </section>
+  )
+}
+
+function PlannerTargetRow({ target }: { target: PlannerTargetVM }) {
+  const tone = plannerTargetTone(target)
+  return (
+    <div
+      className={cn(
+        'rounded-md border p-2 transition-colors',
+        tone.box,
+        target.is_active && 'ring-1 ring-status-active/40',
+      )}
+    >
+      <div className="flex items-start gap-1.5">
+        <span className="mt-0.5 text-[9px] tabular text-[#475569]">{String(target.seq).padStart(2, '0')}</span>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-start justify-between gap-1.5">
+            <div className="min-w-0">
+              <span
+                className={cn(
+                  'text-[11px] font-semibold leading-snug',
+                  target.is_active ? 'text-status-active' : 'text-[#e2e8f0]',
+                )}
+              >
+                {target.target_resource}
+              </span>
+              {target.round > 1 && (
+                <span className="ml-1 rounded bg-status-warning/15 px-1 py-0.5 text-[8px] text-status-warning">
+                  重规划新增
+                </span>
+              )}
+              {target.is_paused && (
+                <span className="ml-1 rounded bg-white/5 px-1 py-0.5 text-[8px] text-[#64748b]">暂停</span>
+              )}
+              <span className="ml-1 rounded bg-white/5 px-1 py-0.5 text-[8px] text-[#94a3b8]">{target.scope}</span>
+            </div>
+            <span className={cn('flex shrink-0 items-center gap-0.5 rounded px-1.5 py-0.5 text-[8px]', tone.badge)}>
+              {target.is_active ? (
+                <Activity className="h-3 w-3" />
+              ) : target.status === 'verified_abnormal' ? (
+                <ShieldCheck className="h-3 w-3" />
+              ) : (
+                <ShieldQuestion className="h-3 w-3" />
+              )}
+              {target.status_label}
+            </span>
+          </div>
+          <div className="mt-1 text-[9px] font-medium text-[#cbd5e1]">{target.target_fault_mode}</div>
+          <div className="mt-0.5 text-[8px] leading-relaxed text-[#94a3b8]">
+            <span className="text-[#64748b]">为什么：</span>
+            {target.verify_question}
+          </div>
+          <div className="mt-0.5 text-[8px] leading-relaxed text-[#94a3b8]">
+            <span className="text-[#64748b]">期望发现：</span>
+            {target.expected_finding}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function plannerTargetTone(t: PlannerTargetVM): { box: string; badge: string } {
+  if (t.is_active) {
+    return {
+      box: 'border-status-active/40 bg-status-active/[0.07]',
+      badge: 'bg-status-active/20 text-status-active',
+    }
+  }
+  if (t.status === 'verified_abnormal') {
+    return {
+      box: 'border-status-fault/40 bg-status-fault/[0.07]',
+      badge: 'bg-status-fault/20 text-status-fault',
+    }
+  }
+  if (t.status === 'excluded') {
+    return {
+      box: 'border-white/8 bg-white/[0.02] opacity-60',
+      badge: 'bg-white/5 text-[#64748b]',
+    }
+  }
+  if (t.status === 'verified_ok') {
+    return {
+      box: 'border-status-recovered/25 bg-status-recovered/[0.04]',
+      badge: 'bg-status-recovered/15 text-status-recovered',
+    }
+  }
+  return {
+    box: 'border-white/8 bg-white/[0.02]',
+    badge: 'bg-white/5 text-[#64748b]',
+  }
+}
+
+function ReplanBanner({ replan }: { replan: PlannerReplanVM }) {
+  const added = replan.added_targets.length ? replan.added_targets.join('、') : '无'
+  const paused = replan.paused_targets.length ? replan.paused_targets.join('、') : '无'
+  return (
+    <div className="mt-2 rounded-md border border-status-warning/20 bg-status-warning/[0.05] px-2 py-1.5">
+      <div className="flex items-center gap-1 text-[9px] font-medium text-status-warning">
+        <RefreshCw className="h-3 w-3 shrink-0" />
+        重新规划 R{replan.round}：{replan.reason}
+      </div>
+      <div className="mt-1 space-y-0.5 text-[8px] leading-relaxed text-[#94a3b8]">
+        <div>
+          <span className="text-[#64748b]">原范围：</span>
+          {replan.original_scope}
+        </div>
+        <div>
+          <span className="text-[#64748b]">扩展：</span>
+          {replan.new_scope}
+        </div>
+        <div>
+          <span className="text-[#64748b]">新增目标：</span>
+          <span className="text-status-warning">{added}</span>
+        </div>
+        <div>
+          <span className="text-[#64748b]">暂停目标：</span>
+          {paused}
+        </div>
+      </div>
+    </div>
   )
 }
 

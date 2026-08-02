@@ -39,6 +39,7 @@ try {
       const ks = store.knowledgeSnapshot()
       const cl = store.candidateList()
       const act = store.currentAction()
+      const planner = store.plannerTargets()
       const tl = store.timeline()
       const chainCandId = cl.leading_id ?? cl.items[0]?.candidate_id ?? ''
       const ec = store.evidenceChain(chainCandId)
@@ -49,13 +50,20 @@ try {
       const replayed = rt.seek(mid)
       const back = replayed.returnLive()
 
+      // issue#6 阶段A：Planner 目标 VM 必须可计算；controller 必须有 5 个目标且发生重规划。
+      const plannerOk =
+        Array.isArray(planner.targets) &&
+        typeof planner.has_replan === 'boolean' &&
+        (entry.caseId !== 'controller_warm_reset_001' || (planner.targets.length === 5 && planner.has_replan))
+
       const ok =
         snap.events.length > 0 &&
         liveSnap.events.length === snap.events.length &&
         tl.length === snap.events.length &&
         cl.items.length > 0 &&
         typeof ks.leading_score_label === 'string' &&
-        back.cursor === rt.liveHead
+        back.cursor === rt.liveHead &&
+        plannerOk
 
       const status = ok ? 'OK' : 'FAIL'
       if (!ok) failures += 1
@@ -65,7 +73,8 @@ try {
           `confirmed=${confirmed?.candidate_id ?? 'none'}(${confirmed?.diagnosis_support_score ?? '-'}) ` +
           `leading="${cl.items[0]?.display_name ?? '-'}"(${ks.leading_score_label}) ` +
           `chain=${ks.chain_progress.satisfied}/${ks.chain_progress.total} ` +
-          `evidenceChainItems=${ec.items.length} factDetail=${fd ? 'yes' : 'no'}`,
+          `evidenceChainItems=${ec.items.length} factDetail=${fd ? 'yes' : 'no'} ` +
+          `plannerTargets=${planner.targets.length} replan=${planner.has_replan ? 'yes' : 'no'}`,
       )
       if (!ok) {
         console.log(`   events(replay)=${snap.events.length} live=${liveSnap.events.length} timeline=${tl.length}`)
