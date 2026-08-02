@@ -71,4 +71,9 @@ export {
   type ObjectObsItemVM,
   type ObjectObsKind,
   type ObjectObsStatus,
+  type DiagnosisScanVM,
+  type ExaminedObjectVM,
+  type ExaminedVerdict,
+  type KnowledgeGraphNodeRef,
+  type KnowledgeGraphLinkRef,
 } from './projection-store'

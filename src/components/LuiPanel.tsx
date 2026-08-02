@@ -31,8 +31,10 @@ import {
   Pause,
   Pin,
   Play,
+  Radar,
   RefreshCw,
   RotateCcw,
+  ScanSearch,
   ShieldCheck,
   ShieldQuestion,
   StepForward,
@@ -47,7 +49,9 @@ import {
   type CandidateItemVM,
   type CandidateListVM,
   type CurrentActionVM,
+  type DiagnosisScanVM,
   type DiagnosisSessionSnapshot,
+  type ExaminedVerdict,
   type EvidenceChainItemVM,
   type FactDetailVM,
   type KnowledgeSnapshotVM,
@@ -73,6 +77,8 @@ export interface LuiPanelProps {
   candidates: CandidateListVM
   /** issue#6 阶段A：Planner 优先级目标列表 + 重规划差异。 */
   planner: PlannerTargetsVM
+  /** issue#6 阶段C：逐对象诊断循环（聚焦→查询→判断→推进），与画布联动。 */
+  scan: DiagnosisScanVM
   snapshot: DiagnosisSessionSnapshot
   store: ProjectionStore
   timelineEvents: TimelineEventVM[]
@@ -141,6 +147,9 @@ export default function LuiPanel(props: LuiPanelProps) {
 
         {/* issue#6 阶段B：对象观测三标签（当前焦点对象 告警｜性能｜日志 查询状态与结果） */}
         <ObjectObservationView vm={observation} />
+
+        {/* issue#6 阶段C：逐对象诊断循环（聚焦→查询→判断→推进，与画布联动） */}
+        <DiagnosisLoopView scan={props.scan} />
 
         {/* Layer 3 — 主内容区（证据链/计划/历史/详情）：提高到诊断态势下方，更大更醒目 */}
         <div className="flex min-h-[240px] flex-1 flex-col overflow-hidden rounded-lg border border-white/8 bg-black/20">
@@ -586,6 +595,99 @@ function ReplanBanner({ replan }: { replan: PlannerReplanVM }) {
         </div>
       </div>
     </div>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// issue#6 阶段C — 逐对象诊断循环（聚焦→查询→判断→推进）
+// ─────────────────────────────────────────────────────────────────────────────
+
+function verdictDotTone(verdict: ExaminedVerdict | null): string {
+  switch (verdict) {
+    case 'ABNORMAL':
+      return 'bg-status-fault'
+    case 'NORMAL':
+      return 'bg-status-recovered'
+    case 'IMPACTED':
+      return 'bg-orange-400'
+    case 'CANDIDATE':
+      return 'bg-amber-400'
+    default:
+      return 'bg-status-muted'
+  }
+}
+
+/** 画布"聚焦→查询→判断→推进"循环的 LUI 侧联动：当前焦点/扫描对象 + 已判断对象判定。 */
+function DiagnosisLoopView({ scan }: { scan: DiagnosisScanVM }) {
+  if (scan.examined_objects.length === 0) return null
+  const focus =
+    scan.examined_objects.find((o) => o.is_scanning) ??
+    scan.examined_objects.find((o) => o.is_focus)
+  const stepLabel = scan.active_query_object_id
+    ? '查询中'
+    : scan.focus_object_id
+      ? '聚焦'
+      : '待排查'
+  return (
+    <section className="rounded-lg border border-white/8 bg-white/[0.02] p-2.5">
+      <div className="mb-1.5 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-[#94a3b8]">
+        <ScanSearch className="h-3.5 w-3.5 text-status-active" />
+        诊断循环
+        {focus && (
+          <span className="ml-auto flex items-center gap-1 text-[9px] font-medium normal-case tracking-normal">
+            {scan.active_query_object_id && (
+              <span className="flex items-center gap-1 rounded bg-status-active/15 px-1 py-0.5 text-status-active">
+                <Radar className="h-3 w-3" />
+                {stepLabel}
+              </span>
+            )}
+            <span className="max-w-[140px] truncate text-[#cbd5e1]" title={focus.object_id}>
+              {focus.display_name}
+            </span>
+          </span>
+        )}
+      </div>
+      <div className="flex flex-wrap gap-1">
+        {scan.examined_objects.map((o) => (
+          <span
+            key={o.object_id}
+            className={cn(
+              'flex items-center gap-1 rounded px-1.5 py-0.5 text-[8px]',
+              o.is_scanning
+                ? 'bg-status-active/15 text-status-active'
+                : o.is_focus
+                  ? 'bg-white/[0.06] text-[#cbd5e1]'
+                  : o.verdict
+                    ? 'bg-white/[0.03] text-[#94a3b8]'
+                    : 'bg-white/[0.02] text-[#64748b]',
+            )}
+            title={o.verdict ?? '尚未判断'}
+          >
+            <span className={cn('h-1.5 w-1.5 shrink-0 rounded-full', verdictDotTone(o.verdict))} />
+            {o.display_name}
+            {o.is_scanning && <Radar className="h-2.5 w-2.5" />}
+          </span>
+        ))}
+      </div>
+      <div className="mt-1.5 flex flex-wrap items-center gap-2 text-[8px] text-[#64748b]">
+        <span className="flex items-center gap-1">
+          <span className="h-1.5 w-1.5 rounded-full bg-status-fault" />
+          异常
+        </span>
+        <span className="flex items-center gap-1">
+          <span className="h-1.5 w-1.5 rounded-full bg-status-recovered" />
+          正常
+        </span>
+        <span className="flex items-center gap-1">
+          <span className="h-1.5 w-1.5 rounded-full bg-orange-400" />
+          受影响
+        </span>
+        <span className="flex items-center gap-1">
+          <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
+          候选
+        </span>
+      </div>
+    </section>
   )
 }
 

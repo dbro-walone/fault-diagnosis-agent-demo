@@ -126,6 +126,43 @@ export default function App() {
     [model],
   )
 
+  // issue#6 阶段C：知识图谱节点/连线参考（供 ProjectionStore 图谱原始点/关联点亮推导）。
+  const knowledgeRefs = useMemo(
+    () =>
+      model.nodes
+        .filter((n) => n.plane === 'knowledge')
+        .map((n) => ({
+          id: n.id,
+          layer: n.group,
+          code:
+            typeof n.object.properties.code === 'string'
+              ? (n.object.properties.code as string)
+              : null,
+          fault_mode_code:
+            ((n.object.properties.attributes as Record<string, unknown> | undefined)?.[
+              'fault_mode_code'
+            ] as string | undefined) ?? null,
+        })),
+    [model],
+  )
+  const knowledgeLinkRefs = useMemo(() => {
+    const kgNodeIdSet = new Set(knowledgeRefs.map((n) => n.id))
+    return model.links
+      .filter((l) => {
+        if (l.category === 'knowledge') return true
+        // 知识内部跨层映射（如 CASE_MATCH：现象 → 历史案例）并入图谱扩展。
+        if (l.category === 'cross') {
+          return kgNodeIdSet.has(l.source as string) && kgNodeIdSet.has(l.target as string)
+        }
+        return false
+      })
+      .map((l) => ({
+        source: l.source as string,
+        target: l.target as string,
+        relation: l.relation,
+      }))
+  }, [model, knowledgeRefs])
+
   const selectedObjectView = selectedNodeId && !runtime
     ? model.registry.objectView(selectedNodeId, activeLens, undefined, undefined)
     : null
@@ -351,7 +388,12 @@ export default function App() {
     const store = new ProjectionStore()
     // issue#6 阶段B：传入 Case 全量观测 Fact（原始日志/未被证据引用的告警），
     // 供"对象观测三标签"补全 items 内容（快照内已发现 Fact 优先，回放不泄露未来）。
-    store.bind(snapshot, { observationsFacts: loadAdaptedCase(runtime?.caseId ?? '').facts })
+    // issue#6 阶段C：传入知识图谱参考，供"图谱原始点 + 关联知识点点亮"推导。
+    store.bind(snapshot, {
+      observationsFacts: loadAdaptedCase(runtime?.caseId ?? '').facts,
+      knowledgeNodes: knowledgeRefs,
+      knowledgeLinks: knowledgeLinkRefs,
+    })
     return {
       store,
       knowledge: store.knowledgeSnapshot(),
@@ -359,8 +401,9 @@ export default function App() {
       candidates: store.candidateList(),
       planner: store.plannerTargets(),
       timeline: store.timeline(),
+      scan: store.diagnosisScan(),
     }
-  }, [snapshot, runtime])
+  }, [snapshot, runtime, knowledgeRefs, knowledgeLinkRefs])
 
   return (
     <div className="relative h-screen w-screen overflow-hidden bg-[#0f1117] text-[#e2e8f0]">
@@ -396,6 +439,7 @@ export default function App() {
         knowledgeNodes={knowledgeNodes}
         knowledgeLinks={knowledgeLinks}
         visibleKgLayers={visibleKgLayers}
+        diagnosisScan={vms?.scan ?? null}
       />
 
       {/* F0：诊断会话默认收起 Object Explorer；退出/手动展开后恢复 */}
@@ -476,6 +520,7 @@ export default function App() {
           action={vms.action}
           candidates={vms.candidates}
           planner={vms.planner}
+          scan={vms.scan}
           snapshot={snapshot}
           store={vms.store}
           timelineEvents={vms.timeline}

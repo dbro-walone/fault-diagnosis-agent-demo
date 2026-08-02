@@ -13,6 +13,29 @@ try {
   const v2 = await server.ssrLoadModule('/src/v2/index.ts')
   const { listCases, createDiagnosisRuntime, loadAdaptedCase, replayCase, ProjectionStore } = v2
 
+  // issue#6 阶段C：知识图谱参考（静态 model knowledge 平面 + 知识内部跨层映射）。
+  const modelMod = await server.ssrLoadModule('/src/lib/model-loader.ts')
+  const model = modelMod.loadModelData()
+  const kgNodeIdSet = new Set(model.nodes.filter((n) => n.plane === 'knowledge').map((n) => n.id))
+  const kgNodeRefs = model.nodes
+    .filter((n) => n.plane === 'knowledge')
+    .map((n) => ({
+      id: n.id,
+      layer: n.group,
+      code: typeof n.object.properties.code === 'string' ? n.object.properties.code : null,
+      fault_mode_code:
+        n.object.properties.attributes?.['fault_mode_code'] ?? null,
+    }))
+  const kgLinkRefs = model.links
+    .filter((l) => {
+      if (l.category === 'knowledge') return true
+      if (l.category === 'cross') {
+        return kgNodeIdSet.has(l.source) && kgNodeIdSet.has(l.target)
+      }
+      return false
+    })
+    .map((l) => ({ source: l.source, target: l.target, relation: l.relation }))
+
   const cases = listCases()
   console.log(`\nDiscovered ${cases.length} cases via V2 manifest.`)
   if (cases.length < 3) {
@@ -70,6 +93,23 @@ try {
         ) &&
         (obs.focus_object_id == null || obs.objects.some((o) => o.object_id === obs.focus_object_id))
 
+      // issue#6 阶段C：诊断循环 VM 必须可计算；对象判定合法、图谱点亮为数组。
+      const scanStore = new ProjectionStore()
+      scanStore.bind(liveSnap, {
+        observationsFacts: loadAdaptedCase(entry.caseId).facts,
+        knowledgeNodes: kgNodeRefs,
+        knowledgeLinks: kgLinkRefs,
+      })
+      const scan = scanStore.diagnosisScan()
+      const verdictSet = new Set(['NORMAL', 'ABNORMAL', 'IMPACTED', 'CANDIDATE'])
+      const scanOk =
+        Array.isArray(scan.examined_objects) &&
+        Array.isArray(scan.graph_entry_anchors) &&
+        Array.isArray(scan.graph_lit_knowledge_ids) &&
+        scan.examined_objects.every(
+          (o) => o.verdict === null || verdictSet.has(o.verdict),
+        )
+
       const ok =
         snap.events.length > 0 &&
         liveSnap.events.length === snap.events.length &&
@@ -78,7 +118,8 @@ try {
         typeof ks.leading_score_label === 'string' &&
         back.cursor === rt.liveHead &&
         plannerOk &&
-        obsOk
+        obsOk &&
+        scanOk
 
       const status = ok ? 'OK' : 'FAIL'
       if (!ok) failures += 1
@@ -94,7 +135,8 @@ try {
           `obsObjects=${obs.objects.length} obsFocus=${obs.focus_object_id ?? 'none'}` +
           (focusObs
             ? `(告警:${focusObs.alarms.status_label}|性能:${focusObs.perf.status_label}|日志:${focusObs.logs.status_label})`
-            : ''),
+            : '') +
+          ` scanQuery=${scan.active_query_object_id ?? 'none'} scanVerdicts=${scan.examined_objects.filter((o) => o.verdict).length}/${scan.examined_objects.length} kgAnchors=${scan.graph_entry_anchors.length} kgLit=${scan.graph_lit_knowledge_ids.length}`,
       )
       if (!ok) {
         console.log(`   events(replay)=${snap.events.length} live=${liveSnap.events.length} timeline=${tl.length}`)

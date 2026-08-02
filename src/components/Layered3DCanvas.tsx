@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef } from 'react'
 import * as THREE from 'three'
-import { Layers } from 'lucide-react'
+import { Layers, ScanSearch } from 'lucide-react'
 
 import { LensId } from '../../schemas'
 import { KNOWLEDGE_LAYERS } from '@/lib/knowledge-plane'
@@ -38,9 +38,16 @@ import {
   linkWidthFor,
   linkParticlesFor,
   applyLogicLinkDistance,
+  graphOriginSprite,
+  neighborHintSprite,
+  scanningVisual,
+  verdictRingSprite,
+  VERDICT_COLORS,
   type NodeLabelContext,
+  type VerdictKey,
 } from '@/lib/three-visuals'
 import { LINK_COLORS, STATUS_COLORS, cn } from '@/lib/utils'
+import type { DiagnosisScanVM, ExaminedVerdict } from '../v2'
 
 // ---------------------------------------------------------------------------
 // 相机预设（分层 3D：S1 顶带 y≈134 … S3 底带 y≈6，知识平面 y=-70）
@@ -62,6 +69,29 @@ function presetForLens(lens: LensId | undefined): CameraPreset {
   if (lens === LensId.KNOWLEDGE) return LAYERED_PRESETS.KNOWLEDGE
   return LAYERED_PRESETS.OVERVIEW
 }
+
+// ---------------------------------------------------------------------------
+// issue#6 阶段C —— 诊断循环判定标记常量
+// ---------------------------------------------------------------------------
+
+/** 已判断对象非焦点时的暗化节点色（保留结果但降低突显，"推进"后变暗）。 */
+const VERDICT_DIM_COLOR: Record<ExaminedVerdict, string> = {
+  ABNORMAL: '#7f1d1d',
+  NORMAL: '#166534',
+  IMPACTED: '#7c2d12',
+  CANDIDATE: '#713f12',
+}
+
+/** 聚合锚点多对象判定时取最高优先（异常 > 候选 > 受影响 > 正常）。 */
+const VERDICT_PRIORITY: Record<ExaminedVerdict, number> = {
+  ABNORMAL: 4,
+  CANDIDATE: 3,
+  IMPACTED: 2,
+  NORMAL: 1,
+}
+
+/** 扫描态（查询中）节点色。 */
+const SCAN_COLOR = '#22d3ee'
 
 // ---------------------------------------------------------------------------
 // Props
@@ -104,6 +134,8 @@ export interface Layered3DCanvasProps {
   knowledgeLinks: GraphLink[]
   /** 图谱分层显隐（layer code → visible；与 ModelNavigator Knowledge layers 分区联动）。 */
   visibleKgLayers?: Record<string, boolean>
+  /** issue#6 阶段C：逐对象诊断循环 view-model（聚焦→查询→判断→推进 + 图谱点亮）。 */
+  diagnosisScan?: DiagnosisScanVM | null
 }
 
 // ---------------------------------------------------------------------------
@@ -131,10 +163,15 @@ export default function Layered3DCanvas(props: Layered3DCanvasProps) {
     knowledgeNodes,
     knowledgeLinks,
     visibleKgLayers,
+    diagnosisScan,
   } = props
 
   const containerRef = useRef<HTMLDivElement>(null)
   const graphRef = useRef<any>(null)
+  /** issue#6 阶段C：当前扫描态扫掠精灵（nodeId → sweep），RAF 循环旋转。 */
+  const scanningSweepsRef = useRef<Map<string, THREE.Sprite>>(new Map())
+  /** issue#6 阶段C：最新诊断循环 view-model（RAF 循环只读，避免闭包捕获旧值）。 */
+  const diagnosisScanRef = useRef<DiagnosisScanVM | null>(diagnosisScan ?? null)
 
   // Latest-value refs so the once-created graph instance never captures stale state.
   const selectedRef = useRef<string | null>(selectedNodeId)
@@ -163,6 +200,7 @@ export default function Layered3DCanvas(props: Layered3DCanvasProps) {
   expandedLayersRef.current = expandedLayers
   onSelectRef.current = onNodeSelect
   onToggleLayerRef.current = onToggleLayer
+  diagnosisScanRef.current = diagnosisScan ?? null
 
   /** 3D 分层活动图：拓扑（S1→S3 分层）+ 图谱（分层 X 列）+ 跨层 + 红逻辑链。 */
   const graph = useMemo(
@@ -197,6 +235,40 @@ export default function Layered3DCanvas(props: Layered3DCanvasProps) {
   highlightTopologyRef.current = graph.highlightedTopology
   selectedIsTopologyRef.current = graph.selectedIsTopology
   selectedIsKnowledgeRef.current = graph.selectedIsKnowledge
+
+  /**
+   * issue#6 阶段C：被排查对象判定 → 可见锚点判定。
+   * 对象经 anchorByObjectId 映射到可见锚点（成员/聚合头）；聚合锚点多对象取最高优先判定。
+   */
+  const verdictByAnchorId = useMemo(() => {
+    const map = new Map<string, ExaminedVerdict>()
+    if (!diagnosisScan) return map
+    for (const obj of diagnosisScan.examined_objects) {
+      if (!obj.verdict) continue
+      const anchor = graph.anchorByObjectId.get(obj.object_id) ?? obj.object_id
+      const existing = map.get(anchor)
+      if (!existing || VERDICT_PRIORITY[obj.verdict] > VERDICT_PRIORITY[existing]) {
+        map.set(anchor, obj.verdict)
+      }
+    }
+    return map
+  }, [diagnosisScan, graph])
+
+  /** 聚焦对象上下游一跳相关锚点（聚焦态弱提示，docs/07 §6）。 */
+  const focusNeighborAnchors = useMemo(() => {
+    const set = new Set<string>()
+    const focusId = diagnosisScan?.active_query_object_id ?? diagnosisScan?.focus_object_id ?? null
+    if (!focusId) return set
+    const anchorOf = (id: string) => graph.anchorByObjectId.get(id) ?? id
+    for (const link of model.links) {
+      const a = link.source as string
+      const b = link.target as string
+      if (a === focusId) set.add(anchorOf(b))
+      else if (b === focusId) set.add(anchorOf(a))
+    }
+    set.delete(anchorOf(focusId))
+    return set
+  }, [diagnosisScan, model, graph])
 
   /** 结构签名：节点 id 集 + 连线(source→target:category)。仅结构变化时重绑。 */
   const graphDataSignature = (gd: ActiveGraph): string => {
@@ -257,20 +329,27 @@ export default function Layered3DCanvas(props: Layered3DCanvasProps) {
 
   /**
    * 节点颜色（docs/04 §8 优先级：ROOT_CAUSE > IMPACTED > AGENT_FOCUS > 选中/悬停 > 跨层关联 > 基础层色）。
+   * issue#6 阶段C 追加：扫描态（查询中）最高优先；已判断对象按判定暗化；聚焦上下游一跳弱提示；
+   * 下层图谱原始点金色、关联知识点 teal。
    */
   const nodeColorFor = (node: GraphNode): string => {
+    const scan = diagnosisScan
+    if (node.plane === 'knowledge') {
+      if (scan?.graph_entry_anchors.includes(node.id)) return VERDICT_COLORS.CANDIDATE
+      if (scan?.graph_lit_knowledge_ids.includes(node.id)) return '#2dd4bf'
+      if (node.id === selectedRef.current || node.id === hoverRef.current) return brighten(node.color)
+      if (highlightKnowledgeRef.current.has(node.id)) return '#2dd4bf'
+      return node.color
+    }
+    if (scan?.active_query_object_id === node.id) return SCAN_COLOR
     if (rootCauseRef.current.has(node.id)) return STATUS_COLORS.fault
     if (impactedRef.current.has(node.id)) return STATUS_COLORS.warning
     if (agentFocusRef.current.has(node.id)) return STATUS_COLORS.active
-    if (node.id === selectedRef.current || node.id === hoverRef.current) {
-      return brighten(node.color)
-    }
-    if (
-      highlightKnowledgeRef.current.has(node.id) ||
-      highlightTopologyRef.current.has(node.id)
-    ) {
-      return '#2dd4bf'
-    }
+    const verdict = verdictByAnchorId.get(node.id)
+    if (verdict) return VERDICT_DIM_COLOR[verdict]
+    if (node.id === selectedRef.current || node.id === hoverRef.current) return brighten(node.color)
+    if (focusNeighborAnchors.has(node.id)) return 'rgba(103, 232, 249, 0.65)'
+    if (highlightTopologyRef.current.has(node.id)) return '#2dd4bf'
     return node.color
   }
 
@@ -293,17 +372,37 @@ export default function Layered3DCanvas(props: Layered3DCanvasProps) {
     return {}
   }
 
-  /** Per-node 3D object：聚合头徽标、DETACHED 层标签、跨层关联环、agent/根因光晕。 */
+  /** Per-node 3D object：聚合头徽标、DETACHED 层标签、跨层关联环、agent/根因光晕、
+   *  issue#6 阶段C：扫描雷达、判定环、上下游一跳提示、图谱原始点/关联点亮。 */
   const nodeThreeObjectFor = (node: GraphNode): THREE.Object3D => {
     const group = new THREE.Group()
-    if (rootCauseRef.current.has(node.id)) group.add(rootHaloSprite(node))
-    else if (impactedRef.current.has(node.id)) group.add(impactedRingSprite(node))
-    if (agentFocusRef.current.has(node.id)) group.add(haloSprite(node))
-    if (
-      highlightKnowledgeRef.current.has(node.id) ||
-      highlightTopologyRef.current.has(node.id)
-    ) {
-      group.add(highlightRingSprite(node))
+    const scan = diagnosisScan
+
+    if (node.plane === 'knowledge') {
+      if (scan?.graph_entry_anchors.includes(node.id)) group.add(graphOriginSprite(node))
+      else if (scan?.graph_lit_knowledge_ids.includes(node.id)) group.add(highlightRingSprite(node))
+      if (highlightKnowledgeRef.current.has(node.id)) group.add(highlightRingSprite(node))
+    } else {
+      const isScanning = scan?.active_query_object_id === node.id
+      if (isScanning) {
+        const visual = scanningVisual(node)
+        scanningSweepsRef.current.set(node.id, visual.sweep)
+        group.add(visual)
+      }
+      if (rootCauseRef.current.has(node.id)) group.add(rootHaloSprite(node))
+      else if (impactedRef.current.has(node.id)) group.add(impactedRingSprite(node))
+      if (agentFocusRef.current.has(node.id) && !isScanning) group.add(haloSprite(node))
+      const verdict = verdictByAnchorId.get(node.id)
+      if (
+        verdict &&
+        !isScanning &&
+        !rootCauseRef.current.has(node.id) &&
+        !impactedRef.current.has(node.id)
+      ) {
+        group.add(verdictRingSprite(node, verdict as VerdictKey))
+      }
+      if (focusNeighborAnchors.has(node.id) && !isScanning) group.add(neighborHintSprite(node))
+      if (highlightTopologyRef.current.has(node.id)) group.add(highlightRingSprite(node))
     }
     const summary = summariesRef.current.get(node.id)
     if (summary) {
@@ -475,11 +574,40 @@ export default function Layered3DCanvas(props: Layered3DCanvasProps) {
     graphInstance.cameraPosition(preset.position, preset.lookAt, 900)
   }, [activeLens])
 
-  // --- appearance refresh on selection / runtime highlight changes ----------
+  // --- appearance refresh on selection / runtime highlight / scan changes ----
 
   useEffect(() => {
     refreshAppearance()
-  }, [selectedNodeId, agentFocusIds, rootCauseIds, impactedIds])
+  }, [
+    selectedNodeId,
+    agentFocusIds,
+    rootCauseIds,
+    impactedIds,
+    diagnosisScan,
+    verdictByAnchorId,
+    focusNeighborAnchors,
+  ])
+
+  // --- issue#6 阶段C：扫描雷达扫掠 RAF 动画（仅旋转当前扫描对象的扫掠精灵） ---
+
+  useEffect(() => {
+    let raf = 0
+    let last = performance.now()
+    const tick = (now: number) => {
+      const delta = Math.min(0.05, (now - last) / 1000)
+      last = now
+      const activeQuery = diagnosisScanRef.current?.active_query_object_id ?? null
+      for (const [id, sweep] of scanningSweepsRef.current) {
+        if (id !== activeQuery) continue
+        const material = sweep.material as THREE.SpriteMaterial
+        material.rotation = (material.rotation ?? 0) + delta * 2.2
+      }
+      raf = requestAnimationFrame(tick)
+    }
+    raf = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(raf)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // --- header counts ---------------------------------------------------------
 
@@ -508,6 +636,23 @@ export default function Layered3DCanvas(props: Layered3DCanvasProps) {
           <span className="hidden text-[#64748b] md:inline">
             {model.nodes.length} 资源 · {graph.crossLinks.length} 跨层映射 · {kgCount} 图谱节点
           </span>
+          {diagnosisScan && (
+            <>
+              <span
+                data-testid="scan-query"
+                className="flex items-center gap-1 rounded bg-status-active/15 px-2 py-0.5 text-[10px] text-status-active"
+              >
+                <ScanSearch className="h-3 w-3" />
+                查询 {diagnosisScan.active_query_object_id ?? '—'}
+              </span>
+              <span
+                data-testid="scan-kg"
+                className="flex items-center gap-1 rounded bg-amber-400/15 px-2 py-0.5 text-[10px] text-amber-300"
+              >
+                图谱原始点 {diagnosisScan.graph_entry_anchors.length}
+              </span>
+            </>
+          )}
           <label className="ml-1 flex items-center gap-1.5">
             <span className="text-[10px] text-[#64748b]">Case</span>
             <select
@@ -530,6 +675,32 @@ export default function Layered3DCanvas(props: Layered3DCanvasProps) {
       <div className="pointer-events-none absolute bottom-3 left-1/2 z-10 -translate-x-1/2 rounded-lg border border-white/5 bg-[#11141c]/70 px-3 py-1.5 text-[10px] text-[#64748b] backdrop-blur-sm">
         滚轮缩放 · 拖拽旋转 · 拖动节点 · 双击聚合层展开/收起 · 单击查看关联
       </div>
+
+      {/* issue#6 阶段C：诊断循环图例（诊断会话中左下角） */}
+      {diagnosisScan && (
+        <div className="pointer-events-none absolute bottom-3 left-3 z-10 space-y-1 rounded-xl border border-white/10 bg-[#11141c]/85 px-3 py-2.5 text-[9px] text-[#94a3b8] backdrop-blur-md">
+          <div className="mb-1 font-semibold tracking-wide text-[#94a3b8]">诊断循环</div>
+          <div className="flex items-center gap-1.5">
+            <span className="h-2 w-2 rounded-full" style={{ background: SCAN_COLOR }} />
+            聚焦 · 上下游一跳
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="h-2 w-2 rounded-full bg-cyan-400" />
+            查询 · 雷达扫掠
+          </div>
+          <div className="flex items-center gap-1">
+            <span className="h-2 w-2 rounded-full bg-red-500" />
+            <span className="h-2 w-2 rounded-full bg-green-500" />
+            <span className="h-2 w-2 rounded-full bg-orange-500" />
+            <span className="h-2 w-2 rounded-full bg-amber-400" />
+            异常 · 正常 · 受影响 · 候选
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="h-2 w-2 rounded-full bg-amber-400" />
+            图谱原始点
+          </div>
+        </div>
+      )}
 
       {/* 层图例（右侧，S1→S3 域带 + 图谱分层列） */}
       <div className="pointer-events-none absolute right-3 top-1/2 z-10 -translate-y-1/2 space-y-1.5 rounded-xl border border-white/10 bg-[#11141c]/85 px-3 py-2.5 text-[10px] backdrop-blur-md">

@@ -259,6 +259,245 @@ export function highlightRingSprite(node: GraphNode): THREE.Sprite {
   return sprite
 }
 
+// ---------------------------------------------------------------------------
+// issue#6 阶段C — 逐对象诊断循环视觉
+// ---------------------------------------------------------------------------
+
+/**
+ * 判定标记颜色（docs/07 §6 阶段C「判断」态）：
+ * 异常红 / 正常绿 / 受影响橙 / 候选黄。与 STATUS_COLORS 同族，画布节点色与光环共用。
+ */
+export const VERDICT_COLORS = {
+  ABNORMAL: '#ef4444',
+  NORMAL: '#22c55e',
+  IMPACTED: '#f59e0b',
+  CANDIDATE: '#fbbf24',
+} as const
+export type VerdictKey = keyof typeof VERDICT_COLORS
+
+/** 已判断对象判定环（弱于根因/受影响光环；形态+颜色，不只靠颜色）。 */
+const verdictRingTextures = new Map<string, THREE.CanvasTexture>()
+export function getVerdictRingTexture(color: string): THREE.CanvasTexture {
+  const cached = verdictRingTextures.get(color)
+  if (cached) return cached
+  const canvas = document.createElement('canvas')
+  canvas.width = 128
+  canvas.height = 128
+  const ctx = canvas.getContext('2d')!
+  ctx.shadowBlur = 14
+  ctx.shadowColor = color
+  ctx.lineWidth = 5
+  ctx.strokeStyle = color
+  ctx.beginPath()
+  ctx.arc(64, 64, 50, 0, Math.PI * 2)
+  ctx.stroke()
+  // 顶点小点强化"判定"语义（形态组合，不单靠颜色）。
+  ctx.lineWidth = 4
+  ctx.fillStyle = color
+  ctx.beginPath()
+  ctx.arc(64, 14, 7, 0, Math.PI * 2)
+  ctx.fill()
+  const tex = new THREE.CanvasTexture(canvas)
+  tex.colorSpace = THREE.SRGBColorSpace
+  verdictRingTextures.set(color, tex)
+  return tex
+}
+
+export function verdictRingSprite(node: GraphNode, verdict: VerdictKey): THREE.Sprite {
+  const sprite = new THREE.Sprite(
+    new THREE.SpriteMaterial({
+      map: getVerdictRingTexture(VERDICT_COLORS[verdict]),
+      transparent: true,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+    }),
+  )
+  const scale = 14 + node.val * 4
+  sprite.scale.set(scale, scale, 1)
+  return sprite
+}
+
+// —— 查询扫描态：静态底座环 + 可旋转雷达扫掠（材质 rotation 动画，画布 RAF 驱动）——
+
+let scanningBaseTexture: THREE.CanvasTexture | null = null
+export function getScanningBaseTexture(): THREE.CanvasTexture {
+  if (scanningBaseTexture) return scanningBaseTexture
+  const canvas = document.createElement('canvas')
+  canvas.width = 128
+  canvas.height = 128
+  const ctx = canvas.getContext('2d')!
+  ctx.shadowBlur = 16
+  ctx.shadowColor = '#22d3ee'
+  ctx.lineWidth = 5
+  ctx.strokeStyle = 'rgba(34, 211, 238, 0.9)'
+  ctx.beginPath()
+  ctx.arc(64, 64, 50, 0, Math.PI * 2)
+  ctx.stroke()
+  ctx.lineWidth = 2
+  ctx.strokeStyle = 'rgba(165, 243, 252, 0.4)'
+  ctx.beginPath()
+  ctx.arc(64, 64, 58, 0, Math.PI * 2)
+  ctx.stroke()
+  const tex = new THREE.CanvasTexture(canvas)
+  tex.colorSpace = THREE.SRGBColorSpace
+  scanningBaseTexture = tex
+  return tex
+}
+
+let scanningSweepTexture: THREE.CanvasTexture | null = null
+export function getScanningSweepTexture(): THREE.CanvasTexture {
+  if (scanningSweepTexture) return scanningSweepTexture
+  const canvas = document.createElement('canvas')
+  canvas.width = 128
+  canvas.height = 128
+  const ctx = canvas.getContext('2d')!
+  const cx = 64
+  const cy = 64
+  const r = 50
+  // 雷达扫掠楔形（-70° → +70°），径向淡出。
+  const start = -Math.PI * 0.39
+  const end = Math.PI * 0.39
+  const grad = ctx.createRadialGradient(cx, cy, r * 0.2, cx, cy, r)
+  grad.addColorStop(0, 'rgba(34, 211, 238, 0)')
+  grad.addColorStop(0.82, 'rgba(34, 211, 238, 0.16)')
+  grad.addColorStop(1, 'rgba(34, 211, 238, 0.55)')
+  ctx.fillStyle = grad
+  ctx.beginPath()
+  ctx.moveTo(cx, cy)
+  ctx.arc(cx, cy, r, start, end)
+  ctx.closePath()
+  ctx.fill()
+  // 扫掠前沿亮线。
+  ctx.strokeStyle = 'rgba(165, 243, 252, 0.95)'
+  ctx.lineWidth = 3
+  ctx.beginPath()
+  ctx.moveTo(cx, cy)
+  ctx.lineTo(cx + Math.cos(end) * r, cy + Math.sin(end) * r)
+  ctx.stroke()
+  const tex = new THREE.CanvasTexture(canvas)
+  tex.colorSpace = THREE.SRGBColorSpace
+  scanningSweepTexture = tex
+  return tex
+}
+
+export interface ScanningVisual extends THREE.Group {
+  /** 可旋转的扫掠精灵（材质 rotation 动画）。 */
+  sweep: THREE.Sprite
+}
+
+/** 正在被 Skill 查询对象的扫描视觉：底座环 + 旋转雷达扫掠。 */
+export function scanningVisual(node: GraphNode): ScanningVisual {
+  const group = new THREE.Group()
+  const base = new THREE.Sprite(
+    new THREE.SpriteMaterial({
+      map: getScanningBaseTexture(),
+      transparent: true,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+    }),
+  )
+  const scale = 20 + node.val * 4
+  base.scale.set(scale, scale, 1)
+  group.add(base)
+  const sweep = new THREE.Sprite(
+    new THREE.SpriteMaterial({
+      map: getScanningSweepTexture(),
+      transparent: true,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+    }),
+  )
+  sweep.scale.set(scale, scale, 1)
+  group.add(sweep)
+  const visual = group as ScanningVisual
+  visual.sweep = sweep
+  return visual
+}
+
+/** 推进扫描扫掠旋转（由画布 RAF 循环调用；delta 为秒）。 */
+export function advanceScanningSweep(visual: ScanningVisual, delta: number): void {
+  const material = visual.sweep.material as THREE.SpriteMaterial
+  material.rotation = (material.rotation ?? 0) + delta * 2.2
+}
+
+// —— 聚焦对象上下游一跳弱提示环（聚焦态）——
+
+let neighborHintTexture: THREE.CanvasTexture | null = null
+export function getNeighborHintTexture(): THREE.CanvasTexture {
+  if (neighborHintTexture) return neighborHintTexture
+  const canvas = document.createElement('canvas')
+  canvas.width = 128
+  canvas.height = 128
+  const ctx = canvas.getContext('2d')!
+  ctx.shadowBlur = 10
+  ctx.shadowColor = '#67e8f9'
+  ctx.lineWidth = 3
+  ctx.strokeStyle = 'rgba(103, 232, 249, 0.5)'
+  ctx.setLineDash([8, 10])
+  ctx.beginPath()
+  ctx.arc(64, 64, 52, 0, Math.PI * 2)
+  ctx.stroke()
+  const tex = new THREE.CanvasTexture(canvas)
+  tex.colorSpace = THREE.SRGBColorSpace
+  neighborHintTexture = tex
+  return tex
+}
+
+export function neighborHintSprite(node: GraphNode): THREE.Sprite {
+  const sprite = new THREE.Sprite(
+    new THREE.SpriteMaterial({
+      map: getNeighborHintTexture(),
+      transparent: true,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+    }),
+  )
+  const scale = 16 + node.val * 4
+  sprite.scale.set(scale, scale, 1)
+  return sprite
+}
+
+// —— 图谱原始点：金色强光晕（诊断启动后点亮，与 teal 关联点区分）——
+
+let graphOriginTexture: THREE.CanvasTexture | null = null
+export function getGraphOriginTexture(): THREE.CanvasTexture {
+  if (graphOriginTexture) return graphOriginTexture
+  const canvas = document.createElement('canvas')
+  canvas.width = 128
+  canvas.height = 128
+  const ctx = canvas.getContext('2d')!
+  ctx.shadowBlur = 22
+  ctx.shadowColor = '#fbbf24'
+  ctx.lineWidth = 8
+  ctx.strokeStyle = 'rgba(251, 191, 36, 0.95)'
+  ctx.beginPath()
+  ctx.arc(64, 64, 46, 0, Math.PI * 2)
+  ctx.stroke()
+  ctx.lineWidth = 2.5
+  ctx.strokeStyle = 'rgba(251, 191, 36, 0.5)'
+  ctx.beginPath()
+  ctx.arc(64, 64, 60, 0, Math.PI * 2)
+  ctx.stroke()
+  const tex = new THREE.CanvasTexture(canvas)
+  tex.colorSpace = THREE.SRGBColorSpace
+  graphOriginTexture = tex
+  return tex
+}
+
+export function graphOriginSprite(node: GraphNode): THREE.Sprite {
+  const sprite = new THREE.Sprite(
+    new THREE.SpriteMaterial({
+      map: getGraphOriginTexture(),
+      transparent: true,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+    }),
+  )
+  const scale = 18 + node.val * 4
+  sprite.scale.set(scale, scale, 1)
+  return sprite
+}
+
 // Aggregate member-count badge: a circular notification badge tinted by the
 // group's highest severity (docs/05 §5 — shape + color, never color alone).
 export function countBadgeSprite(summary: AggregateSummary): THREE.Sprite {

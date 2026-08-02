@@ -201,6 +201,60 @@ export interface ObjectObservationPanelVM {
   objects: ObjectObservationVM[]
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// issue#6 阶段C — 逐对象诊断循环 + 图谱原始点亮
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * 对象判定标记（画布"判断"态颜色，docs/07 §6 阶段C）：
+ * - ABNORMAL：异常（红）——根因/故障链对象或有异常观测；
+ * - NORMAL：正常（绿）——已排查且未发现异常（含被排除的候选）；
+ * - IMPACTED：受影响（橙）——位于影响链；
+ * - CANDIDATE：候选（黄）——作为根因假设正在被验证。
+ */
+export type ExaminedVerdict = 'NORMAL' | 'ABNORMAL' | 'IMPACTED' | 'CANDIDATE'
+
+export interface ExaminedObjectVM {
+  object_id: string
+  display_name: string
+  /** 判定标记；null = 尚未判断（未被查询、也无候选/影响）。 */
+  verdict: ExaminedVerdict | null
+  /** 当前正在被 Skill 查询（画布扫描态）。 */
+  is_scanning: boolean
+  /** 当前焦点对象（activeQuery 或 Planner 当前位置 / agent_focus）。 */
+  is_focus: boolean
+}
+
+export interface DiagnosisScanVM {
+  /** 当前正在被 Skill 查询的对象（running task target_object_refs 首项）。 */
+  active_query_object_id: string | null
+  /** 整体焦点对象（activeQuery > Planner active > agent_focus）。 */
+  focus_object_id: string | null
+  /** 已排查对象及其判定（扫描/聚焦优先，随快照推进增长）。 */
+  examined_objects: ExaminedObjectVM[]
+  /** 图谱原始点 ids（当前现象 → 故障模式，诊断启动后点亮，随候选收敛）。 */
+  graph_entry_anchors: string[]
+  /** 图谱关联知识点 ids（机制 → 证据规则 → 案例，随证据/候选更新扩展）。 */
+  graph_lit_knowledge_ids: string[]
+}
+
+/** 知识图谱节点参考（来自静态 model knowledge 平面，仅供图谱点亮推导）。 */
+export interface KnowledgeGraphNodeRef {
+  id: string
+  /** 图谱分层（OBJECT_TYPE/SYMPTOM/FAULT_MODE/MECHANISM/EVIDENCE_RULE/CASE）。 */
+  layer: string
+  /** 语义码（如 LATENCY_INCREASE / CONTROLLER_WARM_RESET）。 */
+  code?: string | null
+  /** 故障模式码（attributes.fault_mode_code）。 */
+  fault_mode_code?: string | null
+}
+
+export interface KnowledgeGraphLinkRef {
+  source: string
+  target: string
+  relation?: string
+}
+
 export interface FactSummaryVM {
   fact_id: string
   fact_type: FactType
@@ -442,15 +496,29 @@ export class ProjectionStore {
   private _userSelection: UserSelection = { ...EMPTY_USER_SELECTION }
   /** issue#6 阶段B：Case 全量观测 Fact（含未被 Evidence 引用的原始日志/告警），仅作 items 内容补充。 */
   private observationsFacts: CanonicalFact[] | null = null
+  /** issue#6 阶段C：知识图谱节点/连线参考（静态 model knowledge 平面），仅作图谱点亮推导。 */
+  private knowledgeNodes: KnowledgeGraphNodeRef[] | null = null
+  private knowledgeLinks: KnowledgeGraphLinkRef[] | null = null
 
   /**
    * 绑定 Runtime 快照（只读消费，不改写 Runtime）。
    * context.observationsFacts：Case 适配后的全量观测 Fact，供对象观测 items 补充原始内容
    * （原始日志行、未被证据引用的告警等）。未提供时回退快照内已发现 Fact。
+   * context.knowledgeNodes/knowledgeLinks：知识图谱参考（来自静态 model），供"图谱原始点 +
+   * 关联知识点点亮"推导；未提供时图谱点亮为空但不抛错。
    */
-  bind(snapshot: DiagnosisSessionSnapshot, context?: { observationsFacts?: CanonicalFact[] }): void {
+  bind(
+    snapshot: DiagnosisSessionSnapshot,
+    context?: {
+      observationsFacts?: CanonicalFact[]
+      knowledgeNodes?: KnowledgeGraphNodeRef[]
+      knowledgeLinks?: KnowledgeGraphLinkRef[]
+    },
+  ): void {
     this.snapshot = snapshot
     this.observationsFacts = context?.observationsFacts ?? null
+    this.knowledgeNodes = context?.knowledgeNodes ?? null
+    this.knowledgeLinks = context?.knowledgeLinks ?? null
   }
 
   get userSelection(): UserSelection {
@@ -575,6 +643,50 @@ export class ProjectionStore {
       return a.display_name.localeCompare(b.display_name, 'zh')
     })
     return { focus_object_id: focus, objects: vms }
+  }
+
+  // —— 逐对象诊断循环 + 图谱点亮（issue#6 阶段C）——
+  /**
+   * 画布逐对象诊断循环 view-model（docs/07 §6 阶段C）：
+   * 聚焦（activeQuery/Planner 位置）→ 查询（扫描态）→ 判断（对象判定标记）→ 推进。
+   * 判定完全由快照推导（候选/证据/Fact/影响链），不重复读数据；图谱点亮来自
+   * 症状锚点 + 活跃候选故障模式沿知识图谱扩展。
+   */
+  diagnosisScan(): DiagnosisScanVM {
+    const s = this.require()
+    const activeQuery = activeQueryObjectIdOf(s)
+    const focus = focusObjectId(s)
+    const allFacts = allObservationFacts(this.snapshot!, this.observationsFacts)
+
+    const examined: ExaminedObjectVM[] = scanExaminedObjectIds(s).map((objectId) => ({
+      object_id: objectId,
+      display_name: displayNameOf(allFacts, objectId),
+      verdict: examinedVerdictFor(s, objectId),
+      is_scanning: objectId === activeQuery,
+      is_focus: objectId === focus,
+    }))
+    examined.sort((a, b) => {
+      if (a.is_scanning !== b.is_scanning) return a.is_scanning ? -1 : 1
+      if (a.is_focus !== b.is_focus) return a.is_focus ? -1 : 1
+      const av = a.verdict ? 0 : 1
+      const bv = b.verdict ? 0 : 1
+      if (av !== bv) return av - bv
+      return a.display_name.localeCompare(b.display_name, 'zh')
+    })
+
+    const { graph_entry_anchors, graph_lit_knowledge_ids } = deriveGraphLighting(
+      s,
+      this.knowledgeNodes ?? [],
+      this.knowledgeLinks ?? [],
+    )
+
+    return {
+      active_query_object_id: activeQuery,
+      focus_object_id: focus,
+      examined_objects: examined,
+      graph_entry_anchors,
+      graph_lit_knowledge_ids,
+    }
   }
 
   // —— 候选根因 ——
@@ -1012,6 +1124,216 @@ function matchedLogsHaveAbnormal(f: CanonicalFact, allFacts: CanonicalFact[]): b
       fact.source.source_refs.some((r) => matchedIds.has(r)) &&
       isAbnormalLogLevel(String(fact.payload['level'] ?? '')),
   )
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// issue#6 阶段C — 逐对象诊断循环 + 图谱点亮辅助
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** 当前正在被 Skill 查询的对象（最近 RUNNING 任务 target_object_refs 首项）。 */
+function activeQueryObjectIdOf(s: DiagnosisSessionSnapshot): string | null {
+  const running = [...s.tasks].reverse().find((t) => t.status === TaskStatus.RUNNING)
+  return running?.target_object_refs?.[0] ?? null
+}
+
+/** 画布循环的被排查对象集合：被排查对象 ∪ 结论根因链/影响链对象。 */
+function scanExaminedObjectIds(s: DiagnosisSessionSnapshot): string[] {
+  const ids = new Set(investigatedObjectIds(s))
+  for (const id of s.conclusion?.root_cause_chain ?? []) ids.add(id)
+  for (const id of s.conclusion?.impact_chain ?? []) ids.add(id)
+  return [...ids]
+}
+
+/** 活跃根因假设候选状态（未决/正在验证；已排除/证据不足不算活跃）。 */
+const ACTIVE_HYPOTHESIS_STATUSES: ReadonlySet<CandidateStatus> = new Set([
+  CandidateStatus.INITIAL,
+  CandidateStatus.ACTIVE,
+  CandidateStatus.LEADING,
+  CandidateStatus.CONFLICTING,
+  CandidateStatus.CONFIRMED,
+])
+
+/**
+ * 对象判定（优先级：根因 > 故障链 > 活跃假设候选 > 受影响 > 异常观测 > 排除候选 > 已排查正常）。
+ * 纯函数、确定性，禁止 case_id 特判。
+ */
+function examinedVerdictFor(s: DiagnosisSessionSnapshot, objectId: string): ExaminedVerdict | null {
+  const c = s.conclusion
+  if (c?.root_cause?.object_id === objectId) return 'ABNORMAL'
+  if ((c?.root_cause_chain ?? []).includes(objectId)) return 'ABNORMAL'
+
+  const cands = s.candidates.filter((x) => x.object_id === objectId)
+  if (cands.some((x) => ACTIVE_HYPOTHESIS_STATUSES.has(x.status))) return 'CANDIDATE'
+  if ((c?.impact_chain ?? []).includes(objectId)) return 'IMPACTED'
+  if (objectHasAbnormalFacts(s, objectId)) return 'ABNORMAL'
+  if (
+    cands.some(
+      (x) =>
+        x.status === CandidateStatus.WEAKENED ||
+        x.status === CandidateStatus.NOT_CONFIRMED ||
+        x.status === CandidateStatus.INSUFFICIENT_EVIDENCE,
+    )
+  ) {
+    return 'NORMAL'
+  }
+
+  const target = s.planner_targets.find((t) => t.target_resource === objectId)
+  if (target) {
+    const st = derivePlannerTargetStatus(s, target)
+    if (st === 'verified_abnormal') return 'ABNORMAL'
+    if (st === 'verified_ok' || st === 'excluded') return 'NORMAL'
+  }
+
+  if (objectExaminedNormal(s, objectId)) return 'NORMAL'
+  return null
+}
+
+/** 对象是否已由终态任务产出的 Fact 覆盖（视为"已排查"）。 */
+function objectExaminedNormal(s: DiagnosisSessionSnapshot, objectId: string): boolean {
+  const terminal: TaskStatus[] = [
+    TaskStatus.SUCCEEDED,
+    TaskStatus.PARTIAL,
+    TaskStatus.DATA_MISSING,
+    TaskStatus.FAILED,
+    TaskStatus.SKIPPED,
+  ]
+  const terminalTaskIds = new Set(
+    s.tasks.filter((t) => terminal.includes(t.status)).map((t) => t.task_id),
+  )
+  return s.facts.some(
+    (f) =>
+      (f.object_refs ?? []).includes(objectId) &&
+      terminalTaskIds.has(f.source.execution_id.replace(/^exec-/, '')),
+  )
+}
+
+/** 对象是否存在异常观测 Fact（告警严重 / KPI 超阈值 / 日志 ERROR+ / 指纹命中异常日志）。 */
+function objectHasAbnormalFacts(s: DiagnosisSessionSnapshot, objectId: string): boolean {
+  return s.facts.some((f) => {
+    if (!(f.object_refs ?? []).includes(objectId)) return false
+    switch (f.fact_type) {
+      case FactType.ALARM:
+        return isAbnormalSeverity(String(f.payload['severity'] ?? ''))
+      case FactType.KPI_WINDOW:
+        return kpiAbnormal(f.payload)
+      case FactType.LOG:
+        return isAbnormalLogLevel(String(f.payload['level'] ?? ''))
+      case FactType.LOG_FINGERPRINT:
+        return matchedLogsHaveAbnormal(f, s.facts)
+      default:
+        return false
+    }
+  })
+}
+
+/** 图谱 token 停用词（id 前缀 / 通用词，避免误匹配）。 */
+const GRAPH_STOP_TOKENS = new Set(['sym', 'ot', 'fm', 'mech', 'er', 'case', 'id', 'kg', 'xm', 'of', 'to', 'by'])
+
+function graphTokens(value: string): Set<string> {
+  return new Set(
+    String(value ?? '')
+      .toLowerCase()
+      .split(/[^a-z0-9]+/)
+      .filter((t) => t.length >= 2 && !GRAPH_STOP_TOKENS.has(t)),
+  )
+}
+
+/** 图谱节点语义码候选（code / fault_mode_code）。 */
+function graphNodeCodes(n: KnowledgeGraphNodeRef): string[] {
+  return [n.code, n.fault_mode_code].filter((v): v is string => !!v)
+}
+
+/**
+ * 两个字符串是否共享 ≥minHits 个有效 token（图谱节点与症状/故障模式的宽松匹配）。
+ * 症状匹配取 1（症状 id 语义特异，如 sym-lun-latency-high ↔ sym-latency-increase 共享 latency）；
+ * 故障模式匹配取 2（避免 CONTROLLER 与 CONTROLLER_OVERLOAD 因仅共享 controller 而误判）。
+ */
+function graphTokenOverlap(a: string, b: string, minHits = 2): boolean {
+  const ta = graphTokens(a)
+  let hits = 0
+  for (const t of ta) if (graphTokens(b).has(t)) hits++
+  return hits >= minHits
+}
+
+/**
+ * 图谱点亮推导：图谱原始点（现象锚点 + 活跃候选故障模式）+ 关联知识点扩展。
+ * - 症状锚点：症状 source_symptom_ids / normalized_text / normalization_chain 与
+ *   图谱 SYMPTOM 节点 id/code 的 token 匹配（如 sym-lun-latency-high ↔ sym-latency-increase）；
+ * - 故障模式锚点：活跃假设候选的 fault_mode_code 与 FAULT_MODE 节点 code 匹配
+ *   （精确或 token 重叠），候选被排除后其故障模式从锚点收敛；
+ * - 关联知识点：从故障模式锚点沿图谱出边 BFS 扩展（机制 → 证据规则），并点亮
+ *   与症状锚点直连的 CASE 节点（如 CASE_MATCH → 历史案例）。
+ */
+function deriveGraphLighting(
+  s: DiagnosisSessionSnapshot,
+  kgNodes: KnowledgeGraphNodeRef[],
+  kgLinks: KnowledgeGraphLinkRef[],
+): { graph_entry_anchors: string[]; graph_lit_knowledge_ids: string[] } {
+  if (kgNodes.length === 0) return { graph_entry_anchors: [], graph_lit_knowledge_ids: [] }
+
+  const symptomRefs = [
+    s.symptom?.normalized_text ?? '',
+    ...(s.symptom?.source_symptom_ids ?? []),
+    ...(s.symptom?.normalization_chain ?? []),
+  ].filter(Boolean)
+
+  const symptomAnchors = new Set<string>()
+  for (const n of kgNodes) {
+    if (n.layer !== 'SYMPTOM') continue
+    const nodeText = [n.id, n.code].filter(Boolean).join(' ')
+    if (symptomRefs.some((ref) => graphTokenOverlap(ref, nodeText, 1))) symptomAnchors.add(n.id)
+  }
+
+  const activeFaultCodes = new Set(
+    s.candidates
+      .filter((c) => ACTIVE_HYPOTHESIS_STATUSES.has(c.status) && c.fault_mode_code)
+      .map((c) => c.fault_mode_code),
+  )
+  const faultModeAnchors = new Set<string>()
+  for (const n of kgNodes) {
+    if (n.layer !== 'FAULT_MODE') continue
+    const codes = graphNodeCodes(n)
+    const matched = [...activeFaultCodes].some(
+      (code) => codes.some((c) => c === code) || graphTokenOverlap(code, codes.join(' ')),
+    )
+    if (matched) faultModeAnchors.add(n.id)
+  }
+
+  const graphEntryAnchors = [...symptomAnchors, ...faultModeAnchors]
+
+  // 关联知识点：从故障模式锚点沿图谱出边 BFS（≤3 跳），点亮机制/证据规则。
+  const lit = new Set(graphEntryAnchors)
+  const adj = new Map<string, string[]>()
+  for (const l of kgLinks) {
+    const arr = adj.get(l.source) ?? []
+    arr.push(l.target)
+    adj.set(l.source, arr)
+  }
+  const queue = [...faultModeAnchors]
+  const depthByNode = new Map<string, number>(queue.map((id) => [id, 0]))
+  while (queue.length) {
+    const id = queue.shift()!
+    const depth = depthByNode.get(id) ?? 0
+    if (depth >= 3) continue
+    for (const next of adj.get(id) ?? []) {
+      if (lit.has(next)) continue
+      lit.add(next)
+      depthByNode.set(next, depth + 1)
+      queue.push(next)
+    }
+  }
+
+  // 历史案例：由症状锚点直连的 CASE 节点（如 sym-latency-increase → case-warm-reset-001）。
+  const byId = new Map(kgNodes.map((n) => [n.id, n]))
+  for (const symId of symptomAnchors) {
+    for (const l of kgLinks) {
+      if (l.source !== symId) continue
+      const target = byId.get(l.target)
+      if (target && target.layer === 'CASE') lit.add(target.id)
+    }
+  }
+
+  return { graph_entry_anchors: graphEntryAnchors, graph_lit_knowledge_ids: [...lit] }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
