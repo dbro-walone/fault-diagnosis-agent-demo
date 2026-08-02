@@ -79,7 +79,6 @@ describe('buildActiveGraph 设备级聚合（BA-GRAPH-009/010/011）', () => {
     overlay: undefined,
     layerTopology: true,
     layerKnowledge: true,
-    visibleDomains: Object.fromEntries(model.domains.map((d) => [d.code, true])),
     visibleKgLayers: Object.fromEntries(model.kgLayers.map((l) => [l.code, true])),
     showCrossLayer: false,
   }

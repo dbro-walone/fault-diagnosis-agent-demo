@@ -104,7 +104,6 @@ export interface GraphFilter {
   overlay?: ScenarioOverlay
   layerTopology: boolean
   layerKnowledge: boolean
-  visibleDomains: Record<string, boolean>
   visibleKgLayers: Record<string, boolean>
   showCrossLayer: boolean
   /** Optional Object Set / Search Around restriction. */
@@ -490,10 +489,7 @@ function buildDeviceGroups(objects: OntologyObject[]): ModelData['deviceGroups']
 
 function visibleByDomain(node: GraphNode, filter: GraphFilter): boolean {
   if (node.plane === 'topology') {
-    return (
-      filter.layerTopology &&
-      filter.visibleDomains[node.group] !== false
-    )
+    return filter.layerTopology
   }
   if (!filter.layerKnowledge) return false
   if (node.object.type !== OntologyObjectType.KNOWLEDGE) return true

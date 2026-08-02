@@ -13,7 +13,17 @@ import {
   type LayeredModelData,
   type TopoLayerCode,
 } from '@/lib/layered-topology'
-import type { GraphNode, SeverityLevel } from '@/lib/model-loader'
+import {
+  KNOWLEDGE_LAYERS,
+  KNOWLEDGE_LAYOUT_METRICS,
+  buildCrossLayerLinks,
+  knowledgeAssociations,
+  knowledgeLayerDef,
+  layoutKnowledgeGraph,
+  reachableKnowledgeNodes,
+  topologyAssociationsForKnowledge,
+} from '@/lib/knowledge-plane'
+import type { GraphLink, GraphNode, SeverityLevel } from '@/lib/model-loader'
 import { cn, STATUS_COLORS } from '@/lib/utils'
 
 // ---------------------------------------------------------------------------
@@ -106,6 +116,12 @@ export interface LayeredTopologyCanvasProps {
   /** F0：左侧 Object Explorer 是否收起（收起时条带左起点移到画布边缘）。 */
   navigatorCollapsed: boolean
   onNodeSelect: (id: string | null) => void
+  /** 下层故障知识图谱节点（plane==='knowledge'，来自静态 knowledge-graph 模型）。 */
+  knowledgeNodes: GraphNode[]
+  /** 下层故障知识图谱连线（category==='knowledge'）。 */
+  knowledgeLinks: GraphLink[]
+  /** 图谱分层显隐（layer code → visible；与 ModelNavigator Knowledge layers 分区联动）。 */
+  visibleKgLayers?: Record<string, boolean>
 }
 
 export default function LayeredTopologyCanvas(props: LayeredTopologyCanvasProps) {
@@ -125,6 +141,9 @@ export default function LayeredTopologyCanvas(props: LayeredTopologyCanvasProps)
     selectedNodeId,
     navigatorCollapsed,
     onNodeSelect,
+    knowledgeNodes,
+    knowledgeLinks,
+    visibleKgLayers,
   } = props
 
   const graph = useMemo(
@@ -133,6 +152,20 @@ export default function LayeredTopologyCanvas(props: LayeredTopologyCanvasProps)
   )
   const visible = useMemo(() => new Set(graph.nodes.map((n) => n.id)), [graph.nodes])
   const rows = useMemo(() => buildRows(model, expandedLayers, visible), [model, expandedLayers, visible])
+
+  // ── 下层知识图谱：过滤可见分层 → 布局 → 跨层映射（issue #4 落地补全） ──────
+  const kgNodes = useMemo(
+    () => knowledgeNodes.filter((n) => (visibleKgLayers ?? {})[n.group] !== false),
+    [knowledgeNodes, visibleKgLayers],
+  )
+  const kgLayout = useMemo(
+    () => layoutKnowledgeGraph(kgNodes, knowledgeLinks),
+    [kgNodes, knowledgeLinks],
+  )
+  const crossLinks = useMemo(
+    () => buildCrossLayerLinks(model.nodes, kgNodes),
+    [model.nodes, kgNodes],
+  )
 
   // 节点/聚合头 → 坐标。
   const positions = useMemo(() => {
@@ -159,6 +192,51 @@ export default function LayeredTopologyCanvas(props: LayeredTopologyCanvasProps)
     () => rows.reduce((acc, r) => acc + (r.isDomain ? DOMAIN_ROW_H : SUB_ROW_H), 0) + 16,
     [rows],
   )
+
+  // ── 两层总画布：上层条带 + 跨层连线区 + 下层图谱（垂直排列，容器可滚动） ──────
+  const KG_GAP = 84
+  const kgOffsetY = height + KG_GAP
+  const totalWidth = useMemo(() => Math.max(width, kgLayout.width), [width, kgLayout.width])
+  const totalHeight = kgOffsetY + kgLayout.height
+
+  // 选中跨层高亮：拓扑侧 → 图谱关联子图；图谱侧 → 关联拓扑实例 + 图谱邻居。
+  const selectedIsTopology =
+    selectedNodeId != null && model.nodesById.has(selectedNodeId)
+  const selectedIsKnowledge =
+    selectedNodeId != null && kgLayout.nodePositions.has(selectedNodeId)
+  const highlightedKnowledge = useMemo(() => {
+    if (!selectedNodeId) return new Set<string>()
+    if (selectedIsTopology) {
+      return knowledgeAssociations(selectedNodeId, crossLinks, kgLayout.links, 3)
+    }
+    if (selectedIsKnowledge) {
+      return reachableKnowledgeNodes([selectedNodeId], kgLayout.links, 2)
+    }
+    return new Set<string>()
+  }, [selectedNodeId, selectedIsTopology, selectedIsKnowledge, crossLinks, kgLayout.links])
+  const highlightedTopology = useMemo(() => {
+    if (!selectedNodeId || !selectedIsKnowledge) return new Set<string>()
+    return topologyAssociationsForKnowledge(selectedNodeId, crossLinks, kgLayout.links, 3)
+  }, [selectedNodeId, selectedIsKnowledge, crossLinks, kgLayout.links])
+
+  /** 跨层映射线段：端点锚定拓扑可见锚点 / 图谱节点坐标（下层偏移 kgOffsetY）。 */
+  const crossSegments = useMemo(() => {
+    return crossLinks
+      .map((l) => {
+        const anchor = graph.anchorByObjectId.get(l.topologyId) ?? l.topologyId
+        const s = positions.get(anchor)
+        const t = kgLayout.nodePositions.get(l.knowledgeId)
+        if (!s || !t) return null
+        const isInstance = l.relation === 'INSTANCE_OF'
+        const active =
+          selectedNodeId != null &&
+          ((selectedIsTopology && l.topologyId === selectedNodeId) ||
+            (selectedIsKnowledge &&
+              (l.knowledgeId === selectedNodeId || highlightedTopology.has(l.topologyId))))
+        return { ...l, x1: s.x, y1: s.y, x2: t.x, y2: t.y + kgOffsetY, isInstance, active }
+      })
+      .filter((s): s is NonNullable<typeof s> => s != null)
+  }, [crossLinks, graph.anchorByObjectId, positions, kgLayout.nodePositions, kgOffsetY, selectedNodeId, selectedIsTopology, selectedIsKnowledge, highlightedTopology])
 
   // F2：活动逻辑路径 → 红色连线段（对象经 anchorByObjectId 落到可见锚点坐标）。
   // 连续对象锚定到同一可见锚点（如层收起时聚合到域带）时折叠为单点；锚点变化
@@ -206,9 +284,10 @@ export default function LayeredTopologyCanvas(props: LayeredTopologyCanvasProps)
     >
       <div className="sticky left-0 top-0 z-10 flex items-center gap-2 bg-[#0f1117]/92 px-4 py-3 text-[12px] text-[#94a3b8] backdrop-blur">
         <Layers className="h-4 w-4 text-status-active" />
-        <span className="font-semibold text-[#e2e8f0]">S1 → S3 分层拓扑</span>
+        <span className="font-semibold text-[#e2e8f0]">S1 → S3 分层拓扑 · 故障知识图谱</span>
         <span className="text-[#64748b]">
-          {model.nodes.length} 资源 · {model.crossLayerLinks.length} 跨层连线 · 点击层标题展开/收起
+          {model.nodes.length} 资源 · {model.crossLayerLinks.length} 跨层连线 ·{' '}
+          {kgLayout.nodes.length} 图谱节点 · {crossLinks.length} 跨层映射 · 点击节点查看关联
         </span>
         {/* Case 切换：加载任意 Case 的分层展示（issue #4「兼而有之」）。 */}
         <label className="ml-auto flex items-center gap-1.5">
@@ -229,9 +308,9 @@ export default function LayeredTopologyCanvas(props: LayeredTopologyCanvasProps)
       </div>
 
       <svg
-        width={width}
-        height={height}
-        viewBox={`0 0 ${width} ${height}`}
+        width={totalWidth}
+        height={totalHeight}
+        viewBox={`0 0 ${totalWidth} ${totalHeight}`}
         className="block"
         onClick={() => onNodeSelect(null)}
       >
@@ -287,10 +366,140 @@ export default function LayeredTopologyCanvas(props: LayeredTopologyCanvasProps)
             positions={positions}
             nodeColorFor={nodeColorFor}
             selectedNodeId={selectedNodeId}
+            highlightedNodeIds={highlightedTopology}
             onToggleLayer={onToggleLayer}
             onNodeClick={onNodeSelect}
           />
         ))}
+
+        {/* ── 下层：故障知识图谱 + 跨层映射连线（issue #4 落地补全） ─────────── */}
+        {/* 上下层分隔 + 提示 */}
+        <g className="pointer-events-none">
+          <line
+            x1={0}
+            y1={height + 18}
+            x2={totalWidth}
+            y2={height + 18}
+            stroke="rgba(255,255,255,0.08)"
+          />
+          <text x={16} y={height + 36} fontSize={10.5} fontWeight={600} fill="#94a3b8">
+            故障知识图谱 · 对象类型 → 故障现象 → 故障模式/机制 → 证据规则/案例
+          </text>
+          <text x={16} y={height + 52} fontSize={9} fill="#64748b">
+            跨层映射（INSTANCE_OF）淡显 · 选中拓扑/图谱节点高亮其关联
+          </text>
+        </g>
+
+        {/* 跨层映射连线：INSTANCE_OF 常显淡线；其余映射命中选中时高亮 */}
+        <g>
+          {crossSegments.map((seg) =>
+            !seg.isInstance && !seg.active ? null : (
+              <line
+                key={seg.id}
+                x1={seg.x1}
+                y1={seg.y1}
+                x2={seg.x2}
+                y2={seg.y2}
+                stroke={seg.active ? 'rgba(20, 184, 166, 0.85)' : 'rgba(148, 163, 184, 0.16)'}
+                strokeWidth={seg.active ? 1.8 : 1}
+                strokeDasharray={seg.active ? undefined : '5 4'}
+                className="pointer-events-none"
+              />
+            ),
+          )}
+        </g>
+
+        {/* 图谱层头（列标签 + 计数） */}
+        <g>
+          {KNOWLEDGE_LAYERS.map((layer, i) => {
+            const colX =
+              KNOWLEDGE_LAYOUT_METRICS.padSide + i * KNOWLEDGE_LAYOUT_METRICS.colW + KNOWLEDGE_LAYOUT_METRICS.colW / 2
+            const y = kgOffsetY + KNOWLEDGE_LAYOUT_METRICS.padTop
+            return (
+              <g key={layer.code}>
+                <text x={colX} y={y + 11} textAnchor="middle" fontSize={11} fontWeight={600} fill={layer.color}>
+                  {layer.name}
+                </text>
+                <text x={colX} y={y + 24} textAnchor="middle" fontSize={8.5} fill="#64748b">
+                  {layer.code} · {kgLayout.counts[layer.code] ?? 0}
+                </text>
+              </g>
+            )
+          })}
+        </g>
+
+        {/* 图谱内部连线 */}
+        <g>
+          {kgLayout.links.map((link) => {
+            const s = kgLayout.nodePositions.get(link.source as string)
+            const t = kgLayout.nodePositions.get(link.target as string)
+            if (!s || !t) return null
+            const active =
+              selectedNodeId != null &&
+              highlightedKnowledge.has(link.source as string) &&
+              highlightedKnowledge.has(link.target as string)
+            return (
+              <line
+                key={link.id}
+                x1={s.x}
+                y1={s.y + kgOffsetY}
+                x2={t.x}
+                y2={t.y + kgOffsetY}
+                stroke={active ? 'rgba(45, 212, 191, 0.72)' : 'rgba(167, 139, 250, 0.24)'}
+                strokeWidth={active ? 1.6 : 1}
+                className="pointer-events-none"
+              />
+            )
+          })}
+        </g>
+
+        {/* 图谱节点 */}
+        <g>
+          {kgLayout.nodes.map((node) => {
+            const pos = kgLayout.nodePositions.get(node.id)
+            if (!pos) return null
+            const layer = knowledgeLayerDef(node.group)
+            const y = pos.y + kgOffsetY
+            const isSelected = node.id === selectedNodeId
+            const isHighlighted = highlightedKnowledge.has(node.id)
+            const stroke = isSelected ? '#e2e8f0' : isHighlighted ? '#2dd4bf' : layer.color
+            const strokeOpacity = isHighlighted ? 1 : 0.5
+            return (
+              <g
+                key={node.id}
+                transform={`translate(${pos.x - KNOWLEDGE_LAYOUT_METRICS.nodeW / 2}, ${y - KNOWLEDGE_LAYOUT_METRICS.nodeH / 2})`}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onNodeSelect(node.id)
+                }}
+                className="cursor-pointer"
+              >
+                <rect
+                  width={KNOWLEDGE_LAYOUT_METRICS.nodeW}
+                  height={KNOWLEDGE_LAYOUT_METRICS.nodeH}
+                  rx={8}
+                  fill="#141a28"
+                  stroke={stroke}
+                  strokeWidth={isSelected ? 2 : isHighlighted ? 1.8 : 1.1}
+                  strokeOpacity={strokeOpacity}
+                />
+                <circle cx={12} cy={KNOWLEDGE_LAYOUT_METRICS.nodeH / 2} r={4} fill={layer.color} />
+                <text x={22} y={KNOWLEDGE_LAYOUT_METRICS.nodeH / 2 + 3.5} fontSize={10.5} fill="#cbd5e1">
+                  {node.label.length > 16 ? `${node.label.slice(0, 15)}…` : node.label}
+                </text>
+                <text
+                  x={KNOWLEDGE_LAYOUT_METRICS.nodeW - 8}
+                  y={KNOWLEDGE_LAYOUT_METRICS.nodeH - 6}
+                  textAnchor="end"
+                  fontSize={7.5}
+                  fill="#64748b"
+                >
+                  {node.group}
+                </text>
+              </g>
+            )
+          })}
+        </g>
       </svg>
     </div>
   )
@@ -308,12 +517,14 @@ interface LayerRowProps {
   positions: Map<string, { x: number; y: number }>
   nodeColorFor: (id: string, base: string) => string
   selectedNodeId: string | null
+  /** 下层图谱选中时关联的拓扑实例 ids（跨层高亮环）。 */
+  highlightedNodeIds: Set<string>
   onToggleLayer: (code: TopoLayerCode) => void
   onNodeClick: (id: string | null) => void
 }
 
 function LayerRow(props: LayerRowProps) {
-  const { model, row, expanded, aggregateContext, positions, nodeColorFor, selectedNodeId, onToggleLayer, onNodeClick } = props
+  const { model, row, expanded, aggregateContext, positions, nodeColorFor, selectedNodeId, highlightedNodeIds, onToggleLayer, onNodeClick } = props
   const layer = topoLayerDef(row.code)
   const summary = computeLayerSummary(model, row.code, aggregateContext)
   const rowH = row.isDomain ? DOMAIN_ROW_H : SUB_ROW_H
@@ -379,6 +590,7 @@ function LayerRow(props: LayerRowProps) {
         if (!pos) return null
         const color = nodeColorFor(node.id, node.color)
         const isSelected = node.id === selectedNodeId
+        const isCrossLinked = highlightedNodeIds.has(node.id)
         return (
           <g
             key={node.id}
@@ -397,6 +609,21 @@ function LayerRow(props: LayerRowProps) {
               stroke={color}
               strokeWidth={isSelected ? 2 : 1.4}
             />
+            {/* 跨层关联高亮环（下层图谱选中时对应拓扑实例） */}
+            {isCrossLinked && (
+              <rect
+                x={-4}
+                y={-4}
+                width={CHIP_W + 8}
+                height={CHIP_H + 8}
+                rx={11}
+                fill="none"
+                stroke="#2dd4bf"
+                strokeWidth={1.6}
+                strokeDasharray="4 3"
+                className="pointer-events-none"
+              />
+            )}
             <circle cx={12} cy={CHIP_H / 2} r={4} fill={color} />
             <text x={22} y={CHIP_H / 2 + 3.5} fontSize={10.5} fill="#cbd5e1">
               {node.label.length > 12 ? `${node.label.slice(0, 11)}…` : node.label}

@@ -1,11 +1,9 @@
 import {
-  Boxes,
   Check,
   ChevronDown,
   ChevronRight,
   Compass,
   FolderOpen,
-  LayoutGrid,
   Layers,
   Network,
   Search,
@@ -22,17 +20,12 @@ export interface LayerVisibility {
   knowledge: boolean
 }
 
-/** 拓扑平面布局：flat 平铺（现有双平面）| layered 分层条带（issue #4）。 */
-export type TopoLayout = 'flat' | 'layered'
-
 export interface ModelNavigatorProps {
   model: ModelData
   activePreset: string
   onPresetChange: (key: string) => void
   layerVisibility: LayerVisibility
   onToggleLayer: (plane: 'topology' | 'knowledge') => void
-  visibleDomains: Record<string, boolean>
-  onToggleDomain: (code: string) => void
   visibleKgLayers: Record<string, boolean>
   onToggleKgLayer: (code: string) => void
   showCrossLayer: boolean
@@ -50,10 +43,6 @@ export interface ModelNavigatorProps {
   expandedDevices: Record<string, boolean>
   /** 展开/收起设备聚合组（BA-GRAPH-009 显式按钮入口）。 */
   onToggleDevice: (deviceId: string) => void
-  /** 拓扑平面布局（flat | layered，issue #4）。 */
-  activeTopoLayout: TopoLayout
-  /** 切换 flat / layered。 */
-  onToggleTopoLayout: () => void
 }
 
 function SectionTitle({
@@ -224,22 +213,6 @@ export default function ModelNavigator(props: ModelNavigatorProps) {
         </section>
 
         <section>
-          <SectionTitle icon={<LayoutGrid className="h-3.5 w-3.5" />}>Topology layout</SectionTitle>
-          <ToggleRow
-            label="分层条带（S1→S3）"
-            checked={props.activeTopoLayout === 'layered'}
-            onClick={props.onToggleTopoLayout}
-            color="#c084fc"
-          />
-          <ToggleRow
-            label="平面平铺（flat）"
-            checked={props.activeTopoLayout === 'flat'}
-            onClick={props.onToggleTopoLayout}
-            color={PLANE_COLORS.topology}
-          />
-        </section>
-
-        <section>
           <SectionTitle icon={<Layers className="h-3.5 w-3.5" />}>Planes</SectionTitle>
           <ToggleRow
             label="上层 · 实例拓扑"
@@ -260,7 +233,7 @@ export default function ModelNavigator(props: ModelNavigatorProps) {
           />
         </section>
 
-        {props.activeTopoLayout === 'flat' && props.model.deviceGroups.length > 0 && (
+        {props.model.deviceGroups.length > 0 && (
           <section>
             <SectionTitle icon={<FolderOpen className="h-3.5 w-3.5" />}>
               设备聚合
@@ -307,18 +280,6 @@ export default function ModelNavigator(props: ModelNavigatorProps) {
             </div>
           </section>
         )}
-
-        <section>
-          <SectionTitle icon={<Boxes className="h-3.5 w-3.5" />}>Topology domains</SectionTitle>
-          {props.model.domains.map((domain) => (
-            <ToggleRow
-              key={domain.code}
-              label={`${domain.name} · ${domain.count}`}
-              checked={props.visibleDomains[domain.code] !== false}
-              onClick={() => props.onToggleDomain(domain.code)}
-            />
-          ))}
-        </section>
 
         <section>
           <SectionTitle icon={<Network className="h-3.5 w-3.5" />}>Knowledge layers</SectionTitle>

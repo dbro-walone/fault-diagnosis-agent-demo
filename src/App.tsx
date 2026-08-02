@@ -4,29 +4,20 @@ import { AlertTriangle, Database, Eye, Radar, X } from 'lucide-react'
 import DiagnosisEntryButton, {
   type DiagnosisEntryPayload,
 } from '@/components/DiagnosisEntryButton'
-import DualPlaneCanvas from '@/components/DualPlaneCanvas'
-import LayeredTopologyCanvas from '@/components/LayeredTopologyCanvas'
+import Layered3DCanvas from '@/components/Layered3DCanvas'
 import LuiPanel from '@/components/LuiPanel'
 import LensSwitcher from '@/components/LensSwitcher'
 import ModelNavigator, {
   type LayerVisibility,
-  type TopoLayout,
 } from '@/components/ModelNavigator'
 import ObjectViewPanel from '@/components/ObjectViewPanel'
 import {
   buildLayeredModelData,
   type TopoLayerCode,
 } from '@/lib/layered-topology'
-import {
-  buildActiveGraph,
-  computeAggregateSummary,
-  loadModelData,
-  type AggregateSummary,
-  type AggregateSummaryContext,
-  type GraphLink,
-} from '@/lib/model-loader'
+import { loadModelData } from '@/lib/model-loader'
 import { routeToCase } from '@/lib/v2-case-router'
-import { LensId, OntologyLinkType } from '../schemas'
+import { LensId } from '../schemas'
 import {
   listCases,
   createDiagnosisRuntime,
@@ -58,8 +49,6 @@ export default function App() {
   const [layeredCaseId, setLayeredCaseId] = useState('layered_topology_demo_001')
   const layeredModel = useMemo(() => buildLayeredModelData(layeredCaseId), [layeredCaseId])
   const [activeLens, setActiveLens] = useState(LensId.TOPOLOGY)
-  // GitHub issue #4：拓扑平面布局切换（flat 平铺 / layered 分层条带）。
-  const [activeTopoLayout, setActiveTopoLayout] = useState<TopoLayout>('flat')
   const [expandedLayers, setExpandedLayers] = useState<Partial<Record<TopoLayerCode, boolean>>>({})
   const [activePreset, setActivePreset] = useState(model.initialPreset)
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
@@ -71,9 +60,6 @@ export default function App() {
     knowledge: true,
   })
   const [expandedDevices, setExpandedDevices] = useState<Record<string, boolean>>({})
-  const [visibleDomains, setVisibleDomains] = useState<Record<string, boolean>>(() =>
-    Object.fromEntries(model.domains.map((domain) => [domain.code, true])),
-  )
   const [visibleKgLayers, setVisibleKgLayers] = useState<Record<string, boolean>>(() =>
     Object.fromEntries(model.kgLayers.map((layer) => [layer.code, true])),
   )
@@ -104,29 +90,8 @@ export default function App() {
     [activeLens, model.registry, searchQuery],
   )
 
-  const restrictedObjectIds = useMemo(() => {
-    if (aroundRootId) {
-      return new Set(
-        model.registry
-          .searchAround(aroundRootId, 1, activeLens, undefined)
-          .objects.map((object) => object.id),
-      )
-    }
-    if (objectSetFilter && searchQuery.trim()) {
-      return new Set(objectSet.objects.map((object) => object.id))
-    }
-    return undefined
-  }, [
-    activeLens,
-    aroundRootId,
-    model.registry,
-    objectSet.objects,
-    objectSetFilter,
-    searchQuery,
-  ])
-
   // D3 关键对象保留：agent_focus ∪ 根因（docs/05 §6 DETACHED_CRITICAL）。
-  // 仅依赖 snapshot，避免与 graphData 形成循环依赖。
+  // 仅依赖 snapshot，避免与分层图构建形成循环依赖。
   const criticalObjectIds = useMemo(() => {
     const ids = new Set<string>(agentFocus?.object_refs ?? [])
     const c = snapshot?.conclusion
@@ -138,78 +103,37 @@ export default function App() {
   }, [agentFocus, snapshot?.conclusion])
 
   // F2 活动逻辑路径（根因起点 → 证据 hop → 影响链）：随快照推进逐步延伸，
-  // flat 与 layered 双画布用同一路径绘制红色逻辑链（issue #5 F2）。
+  // layered 分层画布用同一路径绘制红色逻辑链（issue #5 F2）。
   const logicPath = useMemo(
     () => (snapshot ? activeDiagnosisPath(snapshot) : []),
     [snapshot],
   )
 
-  const graphData = useMemo(() => {
-    const base = buildActiveGraph(model, {
-      lens: activeLens,
-      overlay: undefined,
-      layerTopology: layerVisibility.topology,
-      layerKnowledge: layerVisibility.knowledge,
-      visibleDomains,
-      visibleKgLayers,
-      showCrossLayer,
-      objectIds: restrictedObjectIds,
-      expandedDeviceIds: new Set(Object.keys(expandedDevices).filter((k) => expandedDevices[k])),
-      criticalObjectIds,
-    })
-    // F2：把活动逻辑路径注入为合成 logic 连线（红色虚拟链路，非物理边）。
-    const nodeIds = new Set(base.nodes.map((n) => n.id))
-    const links = [...base.links]
-    for (let i = 0; i < logicPath.length - 1; i += 1) {
-      const a = logicPath[i]
-      const b = logicPath[i + 1]
-      if (a === b || !nodeIds.has(a) || !nodeIds.has(b)) continue
-      const linkId = `logic:${a}->${b}`
-      if (links.some((l) => l.id === linkId)) continue
-      links.push({
-        id: linkId,
-        source: a,
-        target: b,
-        ontologyLink: {
-          id: linkId,
-          type: OntologyLinkType.CONNECTS_TO,
-          sourceId: a,
-          targetId: b,
-          properties: { pathGroup: 'logic-chain' },
-          provenance: { source: 'MODEL', sourceRef: `logic/${a}/${b}` },
-        },
-        category: 'logic',
-        relation: 'LOGIC_CHAIN',
-      })
-    }
-    return { nodes: base.nodes, links }
-  }, [
-    activeLens,
-    layerVisibility,
-    model,
-    restrictedObjectIds,
-    showCrossLayer,
-    visibleDomains,
-    visibleKgLayers,
-    expandedDevices,
-    criticalObjectIds,
-    logicPath,
-  ])
+  // 分层模型节点查找表：agent_focus 等运行时高亮对象以分层模型为准（issue #4）。
+  const layeredNodesById = useMemo(
+    () => new Map(layeredModel.nodes.map((node) => [node.id, node])),
+    [layeredModel],
+  )
 
-  const graphNodesById = useMemo(
-    () => new Map(graphData.nodes.map((node) => [node.id, node])),
-    [graphData.nodes],
+  // 下层知识图谱数据（静态 model 的 knowledge 平面，稳定引用，供主画布下层使用）。
+  const knowledgeNodes = useMemo(
+    () => model.nodes.filter((n) => n.plane === 'knowledge'),
+    [model],
+  )
+  const knowledgeLinks = useMemo(
+    () => model.links.filter((l) => l.category === 'knowledge'),
+    [model],
   )
 
   const selectedObjectView = selectedNodeId && !runtime
     ? model.registry.objectView(selectedNodeId, activeLens, undefined, undefined)
     : null
 
-  // agent_focus → canvas node ids (Runtime-driven highlight).
+  // agent_focus → canvas node ids (Runtime-driven highlight)。
   const agentFocusIds = useMemo(() => {
     const refs = agentFocus?.object_refs ?? []
-    return new Set(refs.filter((id) => graphNodesById.has(id)))
-  }, [agentFocus, graphNodesById])
+    return new Set(refs.filter((id) => layeredNodesById.has(id)))
+  }, [agentFocus, layeredNodesById])
 
   // Runtime conclusion → 画布节点状态叠加集（docs/04 §8 ROOT_CAUSE / IMPACTED）。
   const rootCauseIds = useMemo(() => {
@@ -228,7 +152,7 @@ export default function App() {
     return ids
   }, [snapshot?.conclusion])
 
-  // 候选根因指向的对象 ids（docs/05 §5 候选数）——flat 与 layered 聚合共用。
+  // 候选根因指向的对象 ids（docs/05 §5 候选数）——layered 聚合共用。
   const candidateObjectIds = useMemo(() => {
     const ids = new Set<string>()
     for (const candidate of snapshot?.candidates ?? []) {
@@ -236,31 +160,6 @@ export default function App() {
     }
     return ids
   }, [snapshot?.candidates])
-
-  // D3 设备聚合摘要（docs/05 §5）：成员总数/异常数/候选数/最高严重度。
-  // 纯函数只读 model + ctx。
-  const aggregateSummaries = useMemo(() => {
-    const ctx: AggregateSummaryContext = {
-      criticalIds: criticalObjectIds,
-      impactedIds,
-      candidateObjectIds,
-    }
-    const map = new Map<string, AggregateSummary>()
-    for (const group of model.deviceGroups) {
-      const summary = computeAggregateSummary(model, group.deviceId, ctx)
-      if (summary) map.set(group.deviceId, summary)
-    }
-    return map
-  }, [model, criticalObjectIds, impactedIds, candidateObjectIds])
-
-  // Camera target: user node while exploring, agent node otherwise. App owns
-  // this decision so DualPlaneCanvas never grabs the camera on agent events
-  // while the user is browsing (docs/04 §5).
-  const agentFocusPrimaryId = useMemo(() => {
-    const refs = agentFocus?.object_refs ?? []
-    return refs.find((id) => graphNodesById.has(id)) ?? null
-  }, [agentFocus, graphNodesById])
-  const focusNodeId = userExploring ? selectedNodeId : agentFocusPrimaryId
 
   // LIVE auto-advance. advance() appends the next authored Runtime Event — the
   // sole diagnosis-state write.
@@ -400,11 +299,6 @@ export default function App() {
     }
   }
 
-  // 拓扑平面布局切换（issue #4：flat 平铺 ↔ layered 分层条带）。
-  const handleToggleTopoLayout = () => {
-    setActiveTopoLayout((layout) => (layout === 'flat' ? 'layered' : 'flat'))
-  }
-
   // 分层条带：点击层聚合头展开/收起（域或子层，递归）。
   const handleToggleLayer = (code: TopoLayerCode) => {
     setExpandedLayers((cur) => ({ ...cur, [code]: !cur[code] }))
@@ -435,8 +329,6 @@ export default function App() {
     setAroundRootId(null)
     setObjectSetFilter(false)
   }
-
-  const businessPath = activePreset === 'BUSINESS_PATH' || activeLens === LensId.IMPACT
 
   // Derived session display state.
   const isHistorical = runtime?.isHistorical ?? false
@@ -473,47 +365,34 @@ export default function App() {
         <strong>需要桌面视口</strong>
         <span>3D 双平面诊断工作台建议在至少 1024px 宽的窗口中使用。</span>
       </div>
-      {activeTopoLayout === 'layered' ? (
-        <LayeredTopologyCanvas
-          model={layeredModel}
-          caseId={layeredCaseId}
-          cases={LAYERED_CASES}
-          onCaseChange={handleChangeLayeredCase}
-          expandedLayers={expandedLayers}
-          onToggleLayer={handleToggleLayer}
-          aggregateContext={{
-            criticalIds: criticalObjectIds,
-            impactedIds,
-            candidateObjectIds,
-          }}
-          criticalObjectIds={criticalObjectIds}
-          agentFocusIds={agentFocusIds}
-          rootCauseIds={rootCauseIds}
-          impactedIds={impactedIds}
-          logicPath={logicPath}
-          selectedNodeId={selectedNodeId}
-          navigatorCollapsed={leftPanelCollapsed}
-          onNodeSelect={handleNodeSelect}
-        />
-      ) : (
-        <DualPlaneCanvas
-          graphData={graphData}
-          model={model}
-          activePreset={activePreset}
-          focusNodeId={focusNodeId}
-          agentFocusIds={agentFocusIds}
-          rootCauseIds={rootCauseIds}
-          impactedIds={impactedIds}
-          selectedNodeId={selectedNodeId}
-          expandedDevices={expandedDevices}
-          aggregateSummaries={aggregateSummaries}
-          showCrossLayer={showCrossLayer}
-          businessPath={businessPath}
-          onNodeSelect={handleNodeSelect}
-          onNodeDoubleClick={handleNodeDoubleClick}
-          onNodeHover={() => undefined}
-        />
-      )}
+      {/* 主画布：3D 力导向双平面（issue #4 方向修正）——
+          上层 = S1→S3 空间分层拓扑（Y 域带 + Z 子层带），下层 = 故障知识图谱（X 分层列），
+          跨层映射与 F2 红逻辑链均为 3D 连线。 */}
+      <Layered3DCanvas
+        model={layeredModel}
+        caseId={layeredCaseId}
+        cases={LAYERED_CASES}
+        onCaseChange={handleChangeLayeredCase}
+        expandedLayers={expandedLayers}
+        onToggleLayer={handleToggleLayer}
+        aggregateContext={{
+          criticalIds: criticalObjectIds,
+          impactedIds,
+          candidateObjectIds,
+        }}
+        criticalObjectIds={criticalObjectIds}
+        agentFocusIds={agentFocusIds}
+        rootCauseIds={rootCauseIds}
+        impactedIds={impactedIds}
+        logicPath={logicPath}
+        selectedNodeId={selectedNodeId}
+        navigatorCollapsed={leftPanelCollapsed}
+        activeLens={activeLens}
+        onNodeSelect={handleNodeSelect}
+        knowledgeNodes={knowledgeNodes}
+        knowledgeLinks={knowledgeLinks}
+        visibleKgLayers={visibleKgLayers}
+      />
 
       {/* F0：诊断会话默认收起 Object Explorer；退出/手动展开后恢复 */}
       {!leftPanelCollapsed && (
@@ -524,10 +403,6 @@ export default function App() {
           layerVisibility={layerVisibility}
           onToggleLayer={(plane) =>
             setLayerVisibility((value) => ({ ...value, [plane]: !value[plane] }))
-          }
-          visibleDomains={visibleDomains}
-          onToggleDomain={(code) =>
-            setVisibleDomains((value) => ({ ...value, [code]: value[code] === false }))
           }
           visibleKgLayers={visibleKgLayers}
           onToggleKgLayer={(code) =>
@@ -549,8 +424,6 @@ export default function App() {
           selectedNodeId={selectedNodeId}
           expandedDevices={expandedDevices}
           onToggleDevice={handleNodeDoubleClick}
-          activeTopoLayout={activeTopoLayout}
-          onToggleTopoLayout={handleToggleTopoLayout}
         />
       )}
 
