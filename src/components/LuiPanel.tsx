@@ -4,9 +4,11 @@
  * 完全由 V2 ProjectionStore 的只读 View Model 驱动，不执行任何诊断计算：
  *   1. 会话状态栏（模式 / 阶段 / 现象 + 实时/回放切换）
  *   2. 诊断态势（领先候选、支持分、证据链进度、冲突）
- *   3. 当前行动（目标、Skill、对象、原因、期望、结果）
- *   4. 候选根因（分数、变化、缺口）
- *   5. 调查工作区（证据链 ｜ 计划 ｜ 历史 ｜ 详情）
+ *   3. 候选根因（分数、变化、缺口）
+ *   4. 调查工作区（证据链 ｜ 计划 ｜ 历史 ｜ 详情）
+ *
+ * 注：issue 本轮删除「当前行动」栏 —— 排查进行到哪个节点，通过拓扑上的状态点/边流转
+ * （路径高亮推进）直观呈现，不再在 LUI 重复展示目标/Skill/对象/原因/期望/结果。
  *
  * 铁律：agent_focus 只读自 Runtime；user_selection（候选/事实选择）只由用户交互更新；
  * 诊断支持分不带百分号；详情只覆盖调查工作区，不打断顶部 Agent 行动。
@@ -42,7 +44,6 @@ import {
   type CaseRouteEntry,
   type CandidateItemVM,
   type CandidateListVM,
-  type CurrentActionVM,
   type DiagnosisSessionSnapshot,
   type FactDetailVM,
   type KnowledgeSnapshotVM,
@@ -63,7 +64,6 @@ type DisplayMode = 'LIVE' | 'PAUSED' | 'REPLAY'
 
 export interface LuiPanelProps {
   knowledge: KnowledgeSnapshotVM
-  action: CurrentActionVM
   candidates: CandidateListVM
   /** issue#6 阶段A + issue#7 C1/C2：Planner 优先级目标列表 + 重规划差异 + 排查路径/实际发现。 */
   planner: PlannerTargetsVM
@@ -98,7 +98,7 @@ export interface LuiPanelProps {
 }
 
 export default function LuiPanel(props: LuiPanelProps) {
-  const { knowledge, action, candidates, snapshot, store } = props
+  const { knowledge, candidates, snapshot, store } = props
   // issue#7 B2：时间线回放不再作为独立 tab，改为主内容区下方可折叠的窄条（默认收起）。
   const [timelineOpen, setTimelineOpen] = useState(false)
   // issue#7 B2：事实三级详情从 tab 改为浮层弹窗（点击"产出事实/证据事实"打开）。
@@ -162,10 +162,7 @@ export default function LuiPanel(props: LuiPanelProps) {
         {/* issue#6 阶段B：对象观测三标签（当前焦点对象 告警｜性能｜日志 查询状态与结果） */}
         <ObjectObservationView vm={observation} />
 
-        {/* Layer 3 — 当前行动 */}
-        <CurrentAction action={action} onSelectFact={selectFact} />
-
-        {/* Layer 4 — 候选根因 */}
+        {/* Layer 3 — 候选根因 */}
         <CandidateList
           candidates={candidates}
           selectedCandidateId={props.selectedCandidateId}
@@ -871,115 +868,7 @@ function ObsItemRow({ item }: { item: ObjectObsItemVM }) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Layer 3 — 当前行动
-// ─────────────────────────────────────────────────────────────────────────────
-
-function CurrentAction({
-  action,
-  onSelectFact,
-}: {
-  action: CurrentActionVM
-  onSelectFact: (id: string) => void
-}) {
-  if (!action.has_activity) {
-    return (
-      <section className="rounded-lg border border-white/8 bg-white/[0.02] p-2.5">
-        <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-[#94a3b8]">
-          <Activity className="h-3.5 w-3.5 text-status-active" />
-          当前行动
-        </div>
-        <div className="mt-1.5 text-[10px] text-[#64748b]">暂无进行中的诊断行动</div>
-      </section>
-    )
-  }
-  const done = action.status_label === '成功' || action.status_label === '已跳过'
-  return (
-    <section
-      className={cn(
-        'rounded-lg border p-2.5',
-        done ? 'border-status-recovered/25 bg-status-recovered/[0.04]' : 'border-status-active/25 bg-status-active/[0.05]',
-      )}
-    >
-      <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-[#94a3b8]">
-        <Activity className={cn('h-3.5 w-3.5', done ? 'text-status-recovered' : 'text-status-active')} />
-        当前行动
-        {action.status_label && (
-          <span
-            className={cn(
-              'ml-auto rounded px-1.5 py-0.5 text-[9px]',
-              done ? 'bg-status-recovered/15 text-status-recovered' : 'bg-status-active/15 text-status-active',
-            )}
-          >
-            {action.status_label}
-          </span>
-        )}
-      </div>
-      {action.goal && (
-        <div className="mt-1.5 text-[11px] font-medium text-[#e2e8f0]">{action.goal}</div>
-      )}
-      {action.action_text && (
-        <div className="mt-1 flex items-center gap-1 text-[10px] text-[#cbd5e1]">
-          <span className="truncate">{action.action_text}</span>
-          {action.target_object_refs.length > 0 && (
-            <span className="ml-auto shrink-0 rounded bg-white/5 px-1.5 py-0.5 text-[9px] tabular text-[#94a3b8]">
-              {action.target_object_refs.join(', ')}
-            </span>
-          )}
-        </div>
-      )}
-      {action.reason_text && (
-        <div className="mt-1 text-[9px] leading-relaxed text-[#94a3b8]">
-          <span className="text-[#64748b]">为什么：</span>
-          {action.reason_text}
-        </div>
-      )}
-      {action.expected_result_text && (
-        <div className="mt-0.5 text-[9px] leading-relaxed text-[#94a3b8]">
-          <span className="text-[#64748b]">期望：</span>
-          {action.expected_result_text}
-        </div>
-      )}
-      {action.result_summary && (
-        <div className="mt-1 text-[9px] leading-relaxed text-status-evidence">
-          <span className="text-[#64748b]">结果：</span>
-          {action.result_summary}
-        </div>
-      )}
-      {action.facts.length > 0 && (
-        <div className="mt-1.5 flex flex-wrap items-center gap-1">
-          <span className="text-[9px] text-[#64748b]">产出事实：</span>
-          {action.facts.map((f) => (
-            <button
-              key={f.fact_id}
-              type="button"
-              onClick={() => onSelectFact(f.fact_id)}
-              className="rounded bg-status-evidence/10 px-1.5 py-0.5 text-[9px] text-status-evidence transition-colors hover:bg-status-evidence/25"
-            >
-              {f.fact_type_label}
-            </button>
-          ))}
-        </div>
-      )}
-      {(action.evidence_refs.length > 0 || action.candidate_update_refs.length > 0) && (
-        <div className="mt-1 flex flex-wrap gap-1">
-          {action.evidence_refs.length > 0 && (
-            <span className="rounded bg-status-evidence/10 px-1.5 py-0.5 text-[9px] text-status-evidence">
-              证据 {action.evidence_refs.length}
-            </span>
-          )}
-          {action.candidate_update_refs.length > 0 && (
-            <span className="rounded bg-status-active/10 px-1.5 py-0.5 text-[9px] text-status-active">
-              候选变化 {action.candidate_update_refs.length}
-            </span>
-          )}
-        </div>
-      )}
-    </section>
-  )
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Layer 4 — 候选根因
+// Layer 3 — 候选根因
 // ─────────────────────────────────────────────────────────────────────────────
 
 function CandidateList({

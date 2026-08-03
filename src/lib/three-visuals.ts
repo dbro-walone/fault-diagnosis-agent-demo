@@ -82,15 +82,19 @@ export interface NodeLabelContext {
   detachedParentLabel?: string
   /** 所属层 label —— 分层画布中节点所属层级已收起的 DETACHED_CRITICAL 关键子项。 */
   detachedLayerLabel?: string
+  /** 已排查节点的关键指标（KPI/性能/日志摘要，悬浮展示；与指标芯片同源，最多 3 个）。 */
+  metrics?: MetricChip[]
 }
 
 /** Built-in hover tooltip (HTML) for a node. Aggregate / detached-critical nodes
- * get an extra summary strip (docs/05 §5、§6). */
+ * get an extra summary strip (docs/05 §5、§6). Nodes with examined metrics get a
+ * compact key-indicator card (name + value + status color). */
 export function nodeLabelHtml(node: GraphNode, ctx: NodeLabelContext = {}): string {
   const plane = node.plane === 'topology' ? '实例拓扑' : '故障知识图谱'
   const health = node.healthStatus
     ? ` · 健康：${formatHealthStatus(node.healthStatus)}`
     : ''
+  let base: string
   if (ctx.summary) {
     const severityLabel =
       ctx.summary.maxSeverity === 'CRITICAL'
@@ -98,27 +102,35 @@ export function nodeLabelHtml(node: GraphNode, ctx: NodeLabelContext = {}): stri
         : ctx.summary.maxSeverity === 'WARNING'
           ? '注意'
           : '正常'
-    return (
+    base =
       `${node.label}<br/>` +
       `<span style="font-size:10px;opacity:0.7">聚合 ${ctx.summary.total} 成员 · 异常 ${ctx.summary.anomaly} · 候选 ${ctx.summary.candidate} · 最高${severityLabel}</span><br/>` +
       `<span style="font-size:9px;opacity:0.6">含 ${ctx.summary.total} 个成员，双击展开 / 收起</span>`
-    )
-  }
-  if (ctx.detachedParentLabel) {
-    return (
+  } else if (ctx.detachedParentLabel) {
+    base =
       `${node.label}<br/>` +
       `<span style="font-size:10px;opacity:0.7">${plane} · ${node.kind} · ${node.groupName}${health}</span><br/>` +
       `<span style="font-size:9px;opacity:0.75;color:#fbbf24">关键对象 · 所属父组 ${ctx.detachedParentLabel}（已收起）</span>`
-    )
-  }
-  if (ctx.detachedLayerLabel) {
-    return (
+  } else if (ctx.detachedLayerLabel) {
+    base =
       `${node.label}<br/>` +
       `<span style="font-size:10px;opacity:0.7">${plane} · ${node.kind} · ${node.groupName}${health}</span><br/>` +
       `<span style="font-size:9px;opacity:0.75;color:#fbbf24">关键对象 · 所属层 ${ctx.detachedLayerLabel}（已收起）</span>`
-    )
+  } else {
+    base = `${node.label}<br/><span style="font-size:10px;opacity:0.7">${plane} · ${node.kind} · ${node.groupName}${health}</span>`
   }
-  return `${node.label}<br/><span style="font-size:10px;opacity:0.7">${plane} · ${node.kind} · ${node.groupName}${health}</span>`
+  if (ctx.metrics && ctx.metrics.length > 0) {
+    const rows = ctx.metrics
+      .map((m) => {
+        const color = CHIP_TONE_COLOR[m.tone]
+        return `<div style="font-size:11px;font-weight:600;color:${color}">${m.name} ${m.value}</div>`
+      })
+      .join('')
+    base +=
+      `<div style="margin-top:4px;border-top:1px solid rgba(255,255,255,0.18);padding-top:4px">` +
+      `<div style="font-size:9px;opacity:0.6">关键指标</div>${rows}</div>`
+  }
+  return base
 }
 
 /** A lightweight canvas label attached to the same Three.js scene as the node. */
@@ -535,6 +547,75 @@ export function graphOriginSprite(node: GraphNode): THREE.Sprite {
     }),
   )
   const scale = 18 + node.val * 4
+  sprite.scale.set(scale, scale, 1)
+  return sprite
+}
+
+// ---------------------------------------------------------------------------
+// 排查证据路径 + 指标芯片（issue 本轮：诊断推进时布局稳定，已走过节点/边累积高亮）
+// ---------------------------------------------------------------------------
+
+/** 排查证据路径主题色：当前推进节点=扫描强光（SCAN_COLOR+雷达，最强），
+ *  已走过节点/边=emerald 低亮一档，当前入边=全亮（对齐点①/②）。 */
+export const PATH_COLORS = {
+  /** 已走过路径节点（emerald 低亮一档，区别于当前扫描强光）。 */
+  node: '#2f9e6e',
+  /** 已走过路径连线（低亮一档）。 */
+  edge: 'rgba(52, 211, 153, 0.5)',
+  /** 当前推进节点的入边（刚点亮，全亮）。 */
+  edgeActive: 'rgba(52, 211, 153, 1)',
+  /** 路径桥接中间节点（物理链上非目标节点）的环（低亮 trail）。 */
+  ring: 'rgba(52, 211, 153, 0.65)',
+} as const
+
+/** 已排查节点的关键指标（指标名 + 数值 + 状态色；悬浮 tooltip 呈现）。 */
+export interface MetricChip {
+  /** 指标名称（如 时延 / I/O吞吐 / 控制器热复位）。 */
+  name: string
+  /** 数值（含单位，如 "42ms"、"0 GB/s"、"严重"）。 */
+  value: string
+  /** 状态色：normal(绿) / warning(黄) / critical(红)。 */
+  tone: 'normal' | 'warning' | 'critical'
+}
+
+/** 指标状态色（悬浮 tooltip 分级着色：正常绿 / 告警黄 / 异常红）。 */
+const CHIP_TONE_COLOR: Record<MetricChip['tone'], string> = {
+  normal: '#22c55e',
+  warning: '#facc15',
+  critical: '#ef4444',
+}
+
+// 已走过路径节点环：emerald 实环（与判定环/扫描环形态区分）。
+let pathRingTexture: THREE.CanvasTexture | null = null
+export function getPathRingTexture(): THREE.CanvasTexture {
+  if (pathRingTexture) return pathRingTexture
+  const canvas = document.createElement('canvas')
+  canvas.width = 128
+  canvas.height = 128
+  const ctx = canvas.getContext('2d')!
+  ctx.shadowBlur = 16
+  ctx.shadowColor = PATH_COLORS.ring
+  ctx.lineWidth = 4.5
+  ctx.strokeStyle = PATH_COLORS.ring
+  ctx.beginPath()
+  ctx.arc(64, 64, 52, 0, Math.PI * 2)
+  ctx.stroke()
+  const tex = new THREE.CanvasTexture(canvas)
+  tex.colorSpace = THREE.SRGBColorSpace
+  pathRingTexture = tex
+  return tex
+}
+
+export function pathRingSprite(node: GraphNode): THREE.Sprite {
+  const sprite = new THREE.Sprite(
+    new THREE.SpriteMaterial({
+      map: getPathRingTexture(),
+      transparent: true,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+    }),
+  )
+  const scale = 15 + node.val * 4
   sprite.scale.set(scale, scale, 1)
   return sprite
 }

@@ -205,7 +205,118 @@ describe('issue#6 阶段C — 逐对象诊断循环 diagnosisScan()', () => {
       expect(scan.examined_objects.length).toBeGreaterThan(0)
       for (const o of scan.examined_objects) {
         expect(o.verdict === null || ['NORMAL', 'ABNORMAL', 'IMPACTED', 'CANDIDATE'].includes(o.verdict)).toBe(true)
+        expect(Array.isArray(o.metrics)).toBe(true)
+        for (const m of o.metrics) {
+          expect(typeof m.name).toBe('string')
+          expect(typeof m.value).toBe('string')
+          expect(['normal', 'warning', 'critical'].includes(m.tone)).toBe(true)
+        }
       }
+    }
+  })
+
+  it('controller 终态：排查路径严格按 PLANNER seq 序（lun→host→fc→controller→pool）', () => {
+    const scan = bindScan('controller_warm_reset_001')
+    expect(scan.path_object_ids).toEqual([
+      'lun-db01',
+      'db-host-01',
+      'fc-port-0a',
+      'controller-0a',
+      'storage-pool-01',
+    ])
+  })
+
+  it('controller 取证期：排查路径只累积到已排查目标，不泄露未来目标', () => {
+    let rt = createDiagnosisRuntime('controller_warm_reset_001')
+    let guard = 0
+    // 推进到 KPI 查询任务运行中（lun-db01 正被查询；controller 已由告警查询覆盖）。
+    while (
+      !rt.liveSnapshot.tasks.some(
+        (t) => t.task_id === 'task-query-kpi' && t.status === 'RUNNING',
+      ) &&
+      !rt.complete &&
+      guard++ < 1000
+    ) {
+      rt = rt.advance()
+    }
+    const store = new ProjectionStore()
+    store.bind(rt.liveSnapshot, { observationsFacts: loadAdaptedCase('controller_warm_reset_001').facts })
+    const scan = store.diagnosisScan()
+    expect(scan.path_object_ids[0]).toBe('lun-db01')
+    // 已排查的 controller（告警事实已由终态任务覆盖）进入路径。
+    expect(scan.path_object_ids).toContain('controller-0a')
+    // 尚未排查到的 fc-port / storage-pool 不进路径（不泄露未来）。
+    expect(scan.path_object_ids).not.toContain('fc-port-0a')
+    expect(scan.path_object_ids).not.toContain('storage-pool-01')
+  })
+
+  it('controller 终态：已排查节点带指标芯片（名称+数值+分级着色）', () => {
+    const scan = bindScan('controller_warm_reset_001')
+    const ctrl = scan.examined_objects.find((o) => o.object_id === 'controller-0a')!
+    // 根因控制器：吞吐降为0（critical）+ 热复位告警（critical）→ 至少 2 个异常红芯片。
+    expect(ctrl.metrics.length).toBeGreaterThan(0)
+    const criticalChips = ctrl.metrics.filter((m) => m.tone === 'critical')
+    expect(criticalChips.length).toBeGreaterThanOrEqual(1)
+    expect(criticalChips.some((m) => m.name.includes('吞吐') && m.value.includes('GB/s'))).toBe(true)
+    expect(criticalChips.some((m) => m.name.includes('热复位') || m.value.includes('严重'))).toBe(true)
+
+    // 时延突增 LUN：峰值 38.6ms 超 critical 阈值 → 红色 KPI 芯片。
+    const lun = scan.examined_objects.find((o) => o.object_id === 'lun-db01')!
+    expect(lun.metrics.some((m) => m.tone === 'critical' && m.value.includes('ms'))).toBe(true)
+
+    // 未排查对象无芯片。
+    for (const o of scan.examined_objects) {
+      if (o.verdict === null) expect(o.metrics).toHaveLength(0)
+    }
+  })
+
+  // ── 排查路径与 case 无关：能力由 PLANNER seq 序 + 观测 Fact 驱动，无 case 特判 ──
+
+  it('noisy 终态：排查路径严格按 PLANNER seq 序（lun-b→host-b→fc→controller→pool→host-a）', () => {
+    const scan = bindScan('noisy_neighbor_io_contention_001')
+    expect(scan.path_object_ids).toEqual([
+      'lun-b',
+      'host-b',
+      'fc-port-0a',
+      'controller-0a',
+      'storage-pool-01',
+      'host-a',
+    ])
+  })
+
+  it('remote 终态：排查路径严格按 PLANNER seq 序（session→port→wan→pool-a→pool-b）', () => {
+    const scan = bindScan('remote_replication_lag_001')
+    expect(scan.path_object_ids).toEqual([
+      'replication-session-rs01',
+      'repl-port-a',
+      'wan-path-01',
+      'pool-a',
+      'pool-b',
+    ])
+  })
+
+  it('noisy 推进期：排查路径保持终态 seq 序、只含已排查目标、单调累积（case 无关）', () => {
+    const final = bindScan('noisy_neighbor_io_contention_001').path_object_ids
+    const finalIdx = new Map(final.map((id, i) => [id, i]))
+    let rt = createDiagnosisRuntime('noisy_neighbor_io_contention_001')
+    let prevLen = 0
+    let guard = 0
+    while (!rt.complete && guard++ < 3000) {
+      rt = rt.advance()
+      const store = new ProjectionStore()
+      store.bind(rt.liveSnapshot, {
+        observationsFacts: loadAdaptedCase('noisy_neighbor_io_contention_001').facts,
+      })
+      const path = store.diagnosisScan().path_object_ids
+      // ① 只含终态排查集合中的目标（不泄露"最终不在排查集合"的对象）；
+      // ② 保持终态路径的 PLANNER seq 顺序（是终态路径的子序列——replan/施压者可能先排查，
+      //    中间路径允许"空洞"，但顺序不乱）；
+      // ③ 长度单调不降（已走过的目标不会退回去）。
+      for (const id of path) expect(finalIdx.has(id)).toBe(true)
+      const seq = path.map((id) => finalIdx.get(id)!)
+      expect(seq).toEqual([...seq].sort((a, b) => a - b))
+      expect(path.length).toBeGreaterThanOrEqual(prevLen)
+      prevLen = path.length
     }
   })
 })

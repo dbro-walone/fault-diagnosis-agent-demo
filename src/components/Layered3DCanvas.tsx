@@ -44,8 +44,11 @@ import {
   verdictRingSprite,
   patchOrbitControlsPointerDesync,
   VERDICT_COLORS,
+  PATH_COLORS,
+  pathRingSprite,
   type NodeLabelContext,
   type VerdictKey,
+  type MetricChip,
 } from '@/lib/three-visuals'
 import { LINK_COLORS, STATUS_COLORS, cn } from '@/lib/utils'
 import type { DiagnosisScanVM, ExaminedVerdict } from '../v2'
@@ -93,6 +96,48 @@ const VERDICT_PRIORITY: Record<ExaminedVerdict, number> = {
 
 /** 扫描态（查询中）节点色。 */
 const SCAN_COLOR = '#22d3ee'
+
+/**
+ * BFS 沿物理拓扑邻接表桥接 from→to，返回路径中间节点 + 链路无序 key（含 to，不含 from）。
+ * 找不到连通路径返回 null。供排查证据路径（已走过 trail / 当前入边）复用。
+ */
+function bridgePath(
+  adj: Map<string, string[]>,
+  from: string,
+  to: string,
+  linkKeyOf: (a: string, b: string) => string,
+): { members: string[]; edges: string[] } | null {
+  if (from === to) return null
+  const parent = new Map<string, string>()
+  const queue = [from]
+  const seen = new Set([from])
+  let found = false
+  while (queue.length && !found) {
+    const cur = queue.shift()!
+    for (const next of adj.get(cur) ?? []) {
+      if (seen.has(next)) continue
+      seen.add(next)
+      parent.set(next, cur)
+      if (next === to) {
+        found = true
+        break
+      }
+      queue.push(next)
+    }
+  }
+  if (!found) return null
+  const members: string[] = []
+  const edges: string[] = []
+  let cur = to
+  while (cur !== from) {
+    const p = parent.get(cur)
+    if (!p) break
+    members.push(cur)
+    edges.push(linkKeyOf(cur, p))
+    cur = p
+  }
+  return { members, edges }
+}
 
 // ---------------------------------------------------------------------------
 // Props
@@ -267,6 +312,95 @@ export default function Layered3DCanvas(props: Layered3DCanvasProps) {
     return set
   }, [diagnosisScan, model, graph])
 
+  /** 连线端点的稳定无序 key（A↔B，跨 source/target 方向一致）。 */
+  const linkKeyOf = (a: string, b: string): string => (a < b ? `${a}↔${b}` : `${b}↔${a}`)
+  const linkEndpoints = (link: GraphLink): [string, string] => {
+    const a = link.source as string
+    const b = link.target as string
+    return [a, b]
+  }
+
+  /**
+   * 排查证据路径（本轮优化 #2/#4 + 对齐点①/②）：已排查（path_object_ids）拓扑节点按序累积，
+   * 相邻节点沿物理拓扑 BFS 桥接，形成"排查证据路径"：
+   * - walked：已走过目标锚点（PLANNER seq 序，与右侧 PLANNER 一一对应）→ 低亮 trail；
+   * - members：walked ∪ 物理链桥接中间节点；
+   * - edgeKeys：已走过链路（含桥接段）的无序 key → 低亮一档；
+   * - activeEdgeKeys：当前推进节点（activeQuery/focus，尚未入 walked）到上一已走过锚点的
+   *   入边 → 全亮（路径推进观感）；当前节点本身用扫描视觉做最强高亮；
+   * - currentAnchor：当前推进节点锚点（用于标记"当前推进点"）。
+   */
+  const pathVisual = useMemo(() => {
+    const walked: string[] = []
+    for (const oid of diagnosisScan?.path_object_ids ?? []) {
+      const anchor = graph.anchorByObjectId.get(oid) ?? oid
+      if (!walked.includes(anchor)) walked.push(anchor)
+    }
+    const walkedSet = new Set<string>(walked)
+    const members = new Set<string>(walked)
+    const edgeKeys = new Set<string>()
+    const activeEdgeKeys = new Set<string>()
+
+    // 仅物理拓扑连线参与桥接（跨层/知识/逻辑链不算排查路径）。
+    const adj = new Map<string, string[]>()
+    for (const l of graph.links) {
+      if (l.category !== 'topology') continue
+      const [a, b] = linkEndpoints(l)
+      if (!adj.has(a)) adj.set(a, [])
+      adj.get(a)!.push(b)
+      if (!adj.has(b)) adj.set(b, [])
+      adj.get(b)!.push(a)
+    }
+
+    for (let i = 0; i < walked.length - 1; i++) {
+      const r = bridgePath(adj, walked[i], walked[i + 1], linkKeyOf)
+      if (!r) continue
+      for (const m of r.members) members.add(m)
+      for (const e of r.edges) edgeKeys.add(e)
+    }
+
+    // 对齐点①：当前推进节点（activeQuery/focus，尚未入 walked）的入边提前点亮。
+    let currentAnchor: string | null = null
+    const currentRaw =
+      diagnosisScan?.active_query_object_id ?? diagnosisScan?.focus_object_id ?? null
+    if (currentRaw) {
+      const ca = graph.anchorByObjectId.get(currentRaw) ?? currentRaw
+      if (!walkedSet.has(ca)) {
+        currentAnchor = ca
+        const from = walked[walked.length - 1]
+        if (from !== undefined) {
+          const r = bridgePath(adj, from, ca, linkKeyOf)
+          if (r) {
+            for (const m of r.members) members.add(m)
+            for (const e of r.edges) activeEdgeKeys.add(e)
+          }
+        }
+      }
+    }
+    return { walked: walkedSet, members, edgeKeys, activeEdgeKeys, currentAnchor }
+  }, [diagnosisScan, graph])
+
+  /** 已排查节点 → 指标（名称+数值+分级着色，最多 3 个；聚合锚点多对象合并）。
+   *  不常显 sprite（3D 里过小看不清），改为节点悬浮 tooltip 呈现（hoverMetrics）。 */
+  const chipsByAnchorId = useMemo(() => {
+    const map = new Map<string, MetricChip[]>()
+    const rank: Record<MetricChip['tone'], number> = { critical: 0, warning: 1, normal: 2 }
+    for (const obj of diagnosisScan?.examined_objects ?? []) {
+      if (!obj.metrics || obj.metrics.length === 0) continue
+      const anchor = graph.anchorByObjectId.get(obj.object_id) ?? obj.object_id
+      const merged = [...(map.get(anchor) ?? []), ...obj.metrics]
+        .sort((a, b) => rank[a.tone] - rank[b.tone])
+        .slice(0, 3)
+      map.set(anchor, merged)
+    }
+    return map
+  }, [diagnosisScan, graph])
+
+  /** 指标悬浮只读 ref：tooltip 的 nodeLabel 访问器在画布创建时绑定一次，闭包经 ref
+   *  读最新指标映射（与 summariesRef 等既有 Latest-value ref 模式一致）。 */
+  const chipsByAnchorRef = useRef<Map<string, MetricChip[]>>(new Map())
+  chipsByAnchorRef.current = chipsByAnchorId
+
   /** 结构签名：节点 id 集 + 连线(source→target:category)。仅结构变化时重绑。 */
   const graphDataSignature = (gd: ActiveGraph): string => {
     const nodeIds = gd.nodes.map((n) => n.id).sort().join(',')
@@ -277,13 +411,46 @@ export default function Layered3DCanvas(props: Layered3DCanvasProps) {
     return `${nodeIds}|${linkSig}`
   }
 
+  /**
+   * 诊断期间布局冻结（本轮优化 #1）：诊断执行（diagnosisScan 非空）时把拓扑/知识节点
+   * 的自由轴（拓扑 x / 知识 z）也钉到当前已结算坐标，d3 力导向无法再把节点推走——
+   * 位置稳定不闪，只做亮度/高亮变化。退出诊断后解除冻结、恢复力导向。
+   * 只解除"由冻结打上的钉"（__frozenByDiagnosis 标记），不干扰用户拖拽后 rePinNode
+   * 停留的自由轴钉。
+   */
+  const freezeLayout = diagnosisScan != null
+  const freezeFreeAxis = (node: GraphNode): void => {
+    const raw = node as unknown as Record<string, unknown>
+    if (node.plane === 'topology') {
+      if (node.x !== undefined) {
+        raw.fx = node.x
+        raw.__frozenByDiagnosis = true
+      }
+    } else if (node.z !== undefined) {
+      raw.fz = node.z
+      raw.__frozenByDiagnosis = true
+    }
+  }
+  const unfreezeFreeAxis = (node: GraphNode): void => {
+    const raw = node as unknown as Record<string, unknown>
+    if (raw.__frozenByDiagnosis !== true) return
+    if (node.plane === 'topology') raw.fx = undefined
+    else raw.fz = undefined
+    raw.__frozenByDiagnosis = false
+    // 零速度，避免解除冻结瞬间 d3 惯性把节点弹走。
+    raw.vx = 0
+    raw.vy = 0
+    raw.vz = 0
+  }
+
   /** 按 id 复用节点：保留已布局自由轴（拓扑 x / 知识 z）与拖拽停留位置，刷新固定轴。 */
-  const stabilizeNodes = (nodes: GraphNode[]): GraphNode[] => {
+  const stabilizeNodes = (nodes: GraphNode[], freeze: boolean): GraphNode[] => {
     const cache = nodeCacheRef.current
     return nodes.map((node) => {
       const cached = cache.get(node.id)
       if (!cached) {
         cache.set(node.id, node)
+        if (freeze) freezeFreeAxis(node)
         return node
       }
       cached.label = node.label
@@ -315,11 +482,16 @@ export default function Layered3DCanvas(props: Layered3DCanvasProps) {
         if (cached.y === undefined) cached.y = pos.y
         if (cached.z === undefined) cached.z = pos.z
       }
+      if (freeze) freezeFreeAxis(cached)
+      else unfreezeFreeAxis(cached)
       return cached
     })
   }
 
-  const stableNodes = useMemo(() => stabilizeNodes(graph.nodes), [graph])
+  const stableNodes = useMemo(
+    () => stabilizeNodes(graph.nodes, freezeLayout),
+    [graph, freezeLayout],
+  )
   const graphData = useMemo<ActiveGraph>(
     () => ({ nodes: stableNodes, links: graph.links }),
     [stableNodes, graph.links],
@@ -358,6 +530,8 @@ export default function Layered3DCanvas(props: Layered3DCanvasProps) {
     if (rootCauseRef.current.has(node.id)) return STATUS_COLORS.fault
     if (impactedRef.current.has(node.id)) return STATUS_COLORS.warning
     if (agentFocusRef.current.has(node.id)) return STATUS_COLORS.active
+    // 已走过排查路径节点：稳定主题亮色（区别于扫描白/青；判定环保留形态语义）。
+    if (pathVisual.walked.has(node.id)) return PATH_COLORS.node
     const verdict = verdictByAnchorId.get(node.id)
     if (verdict) return VERDICT_DIM_COLOR[verdict]
     if (node.id === selectedRef.current || node.id === hoverRef.current) return brighten(node.color)
@@ -376,13 +550,14 @@ export default function Layered3DCanvas(props: Layered3DCanvasProps) {
     return topoLayerDef(def.domain).name
   }
 
-  /** Tooltip context：聚合摘要优先，其次 DETACHED 关键成员所属层。 */
+  /** Tooltip context：聚合摘要优先，其次 DETACHED 关键成员所属层；已排查节点附关键指标。 */
   const labelContextFor = (node: GraphNode): NodeLabelContext => {
     const summary = summariesRef.current.get(node.id)
-    if (summary) return { summary }
+    if (summary) return { summary, metrics: chipsByAnchorRef.current.get(node.id) }
     const detachedLayer = detachedLayerLabelFor(node)
-    if (detachedLayer) return { detachedLayerLabel: detachedLayer }
-    return {}
+    if (detachedLayer) return { detachedLayerLabel: detachedLayer, metrics: chipsByAnchorRef.current.get(node.id) }
+    const metrics = chipsByAnchorRef.current.get(node.id)
+    return metrics ? { metrics } : {}
   }
 
   /** Per-node 3D object：聚合头徽标、DETACHED 层标签、跨层关联环、agent/根因光晕、
@@ -405,6 +580,14 @@ export default function Layered3DCanvas(props: Layered3DCanvasProps) {
       if (rootCauseRef.current.has(node.id)) group.add(rootHaloSprite(node))
       else if (impactedRef.current.has(node.id)) group.add(impactedRingSprite(node))
       if (agentFocusRef.current.has(node.id) && !isScanning) group.add(haloSprite(node))
+      // 已走过路径的桥接中间节点（物理链上非目标）：加路径环，形成连续证据路径。
+      if (
+        !isScanning &&
+        pathVisual.members.has(node.id) &&
+        !pathVisual.walked.has(node.id)
+      ) {
+        group.add(pathRingSprite(node))
+      }
       const verdict = verdictByAnchorId.get(node.id)
       if (
         verdict &&
@@ -416,6 +599,7 @@ export default function Layered3DCanvas(props: Layered3DCanvasProps) {
       }
       if (focusNeighborAnchors.has(node.id) && !isScanning) group.add(neighborHintSprite(node))
       if (highlightTopologyRef.current.has(node.id)) group.add(highlightRingSprite(node))
+      // 指标不再常显为 3D 小标签（过小/视角遮挡看不清）——由节点悬浮 tooltip 呈现。
     }
     const summary = summariesRef.current.get(node.id)
     if (summary) {
@@ -444,6 +628,10 @@ export default function Layered3DCanvas(props: Layered3DCanvasProps) {
 
   const linkColorFor = (link: GraphLink): string => {
     if (link.category === 'logic') return LINK_COLORS.logic
+    const key = linkKeyOf(...linkEndpoints(link))
+    // 排查证据路径：当前推进节点的入边全亮（对齐点①），已走过链路低亮一档（对齐点②）。
+    if (pathVisual.activeEdgeKeys.has(key)) return PATH_COLORS.edgeActive
+    if (pathVisual.edgeKeys.has(key)) return PATH_COLORS.edge
     if (link.category === 'cross') {
       if (isCrossLinkActive(link)) return 'rgba(20, 184, 166, 0.95)'
       return link.relation === 'INSTANCE_OF'
@@ -455,6 +643,14 @@ export default function Layered3DCanvas(props: Layered3DCanvasProps) {
     return 'rgba(45, 212, 191, 0.5)'
   }
 
+  /** 路径链路加粗（当前入边最粗，已走过次之），其余沿用 linkWidthFor。 */
+  const linkWidthAccessor = (link: GraphLink): number => {
+    const key = linkKeyOf(...linkEndpoints(link))
+    if (pathVisual.activeEdgeKeys.has(key)) return 3
+    if (pathVisual.edgeKeys.has(key)) return 2.4
+    return linkWidthFor(link, false)
+  }
+
   /** Re-apply node/link style accessors. Fresh instances force re-eval. */
   const refreshAppearance = (): void => {
     const graphInstance = graphRef.current
@@ -463,7 +659,7 @@ export default function Layered3DCanvas(props: Layered3DCanvasProps) {
     graphInstance.nodeThreeObject((node: GraphNode) => nodeThreeObjectFor(node))
     graphInstance
       .linkColor((link: GraphLink) => linkColorFor(link))
-      .linkWidth((link: GraphLink) => linkWidthFor(link, false))
+      .linkWidth((link: GraphLink) => linkWidthAccessor(link))
       .linkDirectionalParticles((link: GraphLink) => linkParticlesFor(link, false))
   }
 
@@ -486,6 +682,11 @@ export default function Layered3DCanvas(props: Layered3DCanvasProps) {
         rendererConfig: { antialias: true, alpha: false },
       })
       graphRef.current = graphInstance
+
+      // 调试钩子：暴露 3d-force-graph 实例 + THREE，供浏览器实测投影节点坐标、定位悬浮点
+      // （与 v2/main.ts 暴露 window.v2 同属探查/验收通道）。
+      ;(window as any).__FAULT_GRAPH__ = graphInstance
+      ;(window as any).__FAULT_THREE__ = THREE
 
       // issue#7 P0：修补 OrbitControls 多指针位置记录缺失（防诊断中白屏崩溃）。
       patchOrbitControlsPointerDesync(graphInstance.controls())
@@ -536,7 +737,7 @@ export default function Layered3DCanvas(props: Layered3DCanvasProps) {
 
       graphInstance
         .linkColor((link: GraphLink) => linkColorFor(link))
-        .linkWidth((link: GraphLink) => linkWidthFor(link, false))
+        .linkWidth((link: GraphLink) => linkWidthAccessor(link))
         .linkDirectionalParticles((link: GraphLink) => linkParticlesFor(link, false))
       applyLogicLinkDistance(graphInstance)
 
@@ -560,6 +761,9 @@ export default function Layered3DCanvas(props: Layered3DCanvasProps) {
       if (graphInstance) {
         graphInstance._destructor()
         graphRef.current = null
+        if ((window as any).__FAULT_GRAPH__ === graphInstance) {
+          ;(window as any).__FAULT_GRAPH__ = null
+        }
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -602,6 +806,8 @@ export default function Layered3DCanvas(props: Layered3DCanvasProps) {
     diagnosisScan,
     verdictByAnchorId,
     focusNeighborAnchors,
+    pathVisual,
+    chipsByAnchorId,
   ])
 
   // --- issue#7 C3：排查推进到某对象时自动展开其聚合层，使其可见并高亮 ----

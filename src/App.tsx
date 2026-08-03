@@ -371,7 +371,6 @@ export default function App() {
     return {
       store,
       knowledge: store.knowledgeSnapshot(),
-      action: store.currentAction(),
       candidates: store.candidateList(),
       planner: store.plannerTargets(),
       timeline: store.timeline(),
@@ -469,7 +468,6 @@ export default function App() {
       {runtime && vms && snapshot && (
         <LuiPanel
           knowledge={vms.knowledge}
-          action={vms.action}
           candidates={vms.candidates}
           planner={vms.planner}
           snapshot={snapshot}

@@ -218,6 +218,19 @@ export interface ObjectObservationPanelVM {
  */
 export type ExaminedVerdict = 'NORMAL' | 'ABNORMAL' | 'IMPACTED' | 'CANDIDATE'
 
+/** 指标芯片状态色（正常绿 / 告警黄 / 异常红，画布节点旁小标签）。 */
+export type MetricChipTone = 'normal' | 'warning' | 'critical'
+
+/** 已排查节点旁的关键指标芯片：指标名 + 数值(带单位) + 状态色（issue 本轮）。 */
+export interface MetricChipVM {
+  /** 指标名称（如 时延 / I/O吞吐 / 控制器热复位）。 */
+  name: string
+  /** 数值（含单位，如 "42ms"、"0 GB/s"、"严重"）。 */
+  value: string
+  /** 状态色：normal(绿) / warning(黄) / critical(红)。 */
+  tone: MetricChipTone
+}
+
 export interface ExaminedObjectVM {
   object_id: string
   display_name: string
@@ -227,6 +240,8 @@ export interface ExaminedObjectVM {
   is_scanning: boolean
   /** 当前焦点对象（activeQuery 或 Planner 当前位置 / agent_focus）。 */
   is_focus: boolean
+  /** 已排查对象的关键指标芯片（最多 3 个，随观测查询完成贴上；未排查为空）。 */
+  metrics: MetricChipVM[]
 }
 
 export interface DiagnosisScanVM {
@@ -236,6 +251,8 @@ export interface DiagnosisScanVM {
   focus_object_id: string | null
   /** 已排查对象及其判定（扫描/聚焦优先，随快照推进增长）。 */
   examined_objects: ExaminedObjectVM[]
+  /** 排查路径（PLANNER seq 序，已排查/正在排查的目标资源；画布按此累积高亮，与右侧 PLANNER 一一对应）。 */
+  path_object_ids: string[]
   /** 图谱原始点 ids（当前现象 → 故障模式，诊断启动后点亮，随候选收敛）。 */
   graph_entry_anchors: string[]
   /** 图谱关联知识点 ids（机制 → 证据规则 → 案例，随证据/候选更新扩展）。 */
@@ -672,6 +689,7 @@ export class ProjectionStore {
       verdict: examinedVerdictFor(s, objectId),
       is_scanning: objectId === activeQuery,
       is_focus: objectId === focus,
+      metrics: objectMetricChips(s, objectId, allFacts),
     }))
     examined.sort((a, b) => {
       if (a.is_scanning !== b.is_scanning) return a.is_scanning ? -1 : 1
@@ -692,6 +710,7 @@ export class ProjectionStore {
       active_query_object_id: activeQuery,
       focus_object_id: focus,
       examined_objects: examined,
+      path_object_ids: scanPathObjectIds(s, allFacts),
       graph_entry_anchors,
       graph_lit_knowledge_ids,
     }
@@ -1217,6 +1236,139 @@ function scanExaminedObjectIds(s: DiagnosisSessionSnapshot): string[] {
   for (const id of s.conclusion?.root_cause_chain ?? []) ids.add(id)
   for (const id of s.conclusion?.impact_chain ?? []) ids.add(id)
   return [...ids]
+}
+
+/**
+ * 排查路径（画布"已走过"累积高亮 + 右侧 PLANNER 一一对应）。
+ * 只取 PLANNER 目标（按 seq 序）；某目标"已走过"当且仅当满足其一（两类信号均单调
+ * 累积，路径不回退；当前正在扫描的目标由画布扫描/聚焦视觉单独高亮，不占路径）：
+ *  - 该对象已由终态 Skill 任务产出 Fact（实际查询过；用全量观测 Fact 判覆盖，
+ *    避免"未被证据引用的观测"如 LUN 时延在快照中缺席导致路径抖动）；
+ *  - Planner 判定非 pending（已覆盖/已验证/命中故障/已排除，含路径推进间接验证）。
+ */
+function scanPathObjectIds(s: DiagnosisSessionSnapshot, allFacts: CanonicalFact[]): string[] {
+  const path: string[] = []
+  for (const t of [...s.planner_targets].sort((a, b) => a.seq - b.seq)) {
+    const id = t.target_resource
+    const walked =
+      objectHasTerminalTaskFacts(s, id, allFacts) ||
+      derivePlannerTargetStatus(s, t) !== 'pending'
+    if (walked && !path.includes(id)) path.push(id)
+  }
+  return path
+}
+
+/** 对象是否已由终态 Skill 任务产出指向它的 Fact（用全量观测 Fact，含未被证据引用的观测）。 */
+function objectHasTerminalTaskFacts(
+  s: DiagnosisSessionSnapshot,
+  objectId: string,
+  allFacts: CanonicalFact[],
+): boolean {
+  const terminalTaskIds = new Set(
+    s.tasks
+      .filter((t) => OBS_TERMINAL_TASK_STATUSES.has(t.status))
+      .map((t) => t.task_id),
+  )
+  return allFacts.some(
+    (f) =>
+      (f.object_refs ?? []).includes(objectId) &&
+      terminalTaskIds.has(f.source.execution_id.replace(/^exec-/, '')),
+  )
+}
+
+const METRIC_TONE_RANK: Record<MetricChipTone, number> = { critical: 0, warning: 1, normal: 2 }
+
+/**
+ * 对象关键指标芯片（画布节点旁小标签，issue 本轮）：
+ * - 数据源：该对象由已终态 Skill 任务产出的性能 KPI 与告警 Fact（随快照推进增长，
+ *   不泄露未来）；
+ * - 优先级：异常/超阈值（critical→红）> 告警阈值（warning→黄）> 正常（绿），取最多 3 个；
+ * - 内容带指标名 + 数值（含单位），否则数值无法理解含义。
+ */
+function objectMetricChips(
+  s: DiagnosisSessionSnapshot,
+  objectId: string,
+  allFacts: CanonicalFact[],
+): MetricChipVM[] {
+  const displayName = displayNameOf(allFacts, objectId)
+  const chips: MetricChipVM[] = []
+  // 性能 KPI：指标名 + 峰值（带单位），按阈值分级着色。
+  for (const f of objectProducedFacts(s, objectId, allFacts, [FactType.KPI_WINDOW])) {
+    const p = f.payload
+    const unit = p['unit'] ? ` ${String(p['unit'])}` : ''
+    const peak = typeof p['peak_value'] === 'number' ? p['peak_value'] : '-'
+    chips.push({
+      name: compactMetricName(String(p['metric_name'] ?? '指标'), displayName),
+      value: `${peak}${unit}`,
+      tone: kpiTone(p),
+    })
+  }
+  // 告警：告警名 + 严重级别（CRITICAL/MAJOR→红、WARNING→黄、其余→绿）。
+  for (const f of objectProducedFacts(s, objectId, allFacts, [FactType.ALARM])) {
+    const p = f.payload
+    const severity = String(p['severity'] ?? '')
+    chips.push({
+      name: compactMetricName(String(p['name'] ?? p['alarm_code'] ?? '告警'), displayName),
+      value: severityLabelOf(severity),
+      tone: alarmTone(severity),
+    })
+  }
+  return chips
+    .sort((a, b) => METRIC_TONE_RANK[a.tone] - METRIC_TONE_RANK[b.tone])
+    .slice(0, 3)
+}
+
+/** 对象由终态 Skill 任务产出的指定类型 Fact（与对象观测口径一致）。 */
+function objectProducedFacts(
+  s: DiagnosisSessionSnapshot,
+  objectId: string,
+  allFacts: CanonicalFact[],
+  factTypes: FactType[],
+): CanonicalFact[] {
+  const terminalTasks = s.tasks.filter(
+    (t) =>
+      (t.target_object_refs ?? []).includes(objectId) &&
+      OBS_TERMINAL_TASK_STATUSES.has(t.status),
+  )
+  const execIds = new Set(terminalTasks.map((t) => `exec-${t.task_id}`))
+  return allFacts.filter(
+    (f) =>
+      execIds.has(f.source.execution_id) &&
+      (f.object_refs ?? []).includes(objectId) &&
+      factTypes.includes(f.fact_type),
+  )
+}
+
+/** KPI 峰值分级：超 critical 阈值→红、超 warning 阈值→黄、否则→绿。 */
+function kpiTone(p: Record<string, unknown>): MetricChipTone {
+  const peak = typeof p['peak_value'] === 'number' ? p['peak_value'] : NaN
+  if (!Number.isFinite(peak)) return 'normal'
+  const thresholds = (p['thresholds'] ?? {}) as Record<string, unknown>
+  const hit = (key: string, high: boolean): boolean => {
+    const v = thresholds[key]
+    if (typeof v !== 'number') return false
+    return high ? peak >= v : peak <= v
+  }
+  if (hit('critical_high', true) || hit('critical_low', false) || hit('critical', true)) return 'critical'
+  if (hit('warning_high', true) || hit('warning_low', false) || hit('warning', true)) return 'warning'
+  return 'normal'
+}
+
+/** 告警严重级别分级：CRITICAL/MAJOR→红、WARNING→黄、其余→绿。 */
+function alarmTone(severity: string): MetricChipTone {
+  const s = severity.toUpperCase()
+  if (s === 'CRITICAL' || s === 'MAJOR') return 'critical'
+  if (s === 'WARNING') return 'warning'
+  return 'normal'
+}
+
+/** 指标名紧凑化：去掉对象显示名前缀（如 "Controller-0A I/O吞吐" → "I/O吞吐"）。 */
+function compactMetricName(full: string, displayName: string): string {
+  if (!full) return '指标'
+  const strip = (prefix: string): string | null =>
+    full.startsWith(prefix) ? full.slice(prefix.length).replace(/^[\s\-—:：]+/, '') : null
+  const stripped = strip(displayName) ?? strip(displayName.replace(/\s+/g, ''))
+  return stripped && stripped.length > 0 ? stripped : full
 }
 
 /** 活跃根因假设候选状态（未决/正在验证；已排除/证据不足不算活跃）。 */
