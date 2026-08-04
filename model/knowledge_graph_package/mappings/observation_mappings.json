@@ -1,0 +1,26 @@
+{
+  "schema_name": "dme-knowledge-observation-mappings",
+  "schema_version": "3.0.0",
+  "knowledge_domain_code": "STORAGE_FAULT_DIAGNOSIS",
+  "description": "观测映射：原始观测 → 症状/规则/指标 的规范化映射（docs/19 §4.4 OBSERVATION_MAPPING；§4.8-9 必须记录转换版本和原始字段）。",
+  "observation_mappings": [
+    {
+      "mapping_code": "ALARM_TO_CONTROLLER_RESET_MAPPING",
+      "source_field": "alarm_code",
+      "source_pattern": "reset|controller.*reset",
+      "target_concept_codes": ["CONTROLLER_RESET"],
+      "target_rule_codes": ["CONTROLLER_RESET_ALARM_RULE"],
+      "conversion_version": "1.0.0",
+      "provenance": { "source_type": "DOMAIN_EXPERT" }
+    },
+    {
+      "mapping_code": "LOG_TO_WATCHDOG_FINGERPRINT_MAPPING",
+      "source_field": "fingerprint_id",
+      "source_pattern": "watchdog_timeout",
+      "target_concept_codes": [],
+      "target_rule_codes": ["WATCHDOG_FINGERPRINT_RULE"],
+      "conversion_version": "1.0.0",
+      "provenance": { "source_type": "DOMAIN_EXPERT" }
+    }
+  ]
+}

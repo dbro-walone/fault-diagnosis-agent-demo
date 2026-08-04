@@ -44,6 +44,10 @@ function loadModelKnowledgeRefs(): {
       .map((n) => ({
         id: n.id,
         layer: n.group,
+        node_type:
+          typeof n.object.properties.knowledgeKind === 'string'
+            ? (n.object.properties.knowledgeKind as string)
+            : null,
         code: typeof n.object.properties.code === 'string' ? (n.object.properties.code as string) : null,
         fault_mode_code:
           (n.object.properties.attributes as Record<string, unknown> | undefined)?.['fault_mode_code'] as

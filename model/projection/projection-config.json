@@ -18,12 +18,11 @@
     "PHYSICAL_RESOURCE": { "x": 210, "z": 0, "name": "物理资源" }
   },
   "knowledge_layer_anchors": {
-    "OBJECT_TYPE": { "x": -150, "name": "对象类型" },
-    "SYMPTOM": { "x": -50, "name": "故障现象" },
-    "FAULT_MODE": { "x": 40, "name": "故障模式" },
-    "MECHANISM": { "x": 75, "name": "触发机制" },
-    "EVIDENCE_RULE": { "x": 150, "name": "证据规则" },
-    "CASE": { "x": 180, "name": "历史案例" }
+    "ROOT": { "x": -220, "name": "知识域根" },
+    "L1": { "x": -150, "name": "L1 类型·场景" },
+    "L2": { "x": -50, "name": "L2 故障模式" },
+    "L3": { "x": 40, "name": "L3 现象·机理·证据" },
+    "L4": { "x": 150, "name": "L4 规则·模板·案例" }
   },
   "node_positions": {
     "db-business-01": { "x": -235, "y": 70, "z": 0 },
@@ -71,7 +70,30 @@
     "er-takeover": { "x": 150, "y": -70, "z": 0 },
     "er-latency-impact": { "x": 150, "y": -70, "z": 14 },
     "er-fc-normal": { "x": 150, "y": -70, "z": 28 },
-    "case-warm-reset-001": { "x": 182, "y": -70, "z": 0 }
+    "case-warm-reset-001": { "x": 182, "y": -70, "z": 0 },
+
+    "kg-domain-root": { "x": -220, "y": -70, "z": 0 },
+    "scenario-controller-anomaly": { "x": -150, "y": -70, "z": -52 },
+    "scenario-path-link-anomaly": { "x": -150, "y": -70, "z": -38 },
+    "scenario-backend-degradation": { "x": -150, "y": -70, "z": -24 },
+    "scenario-shared-contention": { "x": -150, "y": -70, "z": -10 },
+    "scenario-replication-protection": { "x": -150, "y": -70, "z": 4 },
+    "fm-shared-io-contention": { "x": 40, "y": -70, "z": -60 },
+    "fm-replication-congestion": { "x": 40, "y": -70, "z": 60 },
+    "mech-shared-queue-contention": { "x": 80, "y": -70, "z": -45 },
+    "mech-wan-packet-loss": { "x": 80, "y": -70, "z": 45 },
+    "sym-rpo-exceeded": { "x": -50, "y": -70, "z": 44 },
+    "evreq-direct-fault": { "x": 80, "y": -70, "z": -40 },
+    "evreq-mechanism": { "x": 80, "y": -70, "z": -20 },
+    "evreq-state-change": { "x": 80, "y": -70, "z": 0 },
+    "evreq-business-impact": { "x": 80, "y": -70, "z": 20 },
+    "evreq-counter": { "x": 80, "y": -70, "z": 40 },
+    "template-controller-confirmation": { "x": 180, "y": -70, "z": -16 },
+    "om-alarm-controller-reset": { "x": 180, "y": -70, "z": -30 },
+    "om-log-watchdog-fingerprint": { "x": 180, "y": -70, "z": 16 },
+    "skill-alarm-query": { "x": 180, "y": -70, "z": 30 },
+    "skill-log-fingerprint": { "x": 180, "y": -70, "z": 42 },
+    "skill-kpi-query": { "x": 180, "y": -70, "z": 54 }
   },
   "label_rules": {
     "topology_always": ["db-business-01", "db-host-01", "storage-01", "controller-0a", "controller-0b", "block-service-01", "lun-db01", "pool-0"],

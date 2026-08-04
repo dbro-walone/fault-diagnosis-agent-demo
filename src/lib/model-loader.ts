@@ -436,7 +436,7 @@ export function loadModelData(): ModelData {
     count: graph.nodes.filter((node) => node.group === code).length,
   }))
 
-  const layers = ['OBJECT_TYPE', 'SYMPTOM', 'FAULT_MODE', 'MECHANISM', 'EVIDENCE_RULE', 'CASE']
+  const layers = ['ROOT', 'L1', 'L2', 'L3', 'L4']
   const kgLayers = layers.map((code, order) => ({
     code,
     name: code,

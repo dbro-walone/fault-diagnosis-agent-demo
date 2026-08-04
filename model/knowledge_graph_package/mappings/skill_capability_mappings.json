@@ -1,0 +1,11 @@
+{
+  "schema_name": "dme-knowledge-skill-capability-mappings",
+  "schema_version": "3.0.0",
+  "knowledge_domain_code": "STORAGE_FAULT_DIAGNOSIS",
+  "description": "Skill 能力映射：SKILL_CAPABILITY 节点 → 实际 Skill id（docs/09 Skill Registry；§4.2 mappings/skill_capability_mappings.json）。",
+  "skill_capability_mappings": [
+    { "skill_capability_code": "ALARM_QUERY_SKILL", "skill_ids": ["alarm_query"], "produced_fact_types": ["ALARM"], "description": "告警查询可产生 ALARM Fact。" },
+    { "skill_capability_code": "LOG_FINGERPRINT_QUERY_SKILL", "skill_ids": ["log_fingerprint_query"], "produced_fact_types": ["LOG_FINGERPRINT_MATCH"], "description": "日志指纹查询可产生 LOG_FINGERPRINT_MATCH Fact。" },
+    { "skill_capability_code": "KPI_QUERY_SKILL", "skill_ids": ["kpi_query"], "produced_fact_types": ["KPI_WINDOW"], "description": "KPI 查询可产生 KPI_WINDOW Fact。" }
+  ]
+}

@@ -1,9 +1,9 @@
 // 知识图谱下层（主画布 issue #4 落地补全）：布局 / 跨层映射 / 关联集 纯函数校验。
-// 断言：
+// KnowledgeGraphPackage 3.0.0 四层结构（Domain Root + L1~L4）：
 //   1. layoutKnowledgeGraph：全部知识节点落位、连线端点可见、画布尺寸为正；
 //   2. buildCrossLayerLinks：INSTANCE_OF 按 resource_type 通用解析（任意 Case 成立），
 //      显式 APPLICABLE_FAULT_MODE / EVIDENCE_MAPPING 在 id 命中时并入；
-//   3. knowledgeAssociations：拓扑实例 → 对象类型 → 故障模式/证据（含机制）；
+//   3. knowledgeAssociations：拓扑实例 → 资源类型 → 场景/模式 → 机理/证据要求 → 规则；
 //   4. topologyAssociationsForKnowledge：图谱节点 → 关联拓扑实例。
 // 只读 model / case 数据；不做诊断计算。
 import { describe, expect, it } from 'vitest'
@@ -53,7 +53,7 @@ describe('knowledge-plane 布局', () => {
     }
   })
 
-  it('图谱六层全覆盖（对象类型/现象/模式/机制/证据/案例）', () => {
+  it('图谱五层全覆盖（知识域根/L1 类型·场景/L2 模式/L3 现象·机理·证据/L4 规则·模板·案例）', () => {
     const layout = layoutKnowledgeGraph(knowledgeNodes, knowledgeLinks)
     for (const layer of KNOWLEDGE_LAYERS) {
       expect(layout.counts[layer.code] ?? 0, layer.code).toBeGreaterThan(0)
@@ -66,15 +66,17 @@ describe('knowledge-plane 跨层映射', () => {
     for (const caseId of ['layered_topology_demo_001', 'controller_warm_reset_001', 'remote_replication_lag_001']) {
       const topo = buildLayeredModelData(caseId)
       const cross = buildCrossLayerLinks(topo.nodes, knowledgeNodes)
-      // 图谱对象类型声明的 resource_types 集合。
+      // 图谱 L1 RESOURCE_TYPE 节点声明的 resource_types 集合（含 code 兜底）。
       const knownTypes = new Set<string>()
       for (const n of knowledgeNodes) {
-        if (n.group !== 'OBJECT_TYPE') continue
+        if (n.group !== 'L1' || n.object.properties.knowledgeKind !== 'RESOURCE_TYPE') continue
         const attrs = n.object.properties.attributes
         if (attrs && typeof attrs === 'object' && !Array.isArray(attrs)) {
           const rts = (attrs as Record<string, unknown>).resource_types
           if (Array.isArray(rts)) for (const t of rts) knownTypes.add(String(t).toUpperCase())
         }
+        const code = n.object.properties.code
+        if (typeof code === 'string') knownTypes.add(String(code).toUpperCase())
       }
       // 每个可映射 resource_type 的实例都有 INSTANCE_OF（非 S1 兜底误判、无遗漏）。
       const mapped = topo.nodes.filter((n) => knownTypes.has((n.kind ?? '').toUpperCase()))
@@ -83,7 +85,7 @@ describe('knowledge-plane 跨层映射', () => {
         const links = cross.filter(
           (l) => l.topologyId === node.id && l.relation === 'INSTANCE_OF',
         )
-        expect(links.length, `${caseId} ${node.id} (${node.kind}) → 对象类型`).toBeGreaterThan(0)
+        expect(links.length, `${caseId} ${node.id} (${node.kind}) → 资源类型`).toBeGreaterThan(0)
       }
     }
     // CONTROLLER 实例 → ot-controller（含分层演示 Case 的 ctl-01a）。
@@ -92,7 +94,7 @@ describe('knowledge-plane 跨层映射', () => {
     for (const c of topo.nodes.filter((n) => n.kind === 'CONTROLLER')) {
       const links = cross.filter((l) => l.topologyId === c.id && l.relation === 'INSTANCE_OF')
       expect(links.length, `${c.id} → ot-controller`).toBeGreaterThan(0)
-      expect(links[0].knowledgeId).toBe(kgNodeId('OBJECT_TYPE', 'StorageController'))
+      expect(links[0].knowledgeId).toBe(kgNodeId('L1', 'CONTROLLER'))
     }
   })
 
@@ -104,12 +106,12 @@ describe('knowledge-plane 跨层映射', () => {
       (l) => l.topologyId === 'controller-0a' && l.relation === 'APPLICABLE_FAULT_MODE',
     )
     expect(fm.length).toBeGreaterThan(0)
-    expect(fm.some((l) => l.knowledgeId === kgNodeId('FAULT_MODE', 'CONTROLLER_WARM_RESET'))).toBe(true)
+    expect(fm.some((l) => l.knowledgeId === kgNodeId('L2', 'CONTROLLER_WARM_RESET'))).toBe(true)
     const em = cross.filter(
       (l) => l.topologyId === 'controller-0a' && l.relation === 'EVIDENCE_MAPPING',
     )
     expect(em.length).toBeGreaterThan(0)
-    expect(em.some((l) => l.knowledgeId === kgNodeId('EVIDENCE_RULE', 'reset_alarm_rule'))).toBe(true)
+    expect(em.some((l) => l.knowledgeId === kgNodeId('L4', 'CONTROLLER_RESET_ALARM_RULE'))).toBe(true)
   })
 
   it('跨层映射端点均存在于对应图内', () => {
@@ -126,42 +128,43 @@ describe('knowledge-plane 跨层映射', () => {
 })
 
 describe('knowledge-plane 关联集', () => {
-  it('拓扑实例 → 对象类型 → 故障模式/证据/机制（深度受限展开）', () => {
+  it('拓扑实例 → 资源类型 → 故障模式/机理/证据要求/规则（深度受限展开）', () => {
     const topo = buildLayeredModelData('controller_warm_reset_001')
     const cross = buildCrossLayerLinks(topo.nodes, knowledgeNodes)
     const assoc = knowledgeAssociations('controller-0a', cross, knowledgeLinks, 3)
-    // 对象类型 StorageController
-    expect(assoc.has(kgNodeId('OBJECT_TYPE', 'StorageController'))).toBe(true)
-    // 故障模式：控制器热复位 / 看门狗超时 / 主备切换
-    expect(assoc.has(kgNodeId('FAULT_MODE', 'CONTROLLER_WARM_RESET'))).toBe(true)
-    expect(assoc.has(kgNodeId('FAULT_MODE', 'WATCHDOG_TIMEOUT'))).toBe(true)
-    expect(assoc.has(kgNodeId('FAULT_MODE', 'CONTROLLER_FAILOVER'))).toBe(true)
-    // 机制：主 I/O 短时中断 / 主备切换与接管
-    expect(assoc.has(kgNodeId('MECHANISM', 'io_path_interruption'))).toBe(true)
-    expect(assoc.has(kgNodeId('MECHANISM', 'failover_switch'))).toBe(true)
+    // 资源类型 CONTROLLER
+    expect(assoc.has(kgNodeId('L1', 'CONTROLLER'))).toBe(true)
+    // 故障模式：控制器热复位 / 看门狗超时 / 主备切换（经传播链）
+    expect(assoc.has(kgNodeId('L2', 'CONTROLLER_WARM_RESET'))).toBe(true)
+    expect(assoc.has(kgNodeId('L2', 'WATCHDOG_TIMEOUT'))).toBe(true)
+    expect(assoc.has(kgNodeId('L2', 'CONTROLLER_FAILOVER'))).toBe(true)
+    // 机理：主 I/O 短时中断 / 主备切换与接管（经 LEADS_TO 传播链）
+    expect(assoc.has(kgNodeId('L3', 'IO_PATH_INTERRUPTION'))).toBe(true)
+    expect(assoc.has(kgNodeId('L3', 'FAILOVER_SWITCH'))).toBe(true)
     // 证据规则：复位严重告警 / 吞吐归零 / 备用接管
-    expect(assoc.has(kgNodeId('EVIDENCE_RULE', 'reset_alarm_rule'))).toBe(true)
-    expect(assoc.has(kgNodeId('EVIDENCE_RULE', 'throughput_zero_rule'))).toBe(true)
-    expect(assoc.has(kgNodeId('EVIDENCE_RULE', 'takeover_rule'))).toBe(true)
+    expect(assoc.has(kgNodeId('L4', 'CONTROLLER_RESET_ALARM_RULE'))).toBe(true)
+    expect(assoc.has(kgNodeId('L4', 'THROUGHPUT_ZERO_RULE'))).toBe(true)
+    expect(assoc.has(kgNodeId('L4', 'TAKEOVER_RULE'))).toBe(true)
   })
 
-  it('图谱节点 → 关联拓扑实例（直接反向 + 经对象类型可达）', () => {
+  it('图谱节点 → 关联拓扑实例（直接反向 + 经 APPLIES_TO_TYPE 可达）', () => {
     const topo = buildLayeredModelData('controller_warm_reset_001')
     const cross = buildCrossLayerLinks(topo.nodes, knowledgeNodes)
-    const fm = kgNodeId('FAULT_MODE', 'CONTROLLER_WARM_RESET')
+    const fm = kgNodeId('L2', 'CONTROLLER_WARM_RESET')
     const topoSet = topologyAssociationsForKnowledge(fm, cross, knowledgeLinks, 3)
-    // controller-0a 直接 APPLICABLE_FAULT_MODE；controller-0b 经 ot-controller 可达。
+    // controller-0a 直接 APPLICABLE_FAULT_MODE；controller-0b 经 APPLIES_TO_TYPE 可达。
     expect(topoSet.has('controller-0a')).toBe(true)
     expect(topoSet.has('controller-0b')).toBe(true)
   })
 
   it('reachableKnowledgeNodes 出边 BFS 深度受限、不回流', () => {
-    const start = kgNodeId('OBJECT_TYPE', 'StorageController')
+    const start = kgNodeId('L2', 'CONTROLLER_WARM_RESET')
     const reached = reachableKnowledgeNodes([start], knowledgeLinks, 1)
     expect(reached.has(start)).toBe(true)
-    expect(reached.has(kgNodeId('SYMPTOM', 'CONTROLLER_RESET'))).toBe(true)
-    expect(reached.has(kgNodeId('FAULT_MODE', 'CONTROLLER_WARM_RESET'))).toBe(true)
-    // 深度 1 不到证据规则（fm → er 是第 2 跳）。
-    expect(reached.has(kgNodeId('EVIDENCE_RULE', 'reset_alarm_rule'))).toBe(false)
+    // 深度 1：症状概念（MANIFESTS_AS）+ 适用资源类型（APPLIES_TO_TYPE）。
+    expect(reached.has(kgNodeId('L3', 'CONTROLLER_RESET'))).toBe(true)
+    expect(reached.has(kgNodeId('L1', 'CONTROLLER'))).toBe(true)
+    // 深度 1 不到证据规则（fm → evreq → er 是第 2 跳）。
+    expect(reached.has(kgNodeId('L4', 'CONTROLLER_RESET_ALARM_RULE'))).toBe(false)
   })
 })

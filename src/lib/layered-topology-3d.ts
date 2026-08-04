@@ -53,14 +53,13 @@ export const SUB_LAYER_Z_GAP = 40
 /** 知识平面 Y（双平面配置 knowledge=-70）。 */
 export const KNOWLEDGE_PLANE_Y = -70
 
-/** 图谱分层 → X 轴列锚点（与 KNOWLEDGE_LAYERS 展示顺序一致）。 */
+/** 图谱分层 → X 轴列锚点（与 KNOWLEDGE_LAYERS 展示顺序一致，Domain Root + L1~L4）。 */
 export const KNOWLEDGE_LAYER_X: Readonly<Record<string, number>> = {
-  OBJECT_TYPE: -150,
-  SYMPTOM: -50,
-  FAULT_MODE: 40,
-  MECHANISM: 75,
-  EVIDENCE_RULE: 150,
-  CASE: 180,
+  ROOT: -220,
+  L1: -150,
+  L2: -50,
+  L3: 40,
+  L4: 150,
 }
 
 /** S1/S2/S3 域带中心 Y。 */

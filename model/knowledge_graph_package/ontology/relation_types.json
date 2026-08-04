@@ -1,0 +1,22 @@
+{
+  "schema_name": "dme-knowledge-relation-types",
+  "schema_version": "3.0.0",
+  "knowledge_domain_code": "STORAGE_FAULT_DIAGNOSIS",
+  "description": "知识关系注册表（docs/19 §4.5）。source_type/target_type 为 KNOWLEDGE_NODE_TYPES 内的 code，* 表示任意诊断知识节点。",
+  "relation_types": [
+    { "code": "HAS_RESOURCE_TYPE", "source_type": "KNOWLEDGE_DOMAIN", "target_type": "RESOURCE_TYPE", "description": "知识域包含对象类型" },
+    { "code": "HAS_SCENARIO", "source_type": "KNOWLEDGE_DOMAIN", "target_type": "FAULT_SCENARIO", "description": "知识域包含故障场景" },
+    { "code": "APPLIES_TO_TYPE", "source_type": ["FAULT_SCENARIO", "FAULT_MODE"], "target_type": "RESOURCE_TYPE", "description": "场景或模式适用于哪类资源" },
+    { "code": "HAS_FAULT_MODE", "source_type": "FAULT_SCENARIO", "target_type": "FAULT_MODE", "description": "FaultMode 的唯一规范父场景" },
+    { "code": "EXPLAINS_MODE", "source_type": "FAULT_MECHANISM", "target_type": "FAULT_MODE", "description": "机理解释故障模式，允许不同强度（REQUIRED/STRONG/CONDITIONAL/WEAK）" },
+    { "code": "MANIFESTS_AS", "source_type": "FAULT_MODE", "target_type": "SYMPTOM_CONCEPT", "description": "故障模式可能表现为某现象" },
+    { "code": "REQUIRES_EVIDENCE", "source_type": "FAULT_MODE", "target_type": "EVIDENCE_REQUIREMENT", "description": "根因确认所需证据类别" },
+    { "code": "SATISFIED_BY_RULE", "source_type": "EVIDENCE_REQUIREMENT", "target_type": "DIAGNOSTIC_RULE", "description": "哪条规则可满足证据要求" },
+    { "code": "SUPPORTED_BY_SKILL", "source_type": "DIAGNOSTIC_RULE", "target_type": "SKILL_CAPABILITY", "description": "哪类 Skill 可产生规则所需 Fact" },
+    { "code": "TEMPLATE_HAS_MEMBER", "source_type": "DIAGNOSTIC_TEMPLATE", "target_type": "*", "description": "模板成员，成员角色写在 Edge 上" },
+    { "code": "EXEMPLIFIES", "source_type": "HISTORICAL_CASE", "target_type": "FAULT_MODE", "description": "历史案例对应的已审核故障模式" },
+    { "code": "OBSERVED_ON_TYPE", "source_type": "HISTORICAL_CASE", "target_type": "RESOURCE_TYPE", "description": "历史案例发生在哪类对象上" },
+    { "code": "MAPS_TO", "source_type": "OBSERVATION_MAPPING", "target_type": ["SYMPTOM_CONCEPT", "DIAGNOSTIC_RULE"], "description": "原始观测的规范化映射" },
+    { "code": "LEADS_TO", "source_type": ["FAULT_MECHANISM", "FAULT_MODE"], "target_type": ["FAULT_MECHANISM", "FAULT_MODE"], "description": "图谱内部传播链" }
+  ]
+}

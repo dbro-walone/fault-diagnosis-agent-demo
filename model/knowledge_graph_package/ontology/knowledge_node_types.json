@@ -1,0 +1,92 @@
+{
+  "schema_name": "dme-knowledge-node-types",
+  "schema_version": "3.0.0",
+  "knowledge_domain_code": "STORAGE_FAULT_DIAGNOSIS",
+  "description": "KnowledgeNode 核心节点类型冻结表（docs/19 §4.4）。knowledge_level 表示 Domain Root 之外的 L1~L4 层级；Domain Root 不计入编号。",
+  "node_types": [
+    {
+      "code": "KNOWLEDGE_DOMAIN",
+      "knowledge_level": "ROOT",
+      "name": "知识域根",
+      "description": "故障知识域根，一个包至少一个根域。",
+      "constraints": "一个包至少一个根域"
+    },
+    {
+      "code": "RESOURCE_TYPE",
+      "knowledge_level": "L1",
+      "name": "资源类型",
+      "description": "资源类型，code 必须可被实例 resource_type_code 引用。",
+      "constraints": "code 可被实例 resource_type_code 引用"
+    },
+    {
+      "code": "FAULT_SCENARIO",
+      "knowledge_level": "L1",
+      "name": "故障场景",
+      "description": "故障场景或故障类别，是 FaultMode 的规范父级。",
+      "constraints": "FaultMode 的规范父级"
+    },
+    {
+      "code": "FAULT_MODE",
+      "knowledge_level": "L2",
+      "name": "故障模式",
+      "description": "可诊断的规范故障模式。",
+      "constraints": "必须且只能有一个规范父场景"
+    },
+    {
+      "code": "FAULT_MECHANISM",
+      "knowledge_level": "L3",
+      "name": "故障机理",
+      "description": "触发或传播机理，只表示可能机理，不证明本次已发生。",
+      "constraints": "只表示可能机理"
+    },
+    {
+      "code": "SYMPTOM_CONCEPT",
+      "knowledge_level": "L3",
+      "name": "症状概念",
+      "description": "标准化故障现象，可由自然语言、告警、KPI 等映射。",
+      "constraints": "可由自然语言/告警/KPI 映射"
+    },
+    {
+      "code": "EVIDENCE_REQUIREMENT",
+      "knowledge_level": "L3",
+      "name": "证据要求",
+      "description": "最小证据要求，描述确认某模式需要哪类证据。",
+      "constraints": "至少一个满足路径或明确标记未实现"
+    },
+    {
+      "code": "DIAGNOSTIC_RULE",
+      "knowledge_level": "L4",
+      "name": "诊断规则",
+      "description": "Fact 到 Evidence 的解释规则，不直接修改候选或确认根因。",
+      "constraints": "必须声明输入 Fact 类型、输出 Evidence 类型和适用对象类型"
+    },
+    {
+      "code": "DIAGNOSTIC_TEMPLATE",
+      "knowledge_level": "L4",
+      "name": "诊断模板",
+      "description": "组合验证模板，定义组合策略，不定义 Planner 实际执行顺序。",
+      "constraints": "planner_order 必须为 null"
+    },
+    {
+      "code": "HISTORICAL_CASE",
+      "knowledge_level": "L4",
+      "name": "历史案例",
+      "description": "已审核历史案例摘要，初始入口匹配不得利用其最终答案。",
+      "constraints": "必须有来源、审核状态和匿名化标记"
+    },
+    {
+      "code": "OBSERVATION_MAPPING",
+      "knowledge_level": "L4",
+      "name": "观测映射",
+      "description": "原始观测到概念/指标/规则的映射。",
+      "constraints": "必须记录转换版本和原始字段"
+    },
+    {
+      "code": "SKILL_CAPABILITY",
+      "knowledge_level": "L4",
+      "name": "技能能力",
+      "description": "可获取某类事实的通用能力，只描述能力，不表示已执行。",
+      "constraints": "只描述能力"
+    }
+  ]
+}

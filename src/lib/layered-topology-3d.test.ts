@@ -102,9 +102,9 @@ describe('knowledgeNodePosition', () => {
     const ot = knowledgeNodes.find((n) => n.id === 'ot-controller')!
     const pos = knowledgeNodePosition(ot)
     expect(pos.y).toBe(KNOWLEDGE_PLANE_Y)
-    expect(pos.x).toBe(KNOWLEDGE_LAYER_X.OBJECT_TYPE)
+    expect(pos.x).toBe(KNOWLEDGE_LAYER_X.L1)
     expect(pos.fy).toBe(KNOWLEDGE_PLANE_Y)
-    expect(pos.fx).toBe(KNOWLEDGE_LAYER_X.OBJECT_TYPE)
+    expect(pos.fx).toBe(KNOWLEDGE_LAYER_X.L1)
     expect(pos.fz).toBeNull()
   })
 })
@@ -147,7 +147,7 @@ describe('buildLayered3DGraph', () => {
   it('知识节点固定图谱分层 X + 平面 Y；z 自由', () => {
     const g = buildLayered3DGraph(input())
     const ot = g.nodesById.get('ot-controller')!
-    expect(ot.fx).toBe(KNOWLEDGE_LAYER_X.OBJECT_TYPE)
+    expect(ot.fx).toBe(KNOWLEDGE_LAYER_X.L1)
     expect(ot.fy).toBe(KNOWLEDGE_PLANE_Y)
     expect(ot.fz).toBeUndefined()
   })

@@ -19,7 +19,7 @@ import type { GraphLink, GraphNode } from './model-loader'
 import crossMappingsJson from '../../model/mappings/cross-layer-mappings.json'
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 图谱分层定义（与 model/knowledge-graph/nodes.json layers 对齐）
+// 图谱分层定义（KnowledgeGraphPackage 3.0.0：Domain Root + L1~L4，docs/19 §4.3）
 // ─────────────────────────────────────────────────────────────────────────────
 
 export interface KnowledgeLayerDef {
@@ -29,12 +29,11 @@ export interface KnowledgeLayerDef {
 }
 
 export const KNOWLEDGE_LAYERS: ReadonlyArray<KnowledgeLayerDef> = [
-  { code: 'OBJECT_TYPE', name: '对象类型', color: '#a78bfa' },
-  { code: 'SYMPTOM', name: '故障现象', color: '#fbbf24' },
-  { code: 'FAULT_MODE', name: '故障模式', color: '#f472b6' },
-  { code: 'MECHANISM', name: '触发机制', color: '#38bdf8' },
-  { code: 'EVIDENCE_RULE', name: '证据规则', color: '#2dd4bf' },
-  { code: 'CASE', name: '历史案例', color: '#c084fc' },
+  { code: 'ROOT', name: '知识域根', color: '#fca5a5' },
+  { code: 'L1', name: 'L1 类型·场景', color: '#a78bfa' },
+  { code: 'L2', name: 'L2 故障模式', color: '#f472b6' },
+  { code: 'L3', name: 'L3 现象·机理·证据', color: '#38bdf8' },
+  { code: 'L4', name: 'L4 规则·模板·案例', color: '#2dd4bf' },
 ]
 
 /** 图谱分层展示顺序 code 列表。 */
@@ -155,18 +154,23 @@ interface CrossMappingsDoc {
 
 const CROSS_MAPPINGS = (crossMappingsJson as CrossMappingsDoc).mappings ?? []
 
-/** 图谱 OBJECT_TYPE 节点 attributes.resource_types → 节点 id（大写规整）。 */
+/** 图谱 L1 RESOURCE_TYPE 节点（properties.resource_types ∪ code）→ 节点 id（大写规整）。 */
 function resourceTypeToObjectType(nodes: GraphNode[]): Map<string, string> {
   const map = new Map<string, string>()
   for (const node of nodes) {
-    if (node.group !== 'OBJECT_TYPE') continue
+    if (node.group !== 'L1') continue
+    if (node.object.properties.knowledgeKind !== 'RESOURCE_TYPE') continue
     const attrs = node.object.properties.attributes
+    const types = new Set<string>()
     if (attrs && typeof attrs === 'object' && !Array.isArray(attrs)) {
-      const types = (attrs as Record<string, unknown>).resource_types
-      if (Array.isArray(types)) {
-        for (const t of types) map.set(String(t).trim().toUpperCase(), node.id)
+      const resourceTypes = (attrs as Record<string, unknown>).resource_types
+      if (Array.isArray(resourceTypes)) {
+        for (const t of resourceTypes) types.add(String(t).trim().toUpperCase())
       }
     }
+    const code = node.object.properties.code
+    if (typeof code === 'string') types.add(code.trim().toUpperCase())
+    for (const t of types) if (!map.has(t)) map.set(t, node.id)
   }
   return map
 }
@@ -272,8 +276,9 @@ export function knowledgeAssociations(
 }
 
 /**
- * 图谱节点 → 关联拓扑实例集：直接反向映射 + 经对象类型可达（如选中
- * fm-controller-warm-reset 时，ot-controller 的两个控制器实例都关联）。
+ * 图谱节点 → 关联拓扑实例集：直接反向映射 + 沿图谱出边可达的对象类型
+ * （如选中 fm-controller-warm-reset 时，其 APPLIES_TO_TYPE 到的 ot-controller
+ * 的两个控制器实例都关联；选中 ot-controller 时由其直接 INSTANCE_OF 反向命中）。
  */
 export function topologyAssociationsForKnowledge(
   knowledgeId: string,
@@ -282,15 +287,13 @@ export function topologyAssociationsForKnowledge(
   depth = 3,
 ): Set<string> {
   const out = new Set<string>()
+  const reachableFrom = reachableKnowledgeNodes([knowledgeId], knowledgeLinks, depth)
   for (const l of crossLinks) {
     if (l.knowledgeId === knowledgeId) {
       out.add(l.topologyId)
       continue
     }
-    if (
-      l.relation === 'INSTANCE_OF' &&
-      reachableKnowledgeNodes([l.knowledgeId], knowledgeLinks, depth).has(knowledgeId)
-    ) {
+    if (l.relation === 'INSTANCE_OF' && reachableFrom.has(l.knowledgeId)) {
       out.add(l.topologyId)
     }
   }

@@ -1,0 +1,62 @@
+{
+  "schema_name": "dme-knowledge-evidence-rules",
+  "schema_version": "3.0.0",
+  "knowledge_domain_code": "STORAGE_FAULT_DIAGNOSIS",
+  "description": "DiagnosticRule 明细（docs/19 §4.6.3）。rule_code 与 nodes.json 中 DIAGNOSTIC_RULE 节点的 code 对齐；必须声明输入 Fact 类型、输出 Evidence 类型和适用对象类型（§4.8-6）。",
+  "rules": [
+    {
+      "rule_id": "rule-controller-watchdog-reset-alarm",
+      "rule_code": "CONTROLLER_RESET_ALARM_RULE",
+      "applies_to_resource_types": ["CONTROLLER"],
+      "input_fact_types": ["ALARM"],
+      "conditions": [{ "field": "payload.severity", "operator": "IN", "value": ["CRITICAL", "MAJOR"] }, { "field": "payload.alarm_code", "operator": "LIKE", "value": "reset" }],
+      "output_evidence": { "evidence_type": "DIRECT_FAULT", "direction": "SUPPORT", "strength": "STRONG" },
+      "provenance": { "source_type": "DOMAIN_EXPERT" }
+    },
+    {
+      "rule_id": "rule-controller-watchdog-fingerprint",
+      "rule_code": "WATCHDOG_FINGERPRINT_RULE",
+      "applies_to_resource_types": ["CONTROLLER"],
+      "input_fact_types": ["LOG_FINGERPRINT_MATCH"],
+      "conditions": [{ "field": "value.fingerprint", "operator": "EQ", "value": "watchdog_timeout" }],
+      "output_evidence": { "evidence_type": "MECHANISM", "direction": "SUPPORT", "strength": "STRONG" },
+      "provenance": { "source_type": "DOMAIN_EXPERT" }
+    },
+    {
+      "rule_id": "rule-controller-throughput-zero",
+      "rule_code": "THROUGHPUT_ZERO_RULE",
+      "applies_to_resource_types": ["CONTROLLER"],
+      "input_fact_types": ["KPI_WINDOW"],
+      "conditions": [{ "field": "value.peak_value", "operator": "LTE", "value": 0 }],
+      "output_evidence": { "evidence_type": "STATE_CHANGE", "direction": "SUPPORT", "strength": "STRONG" },
+      "provenance": { "source_type": "DOMAIN_EXPERT" }
+    },
+    {
+      "rule_id": "rule-controller-takeover",
+      "rule_code": "TAKEOVER_RULE",
+      "applies_to_resource_types": ["CONTROLLER"],
+      "input_fact_types": ["KPI_WINDOW", "TOPOLOGY_RELATION"],
+      "conditions": [{ "field": "value.relation_type", "operator": "EQ", "value": "PRIMARY_BACKUP_OF" }, { "field": "value.state", "operator": "EQ", "value": "TAKEOVER" }],
+      "output_evidence": { "evidence_type": "STATE_CHANGE", "direction": "SUPPORT", "strength": "STRONG" },
+      "provenance": { "source_type": "DOMAIN_EXPERT" }
+    },
+    {
+      "rule_id": "rule-lun-latency-impact",
+      "rule_code": "LATENCY_IMPACT_RULE",
+      "applies_to_resource_types": ["LUN", "BLOCK_SERVICE"],
+      "input_fact_types": ["KPI_WINDOW"],
+      "conditions": [{ "field": "value.peak_value", "operator": "GT", "value": "baseline * 2" }],
+      "output_evidence": { "evidence_type": "BUSINESS_IMPACT", "direction": "SUPPORT", "strength": "STRONG" },
+      "provenance": { "source_type": "DOMAIN_EXPERT" }
+    },
+    {
+      "rule_id": "rule-fc-link-normal",
+      "rule_code": "FC_LINK_NORMAL_RULE",
+      "applies_to_resource_types": ["FC_PORT", "SAN_FABRIC"],
+      "input_fact_types": ["KPI_WINDOW", "ALARM_ABSENCE"],
+      "conditions": [{ "field": "value.crc_increment", "operator": "EQ", "value": 0 }],
+      "output_evidence": { "evidence_type": "COUNTER_EVIDENCE", "direction": "WEAKEN", "strength": "STRONG" },
+      "provenance": { "source_type": "DOMAIN_EXPERT" }
+    }
+  ]
+}

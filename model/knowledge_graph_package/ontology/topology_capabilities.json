@@ -1,0 +1,25 @@
+{
+  "schema_name": "dme-knowledge-topology-capabilities",
+  "schema_version": "3.0.0",
+  "knowledge_domain_code": "STORAGE_FAULT_DIAGNOSIS",
+  "description": "L1 类型拓扑能力（docs/19 §4.7）。只保存资源类型之间允许存在的静态关系/事件能力，不保存任何实例。存在能力边只表示可以发生，不推出本次已经发生。",
+  "capabilities": [
+    { "capability_code": "CAN_CONTAIN", "source_types": ["STORAGE_DEVICE", "DISK_ENCLOSURE"], "target_types": ["*"], "instance_relation": "CONTAINS", "description": "容器包含成员" },
+    { "capability_code": "CAN_CONNECT_TO", "source_types": ["*"], "target_types": ["*"], "instance_relation": "CONNECTS_TO", "description": "物理或网络连接" },
+    { "capability_code": "CAN_ACCESS", "source_types": ["BUSINESS", "HOST"], "target_types": ["*"], "instance_relation": "ACCESSES", "description": "业务或资源访问" },
+    { "capability_code": "CAN_HOST", "source_types": ["HOST"], "target_types": ["*"], "instance_relation": "HOSTS", "description": "承载" },
+    { "capability_code": "CAN_PROVIDE_SERVICE_TO", "source_types": ["CONTROLLER", "BLOCK_SERVICE"], "target_types": ["*"], "instance_relation": "PROVIDES_SERVICE_TO", "description": "服务提供" },
+    { "capability_code": "CAN_DEPEND_ON", "source_types": ["*"], "target_types": ["*"], "instance_relation": "DEPENDS_ON", "description": "依赖" },
+    { "capability_code": "CAN_BE_BACKED_BY", "source_types": ["LUN"], "target_types": ["STORAGE_POOL"], "instance_relation": "BACKED_BY", "description": "逻辑资源由后端支撑" },
+    { "capability_code": "CAN_SHARE", "source_types": ["*"], "target_types": ["*"], "instance_relation": "SHARES_WITH", "description": "稳定共享关系" },
+    { "capability_code": "CAN_REPLICATE_TO", "source_types": ["LUN"], "target_types": ["LUN"], "instance_relation": "REPLICATES_TO", "description": "复制关系" },
+    { "capability_code": "CAN_FORM_REDUNDANCY_WITH", "source_types": ["CONTROLLER", "FC_PORT", "SAN_FABRIC"], "target_types": ["CONTROLLER", "FC_PORT", "SAN_FABRIC"], "instance_relation": "REDUNDANT_WITH", "description": "冗余关系" },
+    { "capability_code": "CAN_FAILOVER_TO", "source_types": ["CONTROLLER"], "target_types": ["CONTROLLER"], "instance_relation": "TopologyEvent.FAILOVER", "description": "故障切换事件能力" }
+  ],
+  "examples": [
+    "Controller --CAN_PROVIDE_SERVICE_TO→ BlockService",
+    "Controller --CAN_FORM_REDUNDANCY_WITH→ Controller",
+    "LUN --CAN_BE_BACKED_BY→ StoragePool",
+    "ReplicationSession --CAN_DEPEND_ON→ WANLink"
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "schema_name": "dme-knowledge-resource-types",
+  "schema_version": "3.0.0",
+  "knowledge_domain_code": "STORAGE_FAULT_DIAGNOSIS",
+  "description": "L1 ResourceType 目录。code 与实例 resource_type_code 对齐，可被实例引用（docs/19 §4.4）。",
+  "resource_types": [
+    { "code": "BUSINESS", "name": "业务服务", "placement_domains": ["DEVICE_EXTERNAL"], "description": "业务应用与业务服务（S1_1）。" },
+    { "code": "HOST", "name": "主机", "placement_domains": ["DEVICE_EXTERNAL"], "description": "存储客户端主机（S1_2）。" },
+    { "code": "SAN_FABRIC", "name": "SAN 交换网络", "placement_domains": ["DEVICE_EXTERNAL"], "description": "设备外部 SAN 交换网络（S2）。" },
+    { "code": "FC_PORT", "name": "FC 端口", "placement_domains": ["DEVICE_INTERNAL"], "description": "设备前端 FC 接入端口（S3_1）。" },
+    { "code": "CONTROLLER", "name": "控制器", "placement_domains": ["DEVICE_INTERNAL"], "description": "存储控制器（S3_2）。" },
+    { "code": "BLOCK_SERVICE", "name": "块服务", "placement_domains": ["DEVICE_INTERNAL"], "description": "块协议接入与主备切换服务（S3_3）。" },
+    { "code": "LUN", "name": "逻辑单元", "placement_domains": ["DEVICE_INTERNAL"], "description": "向主机呈现的逻辑卷（S3_4）。" },
+    { "code": "STORAGE_POOL", "name": "存储池", "placement_domains": ["DEVICE_INTERNAL"], "description": "由物理磁盘组成，为 LUN 提供容量与性能支撑（S3_4）。" },
+    { "code": "DISK", "name": "磁盘", "placement_domains": ["DEVICE_INTERNAL"], "description": "物理存储介质（S3_5）。" },
+    { "code": "DISK_ENCLOSURE", "name": "硬盘框", "placement_domains": ["DEVICE_INTERNAL"], "description": "硬盘框与磁盘组容器（S3_5）。" },
+    { "code": "STORAGE_DEVICE", "name": "存储设备", "placement_domains": ["DEVICE_BOUNDARY"], "description": "存储设备根容器（DEVICE_BOUNDARY）。" },
+    { "code": "REPLICATION_SESSION", "name": "复制会话", "placement_domains": ["DEVICE_EXTERNAL"], "description": "远程复制会话（S3_3 数据服务）。" },
+    { "code": "WAN_LINK", "name": "WAN 链路", "placement_domains": ["CROSS_SITE_NETWORK"], "description": "跨站点 WAN 链路（CROSS_SITE_NETWORK）。" }
+  ]
+}

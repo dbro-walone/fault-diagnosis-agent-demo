@@ -56,11 +56,24 @@ export const LENS_DEFINITIONS: Record<LensId, LensDefinition> = {
   [LensId.KNOWLEDGE]: {
     id: LensId.KNOWLEDGE,
     label: 'Knowledge',
-    description: '对象类型、现象、故障模式、机制、证据规则与案例',
+    description: '对象类型、场景、故障模式、机理、证据要求、规则、模板、案例、映射与技能',
     primaryObjectTypes: [OntologyObjectType.KNOWLEDGE],
     linkTypes: [
       OntologyLinkType.INSTANCE_OF,
       OntologyLinkType.APPLICABLE_TO,
+      OntologyLinkType.APPLIES_TO_TYPE,
+      OntologyLinkType.HAS_RESOURCE_TYPE,
+      OntologyLinkType.HAS_SCENARIO,
+      OntologyLinkType.HAS_FAULT_MODE,
+      OntologyLinkType.EXPLAINS_MODE,
+      OntologyLinkType.MANIFESTS_AS,
+      OntologyLinkType.REQUIRES_EVIDENCE,
+      OntologyLinkType.SATISFIED_BY_RULE,
+      OntologyLinkType.SUPPORTED_BY_SKILL,
+      OntologyLinkType.TEMPLATE_HAS_MEMBER,
+      OntologyLinkType.EXEMPLIFIES,
+      OntologyLinkType.OBSERVED_ON_TYPE,
+      OntologyLinkType.MAPS_TO,
       OntologyLinkType.EXHIBITS,
       OntologyLinkType.SUSCEPTIBLE_TO,
       OntologyLinkType.CAUSED_BY,
@@ -149,7 +162,7 @@ export const LENS_DEFINITIONS: Record<LensId, LensDefinition> = {
 function isTopologyContext(object: OntologyObject): boolean {
   return (
     object.type === OntologyObjectType.KNOWLEDGE &&
-    object.properties.knowledgeKind === 'OBJECT_TYPE'
+    object.properties.knowledgeKind === 'RESOURCE_TYPE'
   )
 }
 

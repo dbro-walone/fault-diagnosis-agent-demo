@@ -1,0 +1,12 @@
+{
+  "schema_name": "dme-knowledge-symptom-mappings",
+  "schema_version": "3.0.0",
+  "knowledge_domain_code": "STORAGE_FAULT_DIAGNOSIS",
+  "description": "症状映射：自然语言/原始现象 → 标准 SymptomConcept code 与可匹配的 FaultScenario（docs/19 §6.3 场景入口匹配）。",
+  "symptom_mappings": [
+    { "mapping_code": "SYMPTOM_LATENCY_INCREASE", "symptom_concept_code": "LATENCY_INCREASE", "keywords": ["时延", "变慢", "latency", "慢", "升高"], "scenario_codes": ["CONTROLLER_ANOMALY", "PATH_LINK_ANOMALY", "BACKEND_PERFORMANCE_DEGRADATION", "SHARED_RESOURCE_CONTENTION"], "description": "业务/LUN 访问时延升高的自然语言入口。" },
+    { "mapping_code": "SYMPTOM_CONTROLLER_RESET", "symptom_concept_code": "CONTROLLER_RESET", "keywords": ["复位", "重启", "reset", "重启控制器"], "scenario_codes": ["CONTROLLER_ANOMALY"], "description": "控制器复位/重启现象入口。" },
+    { "mapping_code": "SYMPTOM_THROUGHPUT_DROP", "symptom_concept_code": "THROUGHPUT_DROP", "keywords": ["吞吐", "throughput", "归零", "下降"], "scenario_codes": ["CONTROLLER_ANOMALY"], "description": "吞吐下降或归零现象入口。" },
+    { "mapping_code": "SYMPTOM_RPO_EXCEEDED", "symptom_concept_code": "RPO_EXCEEDED", "keywords": ["RPO", "复制", "replication", "恢复点", "超标"], "scenario_codes": ["REPLICATION_PROTECTION_DEGRADATION"], "description": "远程复制 RPO 超标现象入口。" }
+  ]
+}

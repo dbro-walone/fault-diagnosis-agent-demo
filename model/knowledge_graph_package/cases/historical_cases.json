@@ -1,0 +1,22 @@
+{
+  "schema_name": "dme-knowledge-historical-cases",
+  "schema_version": "3.0.0",
+  "knowledge_domain_code": "STORAGE_FAULT_DIAGNOSIS",
+  "description": "HistoricalCase 明细（docs/19 §4.4）。初始入口匹配不得利用其最终答案；必须有来源、审核状态和匿名化标记（§4.8-8）。",
+  "cases": [
+    {
+      "case_id": "case-warm-reset-001",
+      "case_code": "HISTORICAL_CONTROLLER_WARM_RESET_001",
+      "title": "历史控制器热复位案例",
+      "source": "HISTORICAL_RECORD",
+      "source_ref": "case://controller_warm_reset_001",
+      "review_status": "REVIEWED",
+      "anonymous": true,
+      "exemplified_fault_mode_code": "CONTROLLER_WARM_RESET",
+      "observed_resource_type_codes": ["CONTROLLER"],
+      "matched_features": ["watchdog_timeout", "controller_reset_alarm", "throughput_zero", "takeover"],
+      "resolution_summary": "watchdog 超时触发 Controller-0A 热复位，0B 接管，LUN 时延升高。",
+      "provenance": { "source_type": "HISTORICAL_RECORD" }
+    }
+  ]
+}

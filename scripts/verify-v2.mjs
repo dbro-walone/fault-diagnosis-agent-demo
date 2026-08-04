@@ -22,6 +22,9 @@ try {
     .map((n) => ({
       id: n.id,
       layer: n.group,
+      node_type: typeof n.object.properties.knowledgeKind === 'string'
+        ? n.object.properties.knowledgeKind
+        : null,
       code: typeof n.object.properties.code === 'string' ? n.object.properties.code : null,
       fault_mode_code:
         n.object.properties.attributes?.['fault_mode_code'] ?? null,

@@ -21,7 +21,7 @@ function object(id: string, type: OntologyObjectType): OntologyObject {
     type,
     label: id,
     properties: type === OntologyObjectType.KNOWLEDGE
-      ? { knowledgeKind: 'OBJECT_TYPE' }
+      ? { knowledgeKind: 'RESOURCE_TYPE' }
       : {},
     provenance,
     scenarioId: type === OntologyObjectType.ASSET || type === OntologyObjectType.KNOWLEDGE
@@ -80,7 +80,7 @@ describe('ontology Lens projections', () => {
         ...snapshot.objects,
         {
           ...object('knowledge:historical-hot-reset', OntologyObjectType.KNOWLEDGE),
-          properties: { knowledgeKind: 'CASE' },
+          properties: { knowledgeKind: 'HISTORICAL_CASE' },
         },
       ],
       links: [

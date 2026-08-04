@@ -1,0 +1,11 @@
+{
+  "schema_name": "dme-knowledge-indicator-mappings",
+  "schema_version": "3.0.0",
+  "knowledge_domain_code": "STORAGE_FAULT_DIAGNOSIS",
+  "description": "指标映射：KPI indicator → 症状概念与证据规则（docs/19 §4.2 mappings/indicator_mappings.json）。",
+  "indicator_mappings": [
+    { "indicator_code": "CONTROLLER_THROUGHPUT", "metric_name": "控制器吞吐", "symptom_concept_codes": ["THROUGHPUT_DROP"], "rule_codes": ["THROUGHPUT_ZERO_RULE"], "description": "控制器吞吐归零/下降对应状态变化证据。" },
+    { "indicator_code": "LUN_LATENCY", "metric_name": "LUN 时延", "symptom_concept_codes": ["LATENCY_INCREASE"], "rule_codes": ["LATENCY_IMPACT_RULE"], "description": "LUN 时延升高对应业务影响证据。" },
+    { "indicator_code": "FC_CRC", "metric_name": "FC CRC 增量", "symptom_concept_codes": [], "rule_codes": ["FC_LINK_NORMAL_RULE"], "description": "FC CRC 无增量用于削弱链路类候选。" }
+  ]
+}

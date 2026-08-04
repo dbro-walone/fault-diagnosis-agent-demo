@@ -1,0 +1,17 @@
+{
+  "schema_name": "dme-knowledge-diagnostic-templates",
+  "schema_version": "3.0.0",
+  "knowledge_domain_code": "STORAGE_FAULT_DIAGNOSIS",
+  "description": "DiagnosticTemplate 明细（docs/19 §4.6.3）。模板定义组合策略，TEMPLATE_HAS_MEMBER Edge 定义成员角色，Planner 决定执行顺序。planner_order 必须为 null。",
+  "templates": [
+    {
+      "template_id": "template-controller-reset-confirmation",
+      "template_code": "CONTROLLER_RESET_MINIMUM_EVIDENCE",
+      "composition": "ALL_OF",
+      "member_roles": ["DIRECT_FAULT", "MECHANISM", "STATE_CHANGE", "BUSINESS_IMPACT"],
+      "conflict_policy": "NO_UNRESOLVED_CRITICAL_CONFLICT",
+      "planner_order": null,
+      "provenance": { "source_type": "DOMAIN_EXPERT" }
+    }
+  ]
+}

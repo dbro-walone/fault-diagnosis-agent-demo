@@ -126,6 +126,10 @@ export default function App() {
         .map((n) => ({
           id: n.id,
           layer: n.group,
+          node_type:
+            typeof n.object.properties.knowledgeKind === 'string'
+              ? (n.object.properties.knowledgeKind as string)
+              : null,
           code:
             typeof n.object.properties.code === 'string'
               ? (n.object.properties.code as string)

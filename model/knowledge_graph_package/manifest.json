@@ -1,0 +1,32 @@
+{
+  "schema_name": "dme-fault-knowledge-graph-package",
+  "schema_version": "3.0.0",
+  "package_id": "dme-storage-fault-knowledge",
+  "package_version": "3.0.0",
+  "knowledge_domain_code": "STORAGE_FAULT_DIAGNOSIS",
+  "created_at": "2026-08-04T00:00:00Z",
+  "locale": "zh-CN",
+  "description": "存储故障诊断知识域规范包（KnowledgeGraphPackage 3.0.0）：Domain Root + L1~L4 四层知识结构。",
+  "files": [
+    "ontology/knowledge_node_types.json",
+    "ontology/relation_types.json",
+    "ontology/resource_types.json",
+    "ontology/topology_capabilities.json",
+    "knowledge/nodes.json",
+    "knowledge/edges.json",
+    "knowledge/evidence_rules.json",
+    "knowledge/diagnostic_templates.json",
+    "cases/historical_cases.json",
+    "mappings/symptom_mappings.json",
+    "mappings/observation_mappings.json",
+    "mappings/indicator_mappings.json",
+    "mappings/skill_capability_mappings.json",
+    "validation/compatibility.json"
+  ],
+  "dependencies": [],
+  "compatibility": {
+    "adapter": ">=1.0.0 <2.0.0",
+    "runtime": ">=1.0.0 <2.0.0"
+  },
+  "status": "RELEASED"
+}

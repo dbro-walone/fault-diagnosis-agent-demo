@@ -1,0 +1,25 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "dme://schemas/knowledge-node.schema.json",
+  "title": "KnowledgeNode（docs/19 §4.4）",
+  "type": "object",
+  "required": ["node_id", "node_type", "code", "name", "status", "knowledge_level", "properties", "provenance"],
+  "properties": {
+    "node_id": { "type": "string" },
+    "node_type": { "type": "string", "enum": ["KNOWLEDGE_DOMAIN", "RESOURCE_TYPE", "FAULT_SCENARIO", "FAULT_MODE", "FAULT_MECHANISM", "SYMPTOM_CONCEPT", "EVIDENCE_REQUIREMENT", "DIAGNOSTIC_RULE", "DIAGNOSTIC_TEMPLATE", "HISTORICAL_CASE", "OBSERVATION_MAPPING", "SKILL_CAPABILITY"] },
+    "code": { "type": "string" },
+    "name": { "type": "string" },
+    "description": { "type": "string" },
+    "status": { "type": "string", "enum": ["ACTIVE", "DEPRECATED"] },
+    "knowledge_level": { "type": "string", "enum": ["ROOT", "L1", "L2", "L3", "L4"] },
+    "properties": { "type": "object" },
+    "provenance": { "type": "object" },
+    "valid_time": {
+      "type": "object",
+      "properties": {
+        "from": { "type": ["string", "null"] },
+        "to": { "type": ["string", "null"] }
+      }
+    }
+  }
+}

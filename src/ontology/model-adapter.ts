@@ -1,6 +1,6 @@
 import topologyJson from '../../model/topology/instances.json'
-import kgNodesJson from '../../model/knowledge-graph/nodes.json'
-import kgEdgesJson from '../../model/knowledge-graph/edges.json'
+import kgNodesJson from '../../model/knowledge_graph_package/knowledge/nodes.json'
+import kgEdgesJson from '../../model/knowledge_graph_package/knowledge/edges.json'
 import mappingsJson from '../../model/mappings/cross-layer-mappings.json'
 import projectionJson from '../../model/projection/projection-config.json'
 import { OntologyLinkType, OntologyObjectType } from '../../schemas/enums'
@@ -35,18 +35,19 @@ interface TopologyEdge {
 interface KnowledgeNode {
   node_id: string
   node_type: string
-  layer: string
   code: string
   name: string
   description?: string
-  attributes?: Record<string, unknown>
+  /** KnowledgeGraphPackage 3.0.0 层级：ROOT/L1/L2/L3/L4。 */
+  knowledge_level?: string
+  properties?: Record<string, unknown>
 }
 interface KnowledgeEdge {
   edge_id: string
-  source_id: string
-  target_id: string
+  source_ref: string
+  target_ref: string
   relation_type: string
-  weight?: number
+  strength?: string
 }
 interface Mapping {
   mapping_id: string
@@ -74,21 +75,22 @@ export interface ModelDocuments {
 function assertSchemaDocument(
   value: unknown,
   schemaName: string,
+  schemaVersion: string,
   collectionKeys: string[],
 ): asserts value is SchemaDocument {
   if (
     typeof value !== 'object' || value === null || Array.isArray(value) ||
     (value as SchemaDocument).schema_name !== schemaName ||
-    (value as SchemaDocument).schema_version !== '1.0.0' ||
+    (value as SchemaDocument).schema_version !== schemaVersion ||
     collectionKeys.some((key) => !Array.isArray((value as SchemaDocument)[key]))
   ) throw new Error(`[model] invalid ${schemaName} schema_name/schema_version or collections`)
 }
 
 export function validateModelDocuments(documents: ModelDocuments): void {
-  assertSchemaDocument(documents.topology, 'dme-fault-topology', ['resources', 'edges'])
-  assertSchemaDocument(documents.knowledgeNodes, 'dme-fault-knowledge-graph', ['nodes'])
-  assertSchemaDocument(documents.knowledgeEdges, 'dme-fault-knowledge-graph-edges', ['edges'])
-  assertSchemaDocument(documents.mappings, 'dme-fault-cross-layer-mappings', ['mappings'])
+  assertSchemaDocument(documents.topology, 'dme-fault-topology', '1.0.0', ['resources', 'edges'])
+  assertSchemaDocument(documents.knowledgeNodes, 'dme-knowledge-graph-package-nodes', '3.0.0', ['nodes'])
+  assertSchemaDocument(documents.knowledgeEdges, 'dme-knowledge-graph-package-edges', '3.0.0', ['edges'])
+  assertSchemaDocument(documents.mappings, 'dme-fault-cross-layer-mappings', '1.0.0', ['mappings'])
   const projection = documents.projection as SchemaDocument
   if (
     typeof projection !== 'object' || projection === null ||
@@ -124,12 +126,27 @@ const TOPOLOGY_LINK_MAP: Record<string, OntologyLinkType> = {
 }
 
 const KNOWLEDGE_LINK_MAP: Record<string, OntologyLinkType> = {
+  // KnowledgeGraphPackage 3.0.0 关系注册表（docs/19 §4.5）
+  HAS_RESOURCE_TYPE: OntologyLinkType.HAS_RESOURCE_TYPE,
+  HAS_SCENARIO: OntologyLinkType.HAS_SCENARIO,
+  APPLIES_TO_TYPE: OntologyLinkType.APPLIES_TO_TYPE,
+  HAS_FAULT_MODE: OntologyLinkType.HAS_FAULT_MODE,
+  EXPLAINS_MODE: OntologyLinkType.EXPLAINS_MODE,
+  MANIFESTS_AS: OntologyLinkType.MANIFESTS_AS,
+  REQUIRES_EVIDENCE: OntologyLinkType.REQUIRES_EVIDENCE,
+  SATISFIED_BY_RULE: OntologyLinkType.SATISFIED_BY_RULE,
+  SUPPORTED_BY_SKILL: OntologyLinkType.SUPPORTED_BY_SKILL,
+  TEMPLATE_HAS_MEMBER: OntologyLinkType.TEMPLATE_HAS_MEMBER,
+  EXEMPLIFIES: OntologyLinkType.EXEMPLIFIES,
+  OBSERVED_ON_TYPE: OntologyLinkType.OBSERVED_ON_TYPE,
+  MAPS_TO: OntologyLinkType.MAPS_TO,
+  LEADS_TO: OntologyLinkType.LEADS_TO,
+  // 旧 schema_version 1.0.0 兼容关系
   APPLIES_TO: OntologyLinkType.APPLICABLE_TO,
   EXHIBITS: OntologyLinkType.EXHIBITS,
   SUSCEPTIBLE_TO: OntologyLinkType.SUSCEPTIBLE_TO,
   CAUSED_BY: OntologyLinkType.CAUSED_BY,
   TRIGGERED_BY: OntologyLinkType.TRIGGERED_BY,
-  LEADS_TO: OntologyLinkType.LEADS_TO,
   EVIDENCED_BY: OntologyLinkType.EVIDENCED_BY,
   INSTANCE_OF_CASE: OntologyLinkType.INSTANCE_OF,
   REFERENCES: OntologyLinkType.EVIDENCED_BY,
@@ -191,13 +208,13 @@ function knowledgeObjects(): OntologyObject[] {
     label: node.name,
     properties: {
       knowledgeKind: node.node_type,
-      layer: node.layer,
+      layer: node.knowledge_level ?? 'ROOT',
       code: node.code,
       description: node.description ?? '',
-      attributes: json(node.attributes),
+      attributes: json(node.properties),
       plane: 'knowledge',
     },
-    provenance: modelProvenance('model/knowledge-graph/nodes.json'),
+    provenance: modelProvenance('model/knowledge_graph_package/knowledge/nodes.json'),
   }))
 }
 
@@ -222,14 +239,15 @@ function knowledgeLinks(): OntologyLink[] {
   return (kgEdgesJson.edges as KnowledgeEdge[]).map((edge) => ({
     id: edge.edge_id,
     type: mapKnowledgeRelation(edge.relation_type),
-    sourceId: edge.source_id,
-    targetId: edge.target_id,
+    sourceId: edge.source_ref,
+    targetId: edge.target_ref,
     properties: {
       sourceRelation: edge.relation_type,
-      weight: edge.weight ?? 0.5,
+      strength: edge.strength ?? null,
+      weight: 0.8,
       plane: 'knowledge',
     },
-    provenance: modelProvenance('model/knowledge-graph/edges.json'),
+    provenance: modelProvenance('model/knowledge_graph_package/knowledge/edges.json'),
   }))
 }
 

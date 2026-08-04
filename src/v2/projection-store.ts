@@ -262,8 +262,10 @@ export interface DiagnosisScanVM {
 /** 知识图谱节点参考（来自静态 model knowledge 平面，仅供图谱点亮推导）。 */
 export interface KnowledgeGraphNodeRef {
   id: string
-  /** 图谱分层（OBJECT_TYPE/SYMPTOM/FAULT_MODE/MECHANISM/EVIDENCE_RULE/CASE）。 */
+  /** 图谱分层（ROOT/L1/L2/L3/L4，KnowledgeGraphPackage 3.0.0）。 */
   layer: string
+  /** 节点类型（RESOURCE_TYPE/FAULT_SCENARIO/FAULT_MODE/SYMPTOM_CONCEPT/…）。 */
+  node_type?: string | null
   /** 语义码（如 LATENCY_INCREASE / CONTROLLER_WARM_RESET）。 */
   code?: string | null
   /** 故障模式码（attributes.fault_mode_code）。 */
@@ -1506,7 +1508,7 @@ function deriveGraphLighting(
 
   const symptomAnchors = new Set<string>()
   for (const n of kgNodes) {
-    if (n.layer !== 'SYMPTOM') continue
+    if (n.node_type !== 'SYMPTOM_CONCEPT') continue
     const nodeText = [n.id, n.code].filter(Boolean).join(' ')
     if (symptomRefs.some((ref) => graphTokenOverlap(ref, nodeText, 1))) symptomAnchors.add(n.id)
   }
@@ -1518,7 +1520,7 @@ function deriveGraphLighting(
   )
   const faultModeAnchors = new Set<string>()
   for (const n of kgNodes) {
-    if (n.layer !== 'FAULT_MODE') continue
+    if (n.node_type !== 'FAULT_MODE') continue
     const codes = graphNodeCodes(n)
     const matched = [...activeFaultCodes].some(
       (code) => codes.some((c) => c === code) || graphTokenOverlap(code, codes.join(' ')),
@@ -1530,6 +1532,11 @@ function deriveGraphLighting(
 
   // 关联知识点：从故障模式锚点沿图谱出边 BFS（≤3 跳），点亮机制/证据规则。
   const lit = new Set(graphEntryAnchors)
+  // 机理：EXPLAINS_MODE 反向（机理 → 故障模式）点亮解释当前模式的机理
+  //（如 watchdog 机理 → 热复位模式；知识强度只是先验，不是本次诊断支持分）。
+  for (const l of kgLinks) {
+    if (l.relation === 'EXPLAINS_MODE' && faultModeAnchors.has(l.target)) lit.add(l.source)
+  }
   const adj = new Map<string, string[]>()
   for (const l of kgLinks) {
     const arr = adj.get(l.source) ?? []
@@ -1550,13 +1557,13 @@ function deriveGraphLighting(
     }
   }
 
-  // 历史案例：由症状锚点直连的 CASE 节点（如 sym-latency-increase → case-warm-reset-001）。
+  // 历史案例：由症状锚点直连的 HISTORICAL_CASE 节点（如 sym-latency-increase → case-warm-reset-001）。
   const byId = new Map(kgNodes.map((n) => [n.id, n]))
   for (const symId of symptomAnchors) {
     for (const l of kgLinks) {
       if (l.source !== symId) continue
       const target = byId.get(l.target)
-      if (target && target.layer === 'CASE') lit.add(target.id)
+      if (target && target.node_type === 'HISTORICAL_CASE') lit.add(target.id)
     }
   }
 
