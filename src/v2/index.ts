@@ -132,12 +132,17 @@ export {
 export {
   ProjectionStore,
   activeDiagnosisPath,
+  diagnosisFingerprint,
   EMPTY_USER_SELECTION,
   type UserSelection,
   type KnowledgeSnapshotVM,
   type CandidateListVM,
   type CandidateItemVM,
   type CurrentActionVM,
+  type CurrentDecisionVM,
+  type EvidenceGapVM,
+  type ViewProjection,
+  type ViewHint,
   type EvidenceChainVM,
   type EvidenceChainItemVM,
   type FactDetailVM,
@@ -161,3 +166,14 @@ export {
   type KnowledgeGraphNodeRef,
   type KnowledgeGraphLinkRef,
 } from './projection-store'
+
+// 阶段5 —— 前端 ViewState（docs/19 §14.4：聚合/展开/缩放/聚焦只改变投影）
+export {
+  DEFAULT_VIEW_STATE,
+  viewStateReducer,
+  applyViewActions,
+  viewStateSignature,
+  type ViewState,
+  type ViewAction,
+  type ViewLayerVisibility,
+} from './view-state'

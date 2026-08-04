@@ -44,6 +44,7 @@ import {
   type CaseRouteEntry,
   type CandidateItemVM,
   type CandidateListVM,
+  type CurrentDecisionVM,
   type DiagnosisSessionSnapshot,
   type FactDetailVM,
   type KnowledgeSnapshotVM,
@@ -67,6 +68,8 @@ export interface LuiPanelProps {
   candidates: CandidateListVM
   /** issue#6 阶段A + issue#7 C1/C2：Planner 优先级目标列表 + 重规划差异 + 排查路径/实际发现。 */
   planner: PlannerTargetsVM
+  /** 阶段5：当前决策（LUI 三问之"为什么"——决策理由/证据缺口/目标候选/预期证据）。 */
+  decision: CurrentDecisionVM
   snapshot: DiagnosisSessionSnapshot
   store: ProjectionStore
   timelineEvents: TimelineEventVM[]
@@ -154,6 +157,9 @@ export default function LuiPanel(props: LuiPanelProps) {
           snapshot={snapshot}
           onReturnAgentView={props.onReturnAgentView}
         />
+
+        {/* 阶段5：当前决策 —— LUI 三问之"下一步为什么这样做"（docs/19 §14.3） */}
+        <CurrentDecisionView decision={props.decision} />
 
         {/* issue#6 阶段A + issue#7 C1/C2：Planner 目标区（排查路径主线 + 目标资源/故障模式/
             验证问题/期望发现/实际发现 + 重规划差异） */}
@@ -407,6 +413,84 @@ function DiagnosisSituation({
           </span>
         )}
       </div>
+    </section>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 阶段5 — 当前决策（LUI 三问之"为什么"）
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * 当前决策条（docs/19 §14.3 LUI 三问之"下一步为什么这样做"）。
+ * 显式回答：正在做什么 / 为什么 / 目标候选 / 预期证据 / 证据缺口。
+ * 完全由 ProjectionStore.currentDecision() 只读 View Model 驱动，不执行诊断计算。
+ */
+function CurrentDecisionView({ decision }: { decision: CurrentDecisionVM }) {
+  return (
+    <section className="rounded-lg border border-status-active/15 bg-status-active/[0.03] p-2.5">
+      <div className="mb-1.5 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-status-active">
+        <Target className="h-3.5 w-3.5" />
+        当前决策
+        <span className="ml-auto rounded bg-white/5 px-1.5 py-0.5 text-[8px] font-medium normal-case tracking-normal text-[#94a3b8]">
+          {decision.context_label}
+        </span>
+      </div>
+
+      <div className="space-y-1 text-[9px] leading-relaxed">
+        {decision.action_text && (
+          <div className="flex items-start gap-1.5">
+            <span className="mt-px shrink-0 font-semibold text-status-active">正在</span>
+            <span className="min-w-0 flex-1 text-[#cbd5e1]">{decision.action_text}</span>
+          </div>
+        )}
+        {decision.reason_text && (
+          <div className="flex items-start gap-1.5">
+            <span className="mt-px shrink-0 font-semibold text-status-active">为什么</span>
+            <span className="min-w-0 flex-1 text-[#94a3b8]">{decision.reason_text}</span>
+          </div>
+        )}
+        {decision.target_candidate && (
+          <div className="flex items-start gap-1.5">
+            <span className="mt-px shrink-0 font-semibold text-status-active">目标</span>
+            <span className="min-w-0 flex-1 text-[#cbd5e1]">
+              {decision.target_candidate.object_id}
+              <span className="ml-1.5 rounded bg-white/5 px-1 py-0.5 text-[8px] text-[#94a3b8]">
+                {decision.target_candidate.fault_mode_code}
+              </span>
+            </span>
+          </div>
+        )}
+        {decision.expected_evidence && (
+          <div className="flex items-start gap-1.5">
+            <span className="mt-px shrink-0 font-semibold text-status-active">预期</span>
+            <span className="min-w-0 flex-1 text-[#94a3b8]">{decision.expected_evidence}</span>
+          </div>
+        )}
+        {decision.result_summary && decision.activity_ended && (
+          <div className="flex items-start gap-1.5">
+            <span className="mt-px shrink-0 font-semibold text-status-recovered">结果</span>
+            <span className="min-w-0 flex-1 text-status-recovered">{decision.result_summary}</span>
+          </div>
+        )}
+      </div>
+
+      {decision.evidence_gaps.length > 0 && (
+        <div className="mt-1.5 border-t border-white/5 pt-1.5">
+          <div className="text-[8px] uppercase tracking-wide text-status-warning">证据缺口</div>
+          <div className="mt-1 flex flex-wrap gap-1">
+            {decision.evidence_gaps.map((gap) => (
+              <span
+                key={`${gap.candidate_id ?? 'chain'}:${gap.requirement_id}`}
+                className="rounded bg-status-warning/10 px-1.5 py-0.5 text-[8px] text-status-warning"
+                title={gap.candidate_id ? `${gap.candidate_id} · ${gap.requirement_id}` : gap.requirement_id}
+              >
+                {gap.label}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
     </section>
   )
 }

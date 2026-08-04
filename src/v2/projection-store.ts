@@ -345,6 +345,84 @@ export interface TimelineEventVM {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// 阶段5 — 前端投影边界（docs/19 §14）
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** 证据缺口（docs/19 §14.3 LUI 三问之"为什么"：Evidence Gap）。 */
+export interface EvidenceGapVM {
+  requirement_id: string
+  label: string
+  /** 关联候选（缺口属于哪个候选的最小证据链/缺少项）。 */
+  candidate_id: string | null
+  /** 是否必需项。 */
+  required: boolean
+}
+
+/**
+ * 当前决策 View Model（docs/19 §14.3 LUI 三问之"下一步为什么这样做"）。
+ *
+ * 任意快照可直接回答：
+ *   - 正在做什么（action_text / context_label）；
+ *   - 为什么这样做（reason_text：当前活动理由 / Planner 目标"为什么验证"）；
+ *   - 目标候选 + 预期证据（target_candidate / expected_evidence）；
+ *   - 证据缺口（evidence_gaps：最小证据链未满足必需项 ∪ 领先候选缺项）。
+ * 完全由快照推导，不写 Runtime；回放时随快照恢复当时决策，不泄露未来。
+ */
+export interface CurrentDecisionVM {
+  /** 是否有可表述的当前决策（会话已启动）。 */
+  has_decision: boolean
+  /** 决策上下文标签（阶段 / 终态）。 */
+  context_label: string
+  /** 正在做什么：当前主活动动作文本。 */
+  action_text: string | null
+  /** 为什么：当前活动理由（Planner 目标"为什么验证"优先于泛化文案）。 */
+  reason_text: string | null
+  /** 目标候选：当前验证对象 + 故障模式 + 显示名。 */
+  target_candidate: { object_id: string; fault_mode_code: string; display_name: string | null } | null
+  /** 预期证据：当前 Planner 目标期望发现 / 当前活动期望结果。 */
+  expected_evidence: string | null
+  /** 证据缺口：最小证据链未满足必需项 ∪ 领先候选 missing requirements。 */
+  evidence_gaps: EvidenceGapVM[]
+  /** 上一行动结果摘要（若主活动已完成）。 */
+  result_summary: string | null
+  /** 上一行动是否已终态（活动结束仍保留决策说明）。 */
+  activity_ended: boolean
+}
+
+/** View Hint —— 渲染提示（docs/19 §14.1：前端只消费 Snapshot + Known + ACTIVE Binding + View Hint）。 */
+export interface ViewHint {
+  /** 关键对象 ids（agent_focus ∪ 根因/根因链/影响链；DETACHED 保留不聚合）。 */
+  critical_object_ids: string[]
+  /** 活动逻辑路径（根因起点 → 证据 hop → 影响链）。 */
+  logic_path: string[]
+  /** 当前焦点对象（activeQuery > Planner active > agent_focus）。 */
+  focus_object_id: string | null
+  /** agent_focus 对象引用（Runtime 驱动，仅供画布高亮）。 */
+  agent_focus_object_refs: string[]
+}
+
+/**
+ * 视图投影 —— 前端统一消费的可渲染子图（docs/19 §14.1/§7.1）。
+ *
+ * 只包含：
+ *   - Known 已释放 Fact 的渲染摘要（不含 PrivateCaseBundle / Truth Store 字段）；
+ *   - ACTIVE CrossPlaneBinding（docs/19 §6.2：前端只绘制 ACTIVE）；
+ *   - View Hint（渲染提示，不进入诊断语义）。
+ * 显式携带 `diagnosis_fingerprint`：由快照推导的诊断语义指纹，与 ViewState 无关，
+ * 供"聚合/缩放/聚焦不改变诊断语义"校验（阶段5 VWB-001/003）。
+ */
+export interface ViewProjection {
+  /** Known 已释放 Fact 渲染摘要（快照内已发现 + Known 观测补充）。 */
+  known_facts: FactSummaryVM[]
+  /** 当前 ACTIVE CrossPlaneBinding。 */
+  active_bindings: CrossPlaneBinding[]
+  /** View Hint：渲染提示。 */
+  view_hint: ViewHint
+  /** 诊断语义指纹（候选/证据/结论/任务/证据链），由快照推导。 */
+  diagnosis_fingerprint: string
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // 文案映射（状态/作用/类型 → 中文标签）
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -848,6 +926,117 @@ export class ProjectionStore {
       : () => null
     const dynamicPart = deriveDynamicBindings(s, resourceTypeOf, index)
     return activeBindingsOf([...staticPart, ...dynamicPart])
+  }
+
+  // —— 阶段5：视图投影（docs/19 §14.1）——
+  /**
+   * 当前视图投影：前端统一从该投影消费渲染数据。
+   * 只含 Known Fact 摘要 + ACTIVE Binding + View Hint + 诊断语义指纹；
+   * 不含 PrivateCaseBundle / Truth Store 字段，也不携带可写回 Runtime 的诊断状态。
+   * 聚合/展开/缩放/聚焦只作用于投影，不触碰诊断语义对象（指纹证明）。
+   * activeBindings 可传入已算好的 ACTIVE Binding（避免 vms 侧重复派生）。
+   */
+  viewProjection(activeBindings?: CrossPlaneBinding[]): ViewProjection {
+    const s = this.require()
+    const allFacts = allObservationFacts(s, this.observationsFacts)
+    const focus = focusObjectId(s)
+    const agentRefs = s.session.agent_focus?.object_refs ?? []
+    const critical = new Set<string>(agentRefs)
+    const c = s.conclusion
+    if (c) {
+      if (c.root_cause?.object_id) critical.add(c.root_cause.object_id)
+      for (const id of c.root_cause_chain ?? []) critical.add(id)
+      for (const id of c.impact_chain ?? []) critical.add(id)
+    }
+    const logicPath = activeDiagnosisPath(s)
+    return {
+      known_facts: allFacts.map(toFactSummary),
+      active_bindings: activeBindings ?? this.activeBindings(),
+      view_hint: {
+        critical_object_ids: [...critical],
+        logic_path: logicPath,
+        focus_object_id: focus,
+        agent_focus_object_refs: agentRefs,
+      },
+      diagnosis_fingerprint: diagnosisFingerprint(s),
+    }
+  }
+
+  // —— 阶段5：当前决策（docs/19 §14.3 LUI 三问之"为什么"）——
+  /**
+   * 当前决策 View Model：任意快照可直接回答"正在做什么 / 为什么 / 证据缺口 /
+   * 目标候选与预期证据"。完全由快照推导（current_activity + Planner 目标 +
+   * 最小证据链 + 候选缺口），不写 Runtime；回放时随快照恢复当时决策。
+   * planner 可传入已算好的 Planner 目标 VM（避免 vms 侧重复推导）。
+   */
+  currentDecision(planner?: PlannerTargetsVM): CurrentDecisionVM {
+    const s = this.require()
+    const act = s.current_activity
+    const plannerVm = planner ?? this.plannerTargets()
+    const activeTarget = plannerVm.targets.find((t) => t.is_active) ?? null
+    const leading = leadingCandidate(s)
+
+    // 缺口：最小证据链未满足必需项 ∪ 领先候选 missing requirements（去重）。
+    const gaps: EvidenceGapVM[] = []
+    const seen = new Set<string>()
+    const chain = s.minimum_evidence_chain
+    for (const item of chain?.items ?? []) {
+      if (!item.required || item.status === 'SATISFIED') continue
+      const key = `${item.requirement_id}::${chain!.candidate_id}`
+      if (seen.has(key)) continue
+      seen.add(key)
+      gaps.push({
+        requirement_id: item.requirement_id,
+        label: item.label ?? item.requirement_id,
+        candidate_id: chain!.candidate_id,
+        required: true,
+      })
+    }
+    if (leading) {
+      for (const rid of missingRequirements(s, leading)) {
+        const key = `${rid}::${leading.candidate_id}`
+        if (seen.has(key)) continue
+        seen.add(key)
+        gaps.push({
+          requirement_id: rid,
+          label: rid,
+          candidate_id: leading.candidate_id,
+          required: true,
+        })
+      }
+    }
+
+    const targetCandidate = leading
+      ? {
+          object_id: leading.object_id,
+          fault_mode_code: leading.fault_mode_code,
+          display_name: leading.display_name ?? null,
+        }
+      : activeTarget
+        ? {
+            object_id: activeTarget.target_resource,
+            fault_mode_code: activeTarget.target_fault_mode,
+            display_name: null,
+          }
+        : null
+
+    const terminal = s.session.terminal_status
+    return {
+      has_decision: true,
+      context_label: terminal
+        ? terminalLabel(terminal)
+        : `${PHASE_LABEL[s.session.phase] ?? s.session.phase} · ${MODEL_LABEL_ACTIVITY[act?.status ?? ''] ?? '推进中'}`,
+      action_text: act?.action_text ?? activeTarget?.verify_question ?? null,
+      reason_text: act?.reason_text ?? activeTarget?.verify_question ?? null,
+      target_candidate: targetCandidate,
+      expected_evidence:
+        activeTarget?.expected_finding ??
+        act?.expected_result_text ??
+        null,
+      evidence_gaps: gaps,
+      result_summary: act?.result_summary ?? null,
+      activity_ended: !!act && (act.status === TaskStatus.SUCCEEDED || act.status === TaskStatus.FAILED || act.status === TaskStatus.DATA_MISSING),
+    }
   }
 }
 
@@ -1672,6 +1861,82 @@ function missingRequirements(s: DiagnosisSessionSnapshot, c: Candidate): string[
   const chain = s.evidence_chains.find((ch) => ch.candidate_id === c.candidate_id)
   if (!chain) return []
   return chain.items.filter((i) => i.required && i.status !== 'SATISFIED').map((i) => i.requirement_id)
+}
+
+/** 当前领先候选（knowledge_snapshot.leading_candidate_id 优先，否则按支持分降序取首）。 */
+function leadingCandidate(s: DiagnosisSessionSnapshot): Candidate | null {
+  const leadId = s.knowledge_snapshot?.leading_candidate_id ?? null
+  const lead = s.candidates.find((c) => c.candidate_id === leadId)
+  if (lead) return lead
+  const ranked = [...s.candidates].sort((a, b) => b.diagnosis_support_score - a.diagnosis_support_score)
+  return ranked[0] ?? null
+}
+
+/** 终态中文标签（docs/01 §7）。 */
+function terminalLabel(status: string): string {
+  switch (status) {
+    case 'ROOT_CAUSE_CONFIRMED':
+      return '已确认根因'
+    case 'PROBABLE_CAUSES':
+      return '多个可能原因'
+    case 'INSUFFICIENT_EVIDENCE':
+      return '证据不足'
+    default:
+      return status
+  }
+}
+
+/** 活动状态 → 决策上下文动词（阶段5 LUI 三问之"正在做什么"）。 */
+const MODEL_LABEL_ACTIVITY: Record<string, string> = {
+  PLANNED: '待执行',
+  READY: '就绪',
+  RUNNING: '取证中',
+  SUCCEEDED: '已完成',
+  FAILED: '执行失败',
+  PARTIAL: '部分完成',
+  DATA_MISSING: '数据缺失',
+  CANCELLED: '已取消',
+  SKIPPED: '已跳过',
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 阶段5 — 诊断语义指纹（docs/19 §14.2 聚合不改语义）
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * 诊断语义指纹：把快照的诊断语义（候选分/状态、证据作用、任务状态、结论、
+ * 证据链进度、事实数）编码为确定性字符串。与 ViewState 无关。
+ *
+ * 用途（阶段5 VWB-001/003）：
+ * - 校验"聚合/展开/缩放/聚焦"前后诊断语义不变 —— 指纹在投影操作前后必须一致；
+ * - 校验"投影不携带诊断状态" —— viewProjection 不含可写回语义的完整诊断对象。
+ * 禁止 case_id 特判；排序字段保证确定性。
+ */
+export function diagnosisFingerprint(snapshot: DiagnosisSessionSnapshot): string {
+  const parts: string[] = []
+  for (const c of [...snapshot.candidates].sort((a, b) => a.candidate_id.localeCompare(b.candidate_id))) {
+    parts.push(`c:${c.candidate_id}:${c.diagnosis_support_score}:${c.status}`)
+  }
+  for (const e of [...snapshot.evidences].sort((a, b) => a.evidence_id.localeCompare(b.evidence_id))) {
+    for (const eff of [...e.effects].sort((a, b) => a.candidate_id.localeCompare(b.candidate_id))) {
+      parts.push(`e:${e.evidence_id}:${eff.candidate_id}:${eff.effect}:${eff.score_delta}`)
+    }
+  }
+  for (const t of [...snapshot.tasks].sort((a, b) => a.task_id.localeCompare(b.task_id))) {
+    parts.push(`t:${t.task_id}:${t.status}`)
+  }
+  for (const t of [...snapshot.planner_targets].sort((a, b) => a.seq - b.seq)) {
+    parts.push(`p:${t.seq}:${t.target_resource}:${(t.round ?? 1)}`)
+  }
+  const c = snapshot.conclusion
+  parts.push(`concl:${c?.status ?? 'null'}:${c?.root_cause?.candidate_id ?? 'null'}`)
+  for (const ch of [...snapshot.evidence_chains].sort((a, b) => a.candidate_id.localeCompare(b.candidate_id))) {
+    for (const item of ch.items) {
+      parts.push(`chain:${ch.candidate_id}:${item.requirement_id}:${item.status}`)
+    }
+  }
+  parts.push(`facts:${snapshot.facts.length}`)
+  return parts.join('|')
 }
 
 function toFactSummary(f: CanonicalFact): FactSummaryVM {

@@ -115,6 +115,9 @@ await exitSession()
 
 // ── 功能主流程（确定性 controller case）────────────────────────────────────
 await startSession('数据库LUN时延突然升高，块业务变慢')
+// 阶段5 稳健性：先暂停自动推进，后续全部手动单步 —— 避免 auto-play 定时器与
+// 手动 step 竞争导致"当前查询对象"扫描窗口被跳过（P4 断言依赖确定性游标）。
+await pause()
 let guardF = 0
 while (!(await luiText()).includes('Planner 目标') && guardF++ < 30) await step(1)
 // 推进到 Planner 目标生成（controller 在候选生成阶段输出 5 目标 + 排查路径）

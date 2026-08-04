@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react'
 import { AlertTriangle, Radar, X } from 'lucide-react'
 
 import DiagnosisEntryButton, {
@@ -6,9 +6,7 @@ import DiagnosisEntryButton, {
 } from '@/components/DiagnosisEntryButton'
 import Layered3DCanvas from '@/components/Layered3DCanvas'
 import LuiPanel from '@/components/LuiPanel'
-import ModelNavigator, {
-  type LayerVisibility,
-} from '@/components/ModelNavigator'
+import ModelNavigator from '@/components/ModelNavigator'
 import ObjectViewPanel from '@/components/ObjectViewPanel'
 import {
   buildLayeredModelData,
@@ -25,7 +23,10 @@ import {
   activeDiagnosisPath,
   activeBindingsOf,
   releasedFactsFrom,
+  DEFAULT_VIEW_STATE,
+  viewStateReducer,
   type DiagnosisRuntime,
+  type ViewState,
 } from './v2'
 
 const EVENT_CADENCE_MS = 700
@@ -39,22 +40,30 @@ export default function App() {
   // 分层视图可加载任意 Case（issue #4「兼而有之」）：切 Case 重建模型。
   const [layeredCaseId, setLayeredCaseId] = useState('layered_topology_demo_001')
   const layeredModel = useMemo(() => buildLayeredModelData(layeredCaseId), [layeredCaseId])
-  const [activeLens, setActiveLens] = useState(LensId.TOPOLOGY)
-  const [expandedLayers, setExpandedLayers] = useState<Partial<Record<TopoLayerCode, boolean>>>({})
-  const [activePreset, setActivePreset] = useState(model.initialPreset)
-  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
-  const [searchQuery, setSearchQuery] = useState('')
-  const [objectSetFilter, setObjectSetFilter] = useState(false)
-  const [aroundRootId, setAroundRootId] = useState<string | null>(null)
-  const [layerVisibility, setLayerVisibility] = useState<LayerVisibility>({
-    topology: true,
-    knowledge: true,
-  })
-  const [expandedDevices, setExpandedDevices] = useState<Record<string, boolean>>({})
-  const [visibleKgLayers, setVisibleKgLayers] = useState<Record<string, boolean>>(() =>
-    Object.fromEntries(model.kgLayers.map((layer) => [layer.code, true])),
+
+  // 阶段5：ViewState 集中管理（docs/19 §14.4）。聚合/展开/缩放/聚焦/筛选/相机只改变
+  // 投影，经 viewStateReducer 纯归并，绝不写入 Runtime 诊断 store。
+  const [viewState, dispatchView] = useReducer(
+    viewStateReducer,
+    model.initialPreset
+      ? { ...DEFAULT_VIEW_STATE, activePreset: model.initialPreset }
+      : DEFAULT_VIEW_STATE,
   )
-  const [showCrossLayer, setShowCrossLayer] = useState(false)
+  const {
+    activeLens,
+    expandedLayers,
+    activePreset,
+    selectedNodeId,
+    searchQuery,
+    objectSetFilter,
+    aroundRootId,
+    layerVisibility,
+    expandedDevices,
+    visibleKgLayers,
+    showCrossLayer,
+    navigatorCollapsed: leftPanelCollapsed,
+    userExploring,
+  } = viewState
 
   // V2 runtime + projection state.
   const [runtime, setRuntime] = useState<DiagnosisRuntime | null>(null)
@@ -64,8 +73,6 @@ export default function App() {
   const [playbackSpeed, setPlaybackSpeed] = useState(1)
   const [routeError, setRouteError] = useState<string | null>(null)
   const [routeNote, setRouteNote] = useState<string | null>(null)
-  // F0：诊断会话中默认收起左侧 Object Explorer，LUI 宽度放大（issue #5 F0）。
-  const [leftPanelCollapsed, setLeftPanelCollapsed] = useState(false)
 
   // issue#7 D：LUI 悬浮在画布右侧；诊断会话中按 LUI 宽度把画布右边界左移避让。
   // LUI 宽 = wide(806px，左侧收起) 或 448px；right-4=16px 外边距 + 16px 间隙。
@@ -74,15 +81,17 @@ export default function App() {
   // user_selection (Projection-only; never written by Runtime).
   const [selectedCandidateId, setSelectedCandidateId] = useState<string | null>(null)
   const [selectedFactId, setSelectedFactId] = useState<string | null>(null)
-  // userExploring: user has taken the camera; new agent events must not grab it.
-  const [userExploring, setUserExploring] = useState(false)
+  // userExploring 移入 ViewState：用户已接管相机，Agent 新事件不得抢回视角（docs/04 §8）。
 
   const snapshot = runtime?.snapshot ?? null
   const agentFocus = snapshot?.session.agent_focus
 
+  // ViewState.activeLens 存 LensId 字符串（ViewState 模块保持与 LensId 解耦）；此处收敛为 LensId 类型。
+  const activeLensTyped = activeLens as LensId
+
   const objectSet = useMemo(
-    () => model.registry.objectSet({ text: searchQuery, lens: activeLens }, undefined),
-    [activeLens, model.registry, searchQuery],
+    () => model.registry.objectSet({ text: searchQuery, lens: activeLensTyped }, undefined),
+    [activeLensTyped, model.registry, searchQuery],
   )
 
   // D3 关键对象保留：agent_focus ∪ 根因（docs/05 §6 DETACHED_CRITICAL）。
@@ -162,7 +171,7 @@ export default function App() {
   }, [model, knowledgeRefs])
 
   const selectedObjectView = selectedNodeId && !runtime
-    ? model.registry.objectView(selectedNodeId, activeLens, undefined, undefined)
+    ? model.registry.objectView(selectedNodeId, activeLensTyped, undefined, undefined)
     : null
 
   // agent_focus → canvas node ids (Runtime-driven highlight)。
@@ -216,16 +225,15 @@ export default function App() {
       setRuntime(created)
       setSelectedCandidateId(null)
       setSelectedFactId(null)
-      setSelectedNodeId(null)
-      setUserExploring(false)
-      setActiveLens(LensId.DIAGNOSIS)
-      setActivePreset('OVERVIEW')
+      // 阶段5：诊断会话初始化 = ViewState RESET（清空浏览选择/展开）+ 进入诊断透镜
+      // + 收起左侧导航；ViewState 变更不写 Runtime 诊断 store。
+      dispatchView({ type: 'RESET' })
+      dispatchView({ type: 'SET_LENS', lens: LensId.DIAGNOSIS })
+      dispatchView({ type: 'SET_PRESET', preset: 'OVERVIEW' })
+      dispatchView({ type: 'SET_NAVIGATOR_COLLAPSED', collapsed: true })
       setIsPlaying(true)
-      // F0：进入诊断会话自动收起左侧 Object Explorer（退出时恢复）。
-      setLeftPanelCollapsed(true)
       // F2：分层视图跟随诊断 Case，使红色逻辑链对象落在当前分层模型中。
       setLayeredCaseId(caseId)
-      setExpandedLayers({})
       setRouteError(null)
       setRouteNote(note)
     } catch (error) {
@@ -271,11 +279,9 @@ export default function App() {
     setRuntime(null)
     setSelectedCandidateId(null)
     setSelectedFactId(null)
-    setSelectedNodeId(null)
-    setUserExploring(false)
-    setActiveLens(LensId.TOPOLOGY)
-    // F0：退出诊断恢复左侧 Object Explorer。
-    setLeftPanelCollapsed(false)
+    // 阶段5：退出诊断 = ViewState RESET（回到浏览默认）+ 恢复左侧导航；不写诊断 store。
+    dispatchView({ type: 'RESET' })
+    dispatchView({ type: 'SET_NAVIGATOR_COLLAPSED', collapsed: false })
   }
 
   const handleSeek = useCallback((sequence: number) => {
@@ -308,47 +314,45 @@ export default function App() {
     setSelectedCandidateId(id)
     if (id) {
       // Selecting a candidate is a user browse action → exploration on.
-      setUserExploring(true)
+      dispatchView({ type: 'SET_USER_EXPLORING', exploring: true })
     }
   }
 
   // Canvas / navigator node selection is a pure user_selection update.
   // 单击只选中 + 详情（BA-GRAPH-008），绝不改变层级/展开状态/诊断候选。
   const handleNodeSelect = (id: string | null) => {
-    setSelectedNodeId(id)
-    setUserExploring(true)
+    dispatchView({ type: 'SET_SELECTION', nodeId: id })
+    dispatchView({ type: 'SET_USER_EXPLORING', exploring: true })
   }
 
   // 双击聚合设备节点 → 展开其直接成员 / 收起（BA-GRAPH-009，局部显露不洗牌）。
   const handleNodeDoubleClick = (id: string) => {
     if (model.deviceGroups.some((g) => g.deviceId === id)) {
-      setExpandedDevices((cur) => ({ ...cur, [id]: !cur[id] }))
+      dispatchView({ type: 'TOGGLE_DEVICE', deviceId: id })
     }
   }
 
   // 分层条带：点击层聚合头展开/收起（域或子层，递归）。
   const handleToggleLayer = (code: TopoLayerCode) => {
-    setExpandedLayers((cur) => ({ ...cur, [code]: !cur[code] }))
+    dispatchView({ type: 'TOGGLE_LAYER', code })
   }
 
   const handleSearchSelect = (id: string) => {
-    setSelectedNodeId(id)
-    setUserExploring(true)
+    dispatchView({ type: 'SET_SELECTION', nodeId: id })
+    dispatchView({ type: 'SET_USER_EXPLORING', exploring: true })
   }
 
   const handleReturnAgentView = () => {
-    setUserExploring(false)
+    dispatchView({ type: 'SET_USER_EXPLORING', exploring: false })
   }
 
   const handleSearchAround = () => {
     if (!selectedNodeId) return
-    setAroundRootId(selectedNodeId)
-    setObjectSetFilter(false)
+    dispatchView({ type: 'SET_AROUND_ROOT', rootId: selectedNodeId, clearFilter: true })
   }
 
   const clearRestriction = () => {
-    setAroundRootId(null)
-    setObjectSetFilter(false)
+    dispatchView({ type: 'SET_AROUND_ROOT', rootId: null, clearFilter: false })
   }
 
   // Derived session display state.
@@ -380,14 +384,21 @@ export default function App() {
       staticBindings: adapted.staticBindings,
       instanceTopology: adapted.instanceTopology,
     })
+    // 阶段5：binding/planner 只算一次，decision/viewProjection 复用，避免投影层重复派生。
+    const bindings = store.activeBindings()
+    const planner = store.plannerTargets()
     return {
       store,
       knowledge: store.knowledgeSnapshot(),
       candidates: store.candidateList(),
-      planner: store.plannerTargets(),
+      planner,
       timeline: store.timeline(),
       scan: store.diagnosisScan(),
-      bindings: store.activeBindings(),
+      bindings,
+      // 阶段5：LUI 三问之"为什么"——当前决策（理由/证据缺口/目标候选/预期证据）。
+      decision: store.currentDecision(planner),
+      // 阶段5：视图投影（Known Fact + ACTIVE Binding + View Hint + 诊断语义指纹）。
+      projection: store.viewProjection(bindings),
     }
   }, [snapshot, runtime, knowledgeRefs, knowledgeLinkRefs])
 
@@ -425,7 +436,7 @@ export default function App() {
         selectedNodeId={selectedNodeId}
         navigatorCollapsed={leftPanelCollapsed}
         rightInset={canvasRightInset}
-        activeLens={activeLens}
+        activeLens={activeLensTyped}
         onNodeSelect={handleNodeSelect}
         knowledgeNodes={knowledgeNodes}
         knowledgeLinks={knowledgeLinks}
@@ -439,25 +450,20 @@ export default function App() {
         <ModelNavigator
           model={model}
           activePreset={activePreset}
-          onPresetChange={setActivePreset}
+          onPresetChange={(preset) => dispatchView({ type: 'SET_PRESET', preset })}
           layerVisibility={layerVisibility}
-          onToggleLayer={(plane) =>
-            setLayerVisibility((value) => ({ ...value, [plane]: !value[plane] }))
-          }
+          onToggleLayer={(plane) => dispatchView({ type: 'TOGGLE_PLANE', plane })}
           visibleKgLayers={visibleKgLayers}
-          onToggleKgLayer={(code) =>
-            setVisibleKgLayers((value) => ({ ...value, [code]: value[code] === false }))
-          }
+          onToggleKgLayer={(code) => dispatchView({ type: 'TOGGLE_KG_LAYER', code })}
           showCrossLayer={showCrossLayer}
-          onToggleCrossLayer={() => setShowCrossLayer((value) => !value)}
+          onToggleCrossLayer={() => dispatchView({ type: 'TOGGLE_CROSS_LAYER' })}
           searchQuery={searchQuery}
-          onSearchChange={(value) => {
-            setSearchQuery(value)
-            if (!value) setObjectSetFilter(false)
-          }}
+          onSearchChange={(value) => dispatchView({ type: 'SET_SEARCH', query: value })}
           objectSet={objectSet}
           objectSetFilter={objectSetFilter}
-          onToggleObjectSet={() => setObjectSetFilter((value) => !value)}
+          onToggleObjectSet={() =>
+            dispatchView({ type: 'SET_OBJECT_SET_FILTER', enabled: !objectSetFilter })
+          }
           aroundRootId={aroundRootId}
           onClearRestriction={clearRestriction}
           onSearchSelect={handleSearchSelect}
@@ -470,7 +476,7 @@ export default function App() {
       {selectedObjectView && (
         <ObjectViewPanel
           view={selectedObjectView}
-          onClose={() => setSelectedNodeId(null)}
+          onClose={() => dispatchView({ type: 'SET_SELECTION', nodeId: null })}
           onSelectObject={handleSearchSelect}
           onSearchAround={handleSearchAround}
         />
@@ -491,6 +497,7 @@ export default function App() {
           knowledge={vms.knowledge}
           candidates={vms.candidates}
           planner={vms.planner}
+          decision={vms.decision}
           snapshot={snapshot}
           store={vms.store}
           timelineEvents={vms.timeline}
@@ -516,7 +523,9 @@ export default function App() {
           routeNote={routeNote}
           wide={leftPanelCollapsed}
           leftPanelCollapsed={leftPanelCollapsed}
-          onToggleLeftPanel={() => setLeftPanelCollapsed((value) => !value)}
+          onToggleLeftPanel={() =>
+            dispatchView({ type: 'SET_NAVIGATOR_COLLAPSED', collapsed: !leftPanelCollapsed })
+          }
         />
       )}
 
