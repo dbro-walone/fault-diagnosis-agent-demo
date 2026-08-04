@@ -3,8 +3,8 @@
   "session": {
     "session_id": "session-noisy_neighbor_io_contention_001",
     "case_id": "noisy_neighbor_io_contention_001",
-    "version": 74,
-    "last_sequence": 74,
+    "version": 79,
+    "last_sequence": 79,
     "mode": "LIVE",
     "phase": "CONCLUSION_CHECK",
     "terminal_status": "ROOT_CAUSE_CONFIRMED",
@@ -1096,8 +1096,8 @@
           {
             "candidate_id": "cand-host-b-overload",
             "object_id": "host-b",
-            "fault_mode_code": "HOST_RESOURCE_BOTTLENECK",
-            "display_name": "Host-B自身资源瓶颈",
+            "fault_mode_code": "SCENE_OBJECT_ANOMALY",
+            "display_name": "Host-B异常",
             "diagnosis_support_score": 25,
             "status": "ACTIVE",
             "generated_from": {
@@ -1112,8 +1112,8 @@
           {
             "candidate_id": "cand-fc-link-b",
             "object_id": "fc-port-0a",
-            "fault_mode_code": "FC_LINK_FAULT",
-            "display_name": "Host-B FC/SAN链路异常",
+            "fault_mode_code": "SCENE_PATH_LINK_ANOMALY",
+            "display_name": "访问链路异常（FC-Port-0A）",
             "diagnosis_support_score": 20,
             "status": "ACTIVE",
             "generated_from": {
@@ -1128,8 +1128,8 @@
           {
             "candidate_id": "cand-controller-pressure",
             "object_id": "controller-0a",
-            "fault_mode_code": "CONTROLLER_OVERLOAD",
-            "display_name": "Controller-0A故障或固有过载",
+            "fault_mode_code": "SCENE_OBJECT_ANOMALY",
+            "display_name": "Controller-0A异常",
             "diagnosis_support_score": 15,
             "status": "ACTIVE",
             "generated_from": {
@@ -1144,8 +1144,8 @@
           {
             "candidate_id": "cand-pool-bottleneck",
             "object_id": "storage-pool-01",
-            "fault_mode_code": "POOL_PERFORMANCE_BOTTLENECK",
-            "display_name": "StoragePool-01固有性能瓶颈",
+            "fault_mode_code": "SCENE_BACKEND_PERFORMANCE_DEGRADATION",
+            "display_name": "后端性能与介质退化（StoragePool-01）",
             "diagnosis_support_score": 10,
             "status": "ACTIVE",
             "generated_from": {
@@ -2196,8 +2196,8 @@
           {
             "candidate_id": "cand-noisy-neighbor-a",
             "object_id": "host-a",
-            "fault_mode_code": "NOISY_NEIGHBOR_IO_CONTENTION",
-            "display_name": "Host-A工作负载突增导致共享存储扰邻",
+            "fault_mode_code": "SCENE_SHARED_RESOURCE_CONTENTION",
+            "display_name": "共享资源争用（Host-A）",
             "diagnosis_support_score": 30,
             "status": "ACTIVE",
             "generated_from": {
@@ -3339,6 +3339,76 @@
       "event_id": "evt-0065",
       "session_id": "session-noisy_neighbor_io_contention_001",
       "sequence": 65,
+      "event_type": "CANDIDATE_REFINED",
+      "producer": "reasoning",
+      "correlation_id": null,
+      "causation_id": "evt-0064",
+      "payload": {
+        "candidate_id": "cand-noisy-neighbor-a",
+        "fault_mode_code": "NOISY_NEIGHBOR_IO_CONTENTION",
+        "display_name": "Host-A工作负载突增导致共享存储扰邻"
+      }
+    },
+    {
+      "event_id": "evt-0066",
+      "session_id": "session-noisy_neighbor_io_contention_001",
+      "sequence": 66,
+      "event_type": "CANDIDATE_REFINED",
+      "producer": "reasoning",
+      "correlation_id": null,
+      "causation_id": "evt-0064",
+      "payload": {
+        "candidate_id": "cand-host-b-overload",
+        "fault_mode_code": "HOST_RESOURCE_BOTTLENECK",
+        "display_name": "Host-B自身资源瓶颈"
+      }
+    },
+    {
+      "event_id": "evt-0067",
+      "session_id": "session-noisy_neighbor_io_contention_001",
+      "sequence": 67,
+      "event_type": "CANDIDATE_REFINED",
+      "producer": "reasoning",
+      "correlation_id": null,
+      "causation_id": "evt-0064",
+      "payload": {
+        "candidate_id": "cand-fc-link-b",
+        "fault_mode_code": "FC_LINK_FAULT",
+        "display_name": "Host-B FC/SAN链路异常"
+      }
+    },
+    {
+      "event_id": "evt-0068",
+      "session_id": "session-noisy_neighbor_io_contention_001",
+      "sequence": 68,
+      "event_type": "CANDIDATE_REFINED",
+      "producer": "reasoning",
+      "correlation_id": null,
+      "causation_id": "evt-0064",
+      "payload": {
+        "candidate_id": "cand-controller-pressure",
+        "fault_mode_code": "CONTROLLER_OVERLOAD",
+        "display_name": "Controller-0A故障或固有过载"
+      }
+    },
+    {
+      "event_id": "evt-0069",
+      "session_id": "session-noisy_neighbor_io_contention_001",
+      "sequence": 69,
+      "event_type": "CANDIDATE_REFINED",
+      "producer": "reasoning",
+      "correlation_id": null,
+      "causation_id": "evt-0064",
+      "payload": {
+        "candidate_id": "cand-pool-bottleneck",
+        "fault_mode_code": "POOL_PERFORMANCE_BOTTLENECK",
+        "display_name": "StoragePool-01固有性能瓶颈"
+      }
+    },
+    {
+      "event_id": "evt-0070",
+      "session_id": "session-noisy_neighbor_io_contention_001",
+      "sequence": 70,
       "event_type": "CANDIDATE_UPDATED",
       "producer": "reasoning",
       "correlation_id": null,
@@ -3356,9 +3426,9 @@
       }
     },
     {
-      "event_id": "evt-0066",
+      "event_id": "evt-0071",
       "session_id": "session-noisy_neighbor_io_contention_001",
-      "sequence": 66,
+      "sequence": 71,
       "event_type": "CANDIDATE_UPDATED",
       "producer": "reasoning",
       "correlation_id": null,
@@ -3375,9 +3445,9 @@
       }
     },
     {
-      "event_id": "evt-0067",
+      "event_id": "evt-0072",
       "session_id": "session-noisy_neighbor_io_contention_001",
-      "sequence": 67,
+      "sequence": 72,
       "event_type": "CANDIDATE_UPDATED",
       "producer": "reasoning",
       "correlation_id": null,
@@ -3394,9 +3464,9 @@
       }
     },
     {
-      "event_id": "evt-0068",
+      "event_id": "evt-0073",
       "session_id": "session-noisy_neighbor_io_contention_001",
-      "sequence": 68,
+      "sequence": 73,
       "event_type": "CANDIDATE_UPDATED",
       "producer": "reasoning",
       "correlation_id": null,
@@ -3414,9 +3484,9 @@
       }
     },
     {
-      "event_id": "evt-0069",
+      "event_id": "evt-0074",
       "session_id": "session-noisy_neighbor_io_contention_001",
-      "sequence": 69,
+      "sequence": 74,
       "event_type": "CANDIDATE_UPDATED",
       "producer": "reasoning",
       "correlation_id": null,
@@ -3433,9 +3503,9 @@
       }
     },
     {
-      "event_id": "evt-0070",
+      "event_id": "evt-0075",
       "session_id": "session-noisy_neighbor_io_contention_001",
-      "sequence": 70,
+      "sequence": 75,
       "event_type": "CANDIDATE_UPDATED",
       "producer": "reasoning",
       "correlation_id": null,
@@ -3454,9 +3524,9 @@
       }
     },
     {
-      "event_id": "evt-0071",
+      "event_id": "evt-0076",
       "session_id": "session-noisy_neighbor_io_contention_001",
-      "sequence": 71,
+      "sequence": 76,
       "event_type": "CANDIDATE_UPDATED",
       "producer": "reasoning",
       "correlation_id": null,
@@ -3478,25 +3548,25 @@
       }
     },
     {
-      "event_id": "evt-0072",
+      "event_id": "evt-0077",
       "session_id": "session-noisy_neighbor_io_contention_001",
-      "sequence": 72,
+      "sequence": 77,
       "event_type": "DIAGNOSIS_PHASE_CHANGED",
       "producer": "planner",
       "correlation_id": null,
-      "causation_id": "evt-0071",
+      "causation_id": "evt-0076",
       "payload": {
         "phase": "CONCLUSION_CHECK"
       }
     },
     {
-      "event_id": "evt-0073",
+      "event_id": "evt-0078",
       "session_id": "session-noisy_neighbor_io_contention_001",
-      "sequence": 73,
+      "sequence": 78,
       "event_type": "ROOT_CAUSE_CONFIRMED",
       "producer": "reasoning",
       "correlation_id": null,
-      "causation_id": "evt-0071",
+      "causation_id": "evt-0076",
       "payload": {
         "candidate_ref": "cand-noisy-neighbor-a",
         "score": 96,
@@ -3516,13 +3586,13 @@
       }
     },
     {
-      "event_id": "evt-0074",
+      "event_id": "evt-0079",
       "session_id": "session-noisy_neighbor_io_contention_001",
-      "sequence": 74,
+      "sequence": 79,
       "event_type": "DIAGNOSIS_COMPLETED",
       "producer": "runtime",
       "correlation_id": null,
-      "causation_id": "evt-0073",
+      "causation_id": "evt-0078",
       "payload": {
         "conclusion": {
           "diagnosis_id": "diag-noisy-neighbor-001",
@@ -3618,12 +3688,12 @@
           },
           {
             "scene_id": "scene-07",
-            "sequence": 72,
+            "sequence": 77,
             "title": "扰邻根因确认"
           },
           {
             "scene_id": "scene-08",
-            "sequence": 72,
+            "sequence": 77,
             "title": "治理能力预告"
           }
         ]

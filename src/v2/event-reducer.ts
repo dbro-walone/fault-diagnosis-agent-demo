@@ -159,6 +159,9 @@ export function applyEvent(
     case 'CANDIDATES_GENERATED':
       handleCandidatesGenerated(next, payload)
       break
+    case 'CANDIDATE_REFINED':
+      handleCandidateRefined(next, payload)
+      break
     case 'CANDIDATE_UPDATED':
       handleCandidateUpdated(next, payload, event.sequence)
       break
@@ -423,6 +426,29 @@ function handleCandidatesGenerated(s: DiagnosisSessionSnapshot, p: Record<string
   s.session.phase = 'CANDIDATE_GENERATION'
   recomputeKnowledgeAndFocus(s)
   recomputeChainsFor(s, new Set(incoming.map((c) => c.candidate_id)))
+}
+
+/**
+ * CANDIDATE_REFINED —— 首轮泛化候选细化为精确 FaultMode（docs/19 §10.4）。
+ * 泛化候选（SCENE_* / 场景名）在对应直接证据形成后，由事件细化为
+ * 数据包中的精确 fault_mode_code / display_name。只替换身份字段，
+ * 不改变分数与证据桶。
+ */
+function handleCandidateRefined(s: DiagnosisSessionSnapshot, p: Record<string, unknown>): void {
+  const candidateId = p['candidate_id'] as string | undefined
+  if (!candidateId) return
+  const faultModeCode = p['fault_mode_code'] as string | undefined
+  const displayName = p['display_name'] as string | undefined
+  s.candidates = s.candidates.map((c) => {
+    if (c.candidate_id !== candidateId) return c
+    return {
+      ...c,
+      fault_mode_code: faultModeCode ?? c.fault_mode_code,
+      display_name: displayName ?? c.display_name,
+    }
+  })
+  recomputeKnowledgeAndFocus(s)
+  recomputeChainsFor(s, new Set([candidateId]))
 }
 
 function handleCandidateUpdated(

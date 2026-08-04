@@ -3,8 +3,8 @@
   "session": {
     "session_id": "session-remote_replication_lag_001",
     "case_id": "remote_replication_lag_001",
-    "version": 74,
-    "last_sequence": 74,
+    "version": 79,
+    "last_sequence": 79,
     "mode": "LIVE",
     "phase": "CONCLUSION_CHECK",
     "terminal_status": "ROOT_CAUSE_CONFIRMED",
@@ -1239,8 +1239,8 @@
           {
             "candidate_id": "cand-repl-network-congestion",
             "object_id": "wan-path-01",
-            "fault_mode_code": "REMOTE_REPLICATION_NETWORK_CONGESTION",
-            "display_name": "复制网络拥塞/丢包",
+            "fault_mode_code": "SCENE_REPLICATION_PROTECTION_DEGRADATION",
+            "display_name": "远程复制保护退化（Replication-WAN-01）",
             "diagnosis_support_score": 30,
             "status": "ACTIVE",
             "generated_from": {
@@ -1255,8 +1255,8 @@
           {
             "candidate_id": "cand-source-bottleneck",
             "object_id": "pool-a",
-            "fault_mode_code": "REPLICATION_SOURCE_BOTTLENECK",
-            "display_name": "源端Storage-A后端瓶颈",
+            "fault_mode_code": "SCENE_OBJECT_ANOMALY",
+            "display_name": "Pool-A异常",
             "diagnosis_support_score": 22,
             "status": "ACTIVE",
             "generated_from": {
@@ -1271,8 +1271,8 @@
           {
             "candidate_id": "cand-target-bottleneck",
             "object_id": "pool-b",
-            "fault_mode_code": "REPLICATION_TARGET_BOTTLENECK",
-            "display_name": "远端Storage-B写入瓶颈",
+            "fault_mode_code": "SCENE_OBJECT_ANOMALY",
+            "display_name": "Pool-B异常",
             "diagnosis_support_score": 20,
             "status": "ACTIVE",
             "generated_from": {
@@ -1287,8 +1287,8 @@
           {
             "candidate_id": "cand-session-config",
             "object_id": "replication-session-rs01",
-            "fault_mode_code": "REPLICATION_SESSION_CONFIG_ERROR",
-            "display_name": "复制会话暂停、限速或配置异常",
+            "fault_mode_code": "SCENE_OBJECT_ANOMALY",
+            "display_name": "ReplicationSession-RS01异常",
             "diagnosis_support_score": 18,
             "status": "ACTIVE",
             "generated_from": {
@@ -1303,8 +1303,8 @@
           {
             "candidate_id": "cand-repl-port-fault",
             "object_id": "repl-port-a",
-            "fault_mode_code": "REPLICATION_PORT_FAULT",
-            "display_name": "源端复制端口物理故障",
+            "fault_mode_code": "SCENE_OBJECT_ANOMALY",
+            "display_name": "Replication-Port-A异常",
             "diagnosis_support_score": 10,
             "status": "ACTIVE",
             "generated_from": {
@@ -3490,6 +3490,76 @@
       "event_id": "evt-0066",
       "session_id": "session-remote_replication_lag_001",
       "sequence": 66,
+      "event_type": "CANDIDATE_REFINED",
+      "producer": "reasoning",
+      "correlation_id": null,
+      "causation_id": "evt-0065",
+      "payload": {
+        "candidate_id": "cand-repl-network-congestion",
+        "fault_mode_code": "REMOTE_REPLICATION_NETWORK_CONGESTION",
+        "display_name": "复制网络拥塞/丢包"
+      }
+    },
+    {
+      "event_id": "evt-0067",
+      "session_id": "session-remote_replication_lag_001",
+      "sequence": 67,
+      "event_type": "CANDIDATE_REFINED",
+      "producer": "reasoning",
+      "correlation_id": null,
+      "causation_id": "evt-0065",
+      "payload": {
+        "candidate_id": "cand-source-bottleneck",
+        "fault_mode_code": "REPLICATION_SOURCE_BOTTLENECK",
+        "display_name": "源端Storage-A后端瓶颈"
+      }
+    },
+    {
+      "event_id": "evt-0068",
+      "session_id": "session-remote_replication_lag_001",
+      "sequence": 68,
+      "event_type": "CANDIDATE_REFINED",
+      "producer": "reasoning",
+      "correlation_id": null,
+      "causation_id": "evt-0065",
+      "payload": {
+        "candidate_id": "cand-target-bottleneck",
+        "fault_mode_code": "REPLICATION_TARGET_BOTTLENECK",
+        "display_name": "远端Storage-B写入瓶颈"
+      }
+    },
+    {
+      "event_id": "evt-0069",
+      "session_id": "session-remote_replication_lag_001",
+      "sequence": 69,
+      "event_type": "CANDIDATE_REFINED",
+      "producer": "reasoning",
+      "correlation_id": null,
+      "causation_id": "evt-0065",
+      "payload": {
+        "candidate_id": "cand-session-config",
+        "fault_mode_code": "REPLICATION_SESSION_CONFIG_ERROR",
+        "display_name": "复制会话暂停、限速或配置异常"
+      }
+    },
+    {
+      "event_id": "evt-0070",
+      "session_id": "session-remote_replication_lag_001",
+      "sequence": 70,
+      "event_type": "CANDIDATE_REFINED",
+      "producer": "reasoning",
+      "correlation_id": null,
+      "causation_id": "evt-0065",
+      "payload": {
+        "candidate_id": "cand-repl-port-fault",
+        "fault_mode_code": "REPLICATION_PORT_FAULT",
+        "display_name": "源端复制端口物理故障"
+      }
+    },
+    {
+      "event_id": "evt-0071",
+      "session_id": "session-remote_replication_lag_001",
+      "sequence": 71,
       "event_type": "CANDIDATE_UPDATED",
       "producer": "reasoning",
       "correlation_id": null,
@@ -3509,9 +3579,9 @@
       }
     },
     {
-      "event_id": "evt-0067",
+      "event_id": "evt-0072",
       "session_id": "session-remote_replication_lag_001",
-      "sequence": 67,
+      "sequence": 72,
       "event_type": "CANDIDATE_UPDATED",
       "producer": "reasoning",
       "correlation_id": null,
@@ -3529,9 +3599,9 @@
       }
     },
     {
-      "event_id": "evt-0068",
+      "event_id": "evt-0073",
       "session_id": "session-remote_replication_lag_001",
-      "sequence": 68,
+      "sequence": 73,
       "event_type": "CANDIDATE_UPDATED",
       "producer": "reasoning",
       "correlation_id": null,
@@ -3548,9 +3618,9 @@
       }
     },
     {
-      "event_id": "evt-0069",
+      "event_id": "evt-0074",
       "session_id": "session-remote_replication_lag_001",
-      "sequence": 69,
+      "sequence": 74,
       "event_type": "CANDIDATE_UPDATED",
       "producer": "reasoning",
       "correlation_id": null,
@@ -3567,9 +3637,9 @@
       }
     },
     {
-      "event_id": "evt-0070",
+      "event_id": "evt-0075",
       "session_id": "session-remote_replication_lag_001",
-      "sequence": 70,
+      "sequence": 75,
       "event_type": "CANDIDATE_UPDATED",
       "producer": "reasoning",
       "correlation_id": null,
@@ -3586,9 +3656,9 @@
       }
     },
     {
-      "event_id": "evt-0071",
+      "event_id": "evt-0076",
       "session_id": "session-remote_replication_lag_001",
-      "sequence": 71,
+      "sequence": 76,
       "event_type": "CANDIDATE_UPDATED",
       "producer": "reasoning",
       "correlation_id": null,
@@ -3611,25 +3681,25 @@
       }
     },
     {
-      "event_id": "evt-0072",
+      "event_id": "evt-0077",
       "session_id": "session-remote_replication_lag_001",
-      "sequence": 72,
+      "sequence": 77,
       "event_type": "DIAGNOSIS_PHASE_CHANGED",
       "producer": "planner",
       "correlation_id": null,
-      "causation_id": "evt-0071",
+      "causation_id": "evt-0076",
       "payload": {
         "phase": "CONCLUSION_CHECK"
       }
     },
     {
-      "event_id": "evt-0073",
+      "event_id": "evt-0078",
       "session_id": "session-remote_replication_lag_001",
-      "sequence": 73,
+      "sequence": 78,
       "event_type": "ROOT_CAUSE_CONFIRMED",
       "producer": "reasoning",
       "correlation_id": null,
-      "causation_id": "evt-0071",
+      "causation_id": "evt-0076",
       "payload": {
         "candidate_ref": "cand-repl-network-congestion",
         "score": 97,
@@ -3645,13 +3715,13 @@
       }
     },
     {
-      "event_id": "evt-0074",
+      "event_id": "evt-0079",
       "session_id": "session-remote_replication_lag_001",
-      "sequence": 74,
+      "sequence": 79,
       "event_type": "DIAGNOSIS_COMPLETED",
       "producer": "runtime",
       "correlation_id": null,
-      "causation_id": "evt-0073",
+      "causation_id": "evt-0078",
       "payload": {
         "conclusion": {
           "diagnosis_id": "diag-remote-replication-lag-001",
@@ -3742,12 +3812,12 @@
           },
           {
             "scene_id": "scene-07",
-            "sequence": 72,
+            "sequence": 77,
             "title": "复制网络根因确认"
           },
           {
             "scene_id": "scene-08",
-            "sequence": 72,
+            "sequence": 77,
             "title": "容灾治理能力预告"
           }
         ]

@@ -3,8 +3,8 @@
   "session": {
     "session_id": "session-controller_warm_reset_001",
     "case_id": "controller_warm_reset_001",
-    "version": 65,
-    "last_sequence": 65,
+    "version": 69,
+    "last_sequence": 69,
     "mode": "LIVE",
     "phase": "CONCLUSION_CHECK",
     "terminal_status": "ROOT_CAUSE_CONFIRMED",
@@ -1026,8 +1026,8 @@
           {
             "candidate_id": "cand-controller-warm-reset",
             "object_id": "controller-0a",
-            "fault_mode_code": "CONTROLLER_WARM_RESET",
-            "display_name": "Controller-0A 热复位",
+            "fault_mode_code": "SCENE_CONTROLLER_ANOMALY",
+            "display_name": "控制器异常（Controller-0A）",
             "diagnosis_support_score": 42,
             "status": "ACTIVE",
             "generated_from": {
@@ -1042,8 +1042,8 @@
           {
             "candidate_id": "cand-fc-link-flap",
             "object_id": "fc-port-0a",
-            "fault_mode_code": "FC_LINK_FLAP",
-            "display_name": "FC端口链路抖动",
+            "fault_mode_code": "SCENE_PATH_LINK_ANOMALY",
+            "display_name": "访问链路异常（FC-Port-0A）",
             "diagnosis_support_score": 28,
             "status": "ACTIVE",
             "generated_from": {
@@ -1058,8 +1058,8 @@
           {
             "candidate_id": "cand-san-link-fault",
             "object_id": "san-fabric-a",
-            "fault_mode_code": "SAN_LINK_FAULT",
-            "display_name": "SAN交换链路异常",
+            "fault_mode_code": "SCENE_PATH_LINK_ANOMALY",
+            "display_name": "访问链路异常（SAN Fabric-A）",
             "diagnosis_support_score": 18,
             "status": "ACTIVE",
             "generated_from": {
@@ -1074,8 +1074,8 @@
           {
             "candidate_id": "cand-pool-bottleneck",
             "object_id": "storage-pool-01",
-            "fault_mode_code": "POOL_PERFORMANCE_BOTTLENECK",
-            "display_name": "存储池性能瓶颈",
+            "fault_mode_code": "SCENE_BACKEND_PERFORMANCE_DEGRADATION",
+            "display_name": "后端性能与介质退化（Storage Pool-01）",
             "diagnosis_support_score": 12,
             "status": "ACTIVE",
             "generated_from": {
@@ -2927,6 +2927,62 @@
       "event_id": "evt-0055",
       "session_id": "session-controller_warm_reset_001",
       "sequence": 55,
+      "event_type": "CANDIDATE_REFINED",
+      "producer": "reasoning",
+      "correlation_id": null,
+      "causation_id": "evt-0054",
+      "payload": {
+        "candidate_id": "cand-controller-warm-reset",
+        "fault_mode_code": "CONTROLLER_WARM_RESET",
+        "display_name": "Controller-0A 热复位"
+      }
+    },
+    {
+      "event_id": "evt-0056",
+      "session_id": "session-controller_warm_reset_001",
+      "sequence": 56,
+      "event_type": "CANDIDATE_REFINED",
+      "producer": "reasoning",
+      "correlation_id": null,
+      "causation_id": "evt-0054",
+      "payload": {
+        "candidate_id": "cand-fc-link-flap",
+        "fault_mode_code": "FC_LINK_FLAP",
+        "display_name": "FC端口链路抖动"
+      }
+    },
+    {
+      "event_id": "evt-0057",
+      "session_id": "session-controller_warm_reset_001",
+      "sequence": 57,
+      "event_type": "CANDIDATE_REFINED",
+      "producer": "reasoning",
+      "correlation_id": null,
+      "causation_id": "evt-0054",
+      "payload": {
+        "candidate_id": "cand-san-link-fault",
+        "fault_mode_code": "SAN_LINK_FAULT",
+        "display_name": "SAN交换链路异常"
+      }
+    },
+    {
+      "event_id": "evt-0058",
+      "session_id": "session-controller_warm_reset_001",
+      "sequence": 58,
+      "event_type": "CANDIDATE_REFINED",
+      "producer": "reasoning",
+      "correlation_id": null,
+      "causation_id": "evt-0054",
+      "payload": {
+        "candidate_id": "cand-pool-bottleneck",
+        "fault_mode_code": "POOL_PERFORMANCE_BOTTLENECK",
+        "display_name": "存储池性能瓶颈"
+      }
+    },
+    {
+      "event_id": "evt-0059",
+      "session_id": "session-controller_warm_reset_001",
+      "sequence": 59,
       "event_type": "CANDIDATE_UPDATED",
       "producer": "reasoning",
       "correlation_id": null,
@@ -2943,9 +2999,9 @@
       }
     },
     {
-      "event_id": "evt-0056",
+      "event_id": "evt-0060",
       "session_id": "session-controller_warm_reset_001",
-      "sequence": 56,
+      "sequence": 60,
       "event_type": "CANDIDATE_UPDATED",
       "producer": "reasoning",
       "correlation_id": null,
@@ -2962,9 +3018,9 @@
       }
     },
     {
-      "event_id": "evt-0057",
+      "event_id": "evt-0061",
       "session_id": "session-controller_warm_reset_001",
-      "sequence": 57,
+      "sequence": 61,
       "event_type": "CANDIDATE_UPDATED",
       "producer": "reasoning",
       "correlation_id": null,
@@ -2981,9 +3037,9 @@
       }
     },
     {
-      "event_id": "evt-0058",
+      "event_id": "evt-0062",
       "session_id": "session-controller_warm_reset_001",
-      "sequence": 58,
+      "sequence": 62,
       "event_type": "CANDIDATE_UPDATED",
       "producer": "reasoning",
       "correlation_id": null,
@@ -3000,9 +3056,9 @@
       }
     },
     {
-      "event_id": "evt-0059",
+      "event_id": "evt-0063",
       "session_id": "session-controller_warm_reset_001",
-      "sequence": 59,
+      "sequence": 63,
       "event_type": "CANDIDATE_UPDATED",
       "producer": "reasoning",
       "correlation_id": null,
@@ -3024,9 +3080,9 @@
       }
     },
     {
-      "event_id": "evt-0060",
+      "event_id": "evt-0064",
       "session_id": "session-controller_warm_reset_001",
-      "sequence": 60,
+      "sequence": 64,
       "event_type": "CANDIDATE_UPDATED",
       "producer": "reasoning",
       "correlation_id": null,
@@ -3044,9 +3100,9 @@
       }
     },
     {
-      "event_id": "evt-0061",
+      "event_id": "evt-0065",
       "session_id": "session-controller_warm_reset_001",
-      "sequence": 61,
+      "sequence": 65,
       "event_type": "CANDIDATE_UPDATED",
       "producer": "reasoning",
       "correlation_id": null,
@@ -3064,9 +3120,9 @@
       }
     },
     {
-      "event_id": "evt-0062",
+      "event_id": "evt-0066",
       "session_id": "session-controller_warm_reset_001",
-      "sequence": 62,
+      "sequence": 66,
       "event_type": "CANDIDATE_UPDATED",
       "producer": "reasoning",
       "correlation_id": null,
@@ -3084,25 +3140,25 @@
       }
     },
     {
-      "event_id": "evt-0063",
+      "event_id": "evt-0067",
       "session_id": "session-controller_warm_reset_001",
-      "sequence": 63,
+      "sequence": 67,
       "event_type": "DIAGNOSIS_PHASE_CHANGED",
       "producer": "planner",
       "correlation_id": null,
-      "causation_id": "evt-0062",
+      "causation_id": "evt-0066",
       "payload": {
         "phase": "CONCLUSION_CHECK"
       }
     },
     {
-      "event_id": "evt-0064",
+      "event_id": "evt-0068",
       "session_id": "session-controller_warm_reset_001",
-      "sequence": 64,
+      "sequence": 68,
       "event_type": "ROOT_CAUSE_CONFIRMED",
       "producer": "reasoning",
       "correlation_id": null,
-      "causation_id": "evt-0059",
+      "causation_id": "evt-0063",
       "payload": {
         "candidate_ref": "cand-controller-warm-reset",
         "score": 96,
@@ -3118,13 +3174,13 @@
       }
     },
     {
-      "event_id": "evt-0065",
+      "event_id": "evt-0069",
       "session_id": "session-controller_warm_reset_001",
-      "sequence": 65,
+      "sequence": 69,
       "event_type": "DIAGNOSIS_COMPLETED",
       "producer": "runtime",
       "correlation_id": null,
-      "causation_id": "evt-0064",
+      "causation_id": "evt-0068",
       "payload": {
         "conclusion": {
           "diagnosis_id": "diag-controller-warm-reset-001",
@@ -3215,12 +3271,12 @@
           },
           {
             "scene_id": "scene-07",
-            "sequence": 63,
+            "sequence": 67,
             "title": "根因诊断完成"
           },
           {
             "scene_id": "scene-08",
-            "sequence": 63,
+            "sequence": 67,
             "title": "修复闭环能力预告"
           }
         ]

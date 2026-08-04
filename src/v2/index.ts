@@ -51,6 +51,40 @@ export {
   type TraceScorePoint,
 } from './case-adapter'
 
+// 阶段4 —— CaseKnowledgeAdapter 真值隔离（docs/19 §7/§8：Seed/Bundle/Envelope/泄露校验）
+export {
+  DataPartition,
+  ExposureState,
+  PayloadKind,
+  GENERALIZED_FAULT_MODE_PREFIX,
+  GENERALIZED_OBJECT_ANOMALY,
+  RELEASE_PRECONDITIONS,
+  buildFaultModeScenarioIndex,
+  generalizeCandidate,
+  isGeneralizedCandidate,
+  partitionOfFact,
+  partitionOfCandidate,
+  compileCase,
+  loadCompiledCase,
+  resolveRelease,
+  releasedFactsFrom,
+  validateLeakIsolation,
+  type TruthGraph,
+  type KnownGraph,
+  type ViewGraph,
+  type KnownLedger,
+  type KnownLedgerEntry,
+  type ReleaseCondition,
+  type ReleaseEnvelope,
+  type RuntimeSeed,
+  type PrivateCaseBundle,
+  type PartitionIndex,
+  type LeakIssue,
+  type LeakReport,
+  type AdapterCompileResult,
+  type ReleaseResult,
+} from '../adapters/case-knowledge-adapter'
+
 // 阶段3 —— CrossPlaneBinding 跨平面绑定（docs/19 §6）
 export {
   BindingPlane,

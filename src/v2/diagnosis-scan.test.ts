@@ -128,7 +128,8 @@ describe('issue#6 阶段C — 逐对象诊断循环 diagnosisScan()', () => {
     expect(ctrl.is_focus).toBe(true)
   })
 
-  it('controller 取证初期：候选故障模式全部点亮（活跃假设展开）', () => {
+  it('controller 取证初期：候选为场景级锚点点亮；终态才点亮精确故障模式（阶段4 真值隔离）', () => {
+    // 推进到控制器告警任务运行中（证据尚未形成，候选仍为泛化场景级，docs/19 §10.4）。
     let rt = createDiagnosisRuntime('controller_warm_reset_001')
     let guard = 0
     while (
@@ -140,18 +141,25 @@ describe('issue#6 阶段C — 逐对象诊断循环 diagnosisScan()', () => {
     ) {
       rt = rt.advance()
     }
-    const store = new ProjectionStore()
-    store.bind(rt.liveSnapshot, {
+    const earlyStore = new ProjectionStore()
+    earlyStore.bind(rt.liveSnapshot, {
       observationsFacts: loadAdaptedCase('controller_warm_reset_001').facts,
       knowledgeNodes: loadModelKnowledgeRefs().nodes,
       knowledgeLinks: loadModelKnowledgeRefs().links,
     })
-    const scan = store.diagnosisScan()
-    // 初始候选 4 个（controller-warm-reset / fc-link-flap / san-link-fault / pool-bottleneck）均在活跃假设。
-    expect(scan.graph_entry_anchors).toContain('fm-controller-warm-reset')
-    expect(scan.graph_entry_anchors).toContain('fm-fc-link-flap')
-    expect(scan.graph_entry_anchors).toContain('fm-san-link-fault')
-    expect(scan.graph_entry_anchors).toContain('fm-pool-bottleneck')
+    const early = earlyStore.diagnosisScan()
+    // 4 个泛化候选（SCENE_CONTROLLER_ANOMALY / SCENE_PATH_LINK_ANOMALY×2 / SCENE_BACKEND_DEGRADATION）
+    // 点亮 FAULT_SCENARIO 场景节点，不泄露精确 FaultMode。
+    expect(early.graph_entry_anchors).toContain('scenario-controller-anomaly')
+    expect(early.graph_entry_anchors).toContain('scenario-path-link-anomaly')
+    expect(early.graph_entry_anchors).toContain('scenario-backend-degradation')
+    expect(early.graph_entry_anchors).not.toContain('fm-controller-warm-reset')
+
+    // 终态：候选细化后根因的精确故障模式点亮；被排除候选从锚点收敛（docs/05 §5）。
+    const final = bindScan('controller_warm_reset_001')
+    expect(final.graph_entry_anchors).toContain('fm-controller-warm-reset')
+    expect(final.graph_entry_anchors).not.toContain('fm-fc-link-flap')
+    expect(final.graph_entry_anchors).not.toContain('fm-pool-bottleneck')
   })
 
   it('noisy 终态：施压者 host-a 异常（确认根因），争用链异常，受害者受影响', () => {

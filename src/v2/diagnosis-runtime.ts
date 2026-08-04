@@ -21,6 +21,13 @@
 import { converters, loadAdaptedCase, type AdaptedCase, type TraceScorePoint } from './case-adapter'
 import { applyEvent, createEmptySnapshot, reduceEvents, replayToSequence } from './event-reducer'
 import {
+  compileCase,
+  generalizeCandidate,
+  resolveRelease,
+  type AdapterCompileResult,
+  type ReleaseResult,
+} from '../adapters/case-knowledge-adapter'
+import {
   CandidateStatus,
   DiagnosisPhase,
   EvidenceEffect,
@@ -139,14 +146,20 @@ function expectedTextForSkill(skillId: string): string {
 // 显露门控（#1/§7.4）与确认门槛（#4/§13.2）
 // ─────────────────────────────────────────────────────────────────────────────
 
-/** CANDIDATES_GENERATED 事件中的候选切片。 */
-function candidateGeneratedPayload(c: Candidate) {
+/**
+ * CANDIDATES_GENERATED 事件中的候选切片（阶段4：首轮泛化投影）。
+ * fault_mode_code / display_name 由 generalizeCandidate 替换为场景级/对象异常级
+ * 表示（docs/19 §10.4），精确 FaultMode 由 CANDIDATE_REFINED 事件渐进释放。
+ * diagnosis_support_score 保留初始支持分（非最终分，最终分由 trace 渐进释放）。
+ */
+function candidateGeneratedPayload(c: Candidate, topology: AdaptedCase['instanceTopology']) {
+  const g = generalizeCandidate(c, topology)
   return {
-    candidate_id: c.candidate_id,
-    object_id: c.object_id,
-    fault_mode_code: c.fault_mode_code,
-    display_name: c.display_name,
-    diagnosis_support_score: c.diagnosis_support_score,
+    candidate_id: g.candidate_id,
+    object_id: g.object_id,
+    fault_mode_code: g.fault_mode_code,
+    display_name: g.display_name,
+    diagnosis_support_score: g.diagnosis_support_score,
     status: CandidateStatus.ACTIVE,
     generated_from: c.generated_from,
   }
@@ -364,7 +377,7 @@ export function generateEvents(adapted: AdaptedCase, failures: FailureInjection[
     { producer: 'planner', causationId: resourceMapped.event_id })
   b.emit('CANDIDATES_GENERATED', {
     candidate_refs: initialCandidates.map((c) => c.candidate_id),
-    candidates: initialCandidates.map(candidateGeneratedPayload),
+    candidates: initialCandidates.map((c) => candidateGeneratedPayload(c, adapted.instanceTopology)),
   }, { producer: 'reasoning', causationId: phaseCandidateGen.event_id })
 
   // 5. 进入取证阶段
@@ -494,7 +507,7 @@ export function generateEvents(adapted: AdaptedCase, failures: FailureInjection[
     if (revealedNow?.length) {
       b.emit('CANDIDATES_GENERATED', {
         candidate_refs: revealedNow.map((c) => c.candidate_id),
-        candidates: revealedNow.map(candidateGeneratedPayload),
+        candidates: revealedNow.map((c) => candidateGeneratedPayload(c, adapted.instanceTopology)),
       }, { producer: 'reasoning', causationId: factDiscoveredEventId ?? lastTaskEventId })
     }
   }
@@ -513,6 +526,23 @@ export function generateEvents(adapted: AdaptedCase, failures: FailureInjection[
       { producer: 'reasoning', causationId: causeByFact ?? phaseCompeting.event_id })
     evidenceCreatedEventByEvidenceId.set(ev.evidence_id, evidenceCreated.event_id)
     lastEvidenceEventId = evidenceCreated.event_id
+  }
+
+  // 7.5 候选细化（docs/19 §10.4）：首轮泛化候选（SCENE_* / 场景名）在"直接证据已形成"后
+  //     细化为数据包中的精确 FaultMode。数据驱动：任意 Evidence 作用到该候选即视为身份已可
+  //     确立（支持或反证均需精确身份），禁止 case_id 特判。
+  //     因果：由最近 EVIDENCE_CREATED（或竞争解释阶段事件）触发。
+  const refinementCause = lastEvidenceEventId ?? phaseCompeting.event_id
+  for (const c of adapted.candidates) {
+    const hasEvidence = adapted.evidences.some((e) =>
+      e.effects.some((eff) => eff.candidate_id === c.candidate_id),
+    )
+    if (!hasEvidence) continue
+    b.emit('CANDIDATE_REFINED', {
+      candidate_id: c.candidate_id,
+      fault_mode_code: c.fault_mode_code,
+      display_name: c.display_name,
+    }, { producer: 'reasoning', causationId: refinementCause })
   }
 
   // 8. 候选更新：按 trace 序号分轮，确定性地全局递增。
@@ -641,6 +671,13 @@ export interface DiagnosisRuntime {
   /** 实时头快照。 */
   readonly liveSnapshot: DiagnosisSessionSnapshot
   readonly liveEvents: RuntimeEvent[]
+  /**
+   * 阶段4：Adapter 编译结果（RuntimeSeed + PrivateCaseBundle + ReleaseEnvelope）。
+   * Runtime 只消费 Known Ledger + 已释放数据；Bundle 为服务端真值，不直接下发前端。
+   */
+  readonly compiled: AdapterCompileResult
+  /** 阶段4：当前游标处的释放状态（Known Ledger 摘要，docs/19 §8.6）。 */
+  releaseState(): ReleaseResult
   advance(): DiagnosisRuntime
   seek(sequence: number): DiagnosisRuntime
   returnLive(): DiagnosisRuntime
@@ -658,6 +695,7 @@ class DiagnosisRuntimeImpl implements DiagnosisRuntime {
     private readonly liveSnap: DiagnosisSessionSnapshot,
     readonly cursor: number,
     readonly mode: RuntimeMode,
+    readonly compiled: AdapterCompileResult,
   ) {}
 
   get complete(): boolean {
@@ -677,6 +715,10 @@ class DiagnosisRuntimeImpl implements DiagnosisRuntime {
     return replayToSequence(this.events, this.cursor, this.sessionId, this.caseId)
   }
 
+  releaseState(): ReleaseResult {
+    return resolveRelease(this.compiled, this.events, this.cursor)
+  }
+
   advance(): DiagnosisRuntime {
     if (this.liveHead >= this.events.length) return this
     const nextEvent = this.events[this.liveHead]
@@ -691,26 +733,27 @@ class DiagnosisRuntimeImpl implements DiagnosisRuntime {
       nextLive,
       wasLive ? nextLiveHead : this.cursor,
       this.mode === RuntimeMode.PAUSED ? RuntimeMode.PAUSED : RuntimeMode.LIVE,
+      this.compiled,
     )
   }
 
   seek(sequence: number): DiagnosisRuntime {
     const cursor = Math.max(0, Math.min(sequence, this.liveHead))
     const mode = cursor < this.liveHead ? RuntimeMode.REPLAY : this.mode
-    return new DiagnosisRuntimeImpl(this.caseId, this.sessionId, this.events, this.liveHead, this.liveSnap, cursor, mode)
+    return new DiagnosisRuntimeImpl(this.caseId, this.sessionId, this.events, this.liveHead, this.liveSnap, cursor, mode, this.compiled)
   }
 
   returnLive(): DiagnosisRuntime {
-    return new DiagnosisRuntimeImpl(this.caseId, this.sessionId, this.events, this.liveHead, this.liveSnap, this.liveHead, RuntimeMode.LIVE)
+    return new DiagnosisRuntimeImpl(this.caseId, this.sessionId, this.events, this.liveHead, this.liveSnap, this.liveHead, RuntimeMode.LIVE, this.compiled)
   }
 
   pause(): DiagnosisRuntime {
-    return new DiagnosisRuntimeImpl(this.caseId, this.sessionId, this.events, this.liveHead, this.liveSnap, this.cursor, RuntimeMode.PAUSED)
+    return new DiagnosisRuntimeImpl(this.caseId, this.sessionId, this.events, this.liveHead, this.liveSnap, this.cursor, RuntimeMode.PAUSED, this.compiled)
   }
 
   resume(): DiagnosisRuntime {
     const mode = this.cursor < this.liveHead ? RuntimeMode.REPLAY : RuntimeMode.LIVE
-    return new DiagnosisRuntimeImpl(this.caseId, this.sessionId, this.events, this.liveHead, this.liveSnap, this.cursor, mode)
+    return new DiagnosisRuntimeImpl(this.caseId, this.sessionId, this.events, this.liveHead, this.liveSnap, this.cursor, mode, this.compiled)
   }
 
   reset(): DiagnosisRuntime {
@@ -718,15 +761,22 @@ class DiagnosisRuntimeImpl implements DiagnosisRuntime {
   }
 }
 
-const RUNTIME_CACHE = new Map<string, { events: RuntimeEvent[] }>()
+const RUNTIME_CACHE = new Map<string, { events: RuntimeEvent[]; compiled: AdapterCompileResult }>()
 
-/** 为指定案例创建运行时（事件流惰性生成并缓存）。 */
+/**
+ * 为指定案例创建运行时（事件流 + Adapter 编译结果惰性生成并缓存）。
+ * 阶段4：运行时创建时完成 Adapter 确定性编译（Seed/Bundle/Envelope），
+ * Runtime 通过 compiled 消费 Known Ledger + 已释放数据，不直接访问 Bundle。
+ */
 export function createDiagnosisRuntime(caseId: string, failures: FailureInjection[] = []): DiagnosisRuntime {
   const noInjection = failures.length === 0
   let cached = noInjection ? RUNTIME_CACHE.get(caseId) : undefined
   if (!cached) {
     const adapted = loadAdaptedCase(caseId)
-    cached = { events: generateEvents(adapted, failures) }
+    const events = generateEvents(adapted, failures)
+    // 编译携带事件流以执行时间级/响应级泄露检查（A9）；失败注入事件流同样合法。
+    const compiled = compileCase(adapted, events)
+    cached = { events, compiled }
     if (noInjection) RUNTIME_CACHE.set(caseId, cached)
   }
   const sessionId = `session-${caseId}`
@@ -738,6 +788,7 @@ export function createDiagnosisRuntime(caseId: string, failures: FailureInjectio
     createEmptySnapshot(sessionId, caseId),
     0,
     RuntimeMode.LIVE,
+    cached.compiled,
   )
 }
 

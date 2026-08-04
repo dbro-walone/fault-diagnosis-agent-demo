@@ -24,6 +24,7 @@ import {
   ProjectionStore,
   activeDiagnosisPath,
   activeBindingsOf,
+  releasedFactsFrom,
   type DiagnosisRuntime,
 } from './v2'
 
@@ -370,8 +371,10 @@ export default function App() {
     // issue#6 阶段C：传入知识图谱参考，供"图谱原始点 + 关联知识点点亮"推导。
     // 阶段3：传入静态 Binding + InstanceTopology，供"当前 ACTIVE CrossPlaneBinding"投影。
     const adapted = loadAdaptedCase(runtime?.caseId ?? '')
+    // 阶段4：对象观测数据源只取"已释放 Fact"（Known Ledger），回放不泄露未来观测
+    // （docs/19 §7.1：前端只收 Known 集合；DISCOVERABLE 数据经查询命中后进入 Known）。
     store.bind(snapshot, {
-      observationsFacts: adapted.facts,
+      observationsFacts: releasedFactsFrom(snapshot, adapted.facts),
       knowledgeNodes: knowledgeRefs,
       knowledgeLinks: knowledgeLinkRefs,
       staticBindings: adapted.staticBindings,

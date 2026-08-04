@@ -31,6 +31,7 @@ import {
   type CrossPlaneBinding,
 } from './cross-plane-binding'
 import type { InstanceTopologySnapshot } from '../adapters/v1_to_instance_topology'
+import { GENERALIZED_FAULT_MODE_PREFIX } from '../adapters/case-knowledge-adapter'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 用户选择（Projection-only，与 agent_focus 分离）
@@ -1563,7 +1564,28 @@ function deriveGraphLighting(
     if (matched) faultModeAnchors.add(n.id)
   }
 
-  const graphEntryAnchors = [...symptomAnchors, ...faultModeAnchors]
+  // 阶段4：首轮泛化候选（SCENE_<SCENARIO_CODE>）点亮 FAULT_SCENARIO 场景节点。
+  // 精确 FaultMode 未释放前，图谱入口锚点为场景级（docs/19 §10.4）；候选细化后才点亮
+  // 对应 FAULT_MODE 节点。
+  const activeSceneCodes = new Set(
+    s.candidates
+      .filter(
+        (c) =>
+          ACTIVE_HYPOTHESIS_STATUSES.has(c.status) &&
+          c.fault_mode_code.startsWith(GENERALIZED_FAULT_MODE_PREFIX),
+      )
+      .map((c) => c.fault_mode_code.slice(GENERALIZED_FAULT_MODE_PREFIX.length)),
+  )
+  const scenarioAnchors = new Set<string>()
+  for (const n of kgNodes) {
+    if (n.node_type !== 'FAULT_SCENARIO') continue
+    const codes = graphNodeCodes(n)
+    if ([...activeSceneCodes].some((code) => codes.some((c) => c === code))) {
+      scenarioAnchors.add(n.id)
+    }
+  }
+
+  const graphEntryAnchors = [...symptomAnchors, ...scenarioAnchors, ...faultModeAnchors]
 
   // 关联知识点：从故障模式锚点沿图谱出边 BFS（≤3 跳），点亮机制/证据规则。
   const lit = new Set(graphEntryAnchors)
