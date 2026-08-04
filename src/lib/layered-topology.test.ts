@@ -161,12 +161,16 @@ describe('buildLayeredActiveGraph 展开/收起（DETACHED）', () => {
     expect(graph.anchorByObjectId.get('db-app-01')).toBe(layerAggregateId('S1'))
   })
 
-  it('展开 S3 域：S3_1..S3_5 子层聚合头出现，S3 域聚合头仍保留', () => {
+  it('展开 S3 域：S3 域聚合头隐藏，S3_1..S3_5 子层聚合头出现（需求1）', () => {
     const graph = buildLayeredActiveGraph(model, {
       expandedLayers: { S3: true } as Record<TopoLayerCode, boolean>,
     })
     const visible = new Set(graph.nodes.map((n) => n.id))
-    expect(visible.has(layerAggregateId('S3'))).toBe(true)
+    // 展开的域聚合头隐藏（issue#8 需求1），由子层聚合头占据。
+    expect(visible.has(layerAggregateId('S3'))).toBe(false)
+    // 未展开的 S1/S2 域聚合头保留。
+    expect(visible.has(layerAggregateId('S1'))).toBe(true)
+    expect(visible.has(layerAggregateId('S2'))).toBe(true)
     for (const sub of TOPO_SUB_LAYERS) {
       if (sub.domain === 'S3') expect(visible.has(layerAggregateId(sub.code))).toBe(true)
       if (sub.domain !== 'S3') expect(visible.has(layerAggregateId(sub.code))).toBe(false)
@@ -175,14 +179,23 @@ describe('buildLayeredActiveGraph 展开/收起（DETACHED）', () => {
     expect(graph.nodes.some((n) => n.id === 'disk-01a')).toBe(false)
   })
 
-  it('展开 S3 域 + S3_5 子层：S3_5 成员全部显露', () => {
+  it('展开 S3 域 + S3_5 子层：S3_5 聚合头隐藏、成员全部显露并锚定自身（需求1）', () => {
     const graph = buildLayeredActiveGraph(model, {
       expandedLayers: { S3: true, S3_5: true } as Record<TopoLayerCode, boolean>,
     })
+    // 展开的子层聚合头隐藏。
+    expect(graph.nodes.some((n) => n.id === layerAggregateId('S3_5'))).toBe(false)
     const memberIds = model.memberIdsByLayer.get('S3_5')!
     for (const id of memberIds) {
       expect(graph.nodes.some((n) => n.id === id)).toBe(true)
+      expect(graph.anchorByObjectId.get(id)).toBe(id)
     }
+    // 收起态锚定到聚合头（对照：未展开时成员锚定 S3_5 聚合头）。
+    const collapsed = buildLayeredActiveGraph(model, {
+      expandedLayers: { S3: true } as Record<TopoLayerCode, boolean>,
+    })
+    expect(collapsed.nodes.some((n) => n.id === layerAggregateId('S3_5'))).toBe(true)
+    expect(collapsed.anchorByObjectId.get('disk-01a')).toBe(layerAggregateId('S3_5'))
   })
 
   it('跨层连线在收起时锚定到聚合头，展开后连回成员', () => {
@@ -203,16 +216,21 @@ describe('buildLayeredActiveGraph 展开/收起（DETACHED）', () => {
     expect(aggLink!.target).toBe(layerAggregateId('S1'))
   })
 
-  it('summaries 覆盖全部可见层', () => {
+  it('summaries 覆盖全部可见聚合头（展开层聚合头已隐藏、无对应摘要）', () => {
     const graph = buildLayeredActiveGraph(model, {
       expandedLayers: { S1: true, S2: true, S3: true, S1_1: true } as Record<TopoLayerCode, boolean>,
     })
     const aggNodes = graph.nodes.filter((n) => isLayerAggregateId(n.id))
+    // 展开层（S1/S2/S3 域 + S1_1 子层）聚合头隐藏，不在节点里。
+    expect(aggNodes.some((n) => n.id === layerAggregateId('S1'))).toBe(false)
+    expect(aggNodes.some((n) => n.id === layerAggregateId('S1_1'))).toBe(false)
     for (const node of aggNodes) {
       const layerCode = node.id.replace('layer:', '') as TopoLayerCode
       expect(graph.summaries.get(layerCode)).toBeDefined()
     }
-    expect(graph.summaries.get('S1')!.total).toBe(model.memberIdsByLayer.get('S1')!.length)
+    // 收起子层 S1_2 聚合头保留且有摘要。
+    expect(aggNodes.some((n) => n.id === layerAggregateId('S1_2'))).toBe(true)
+    expect(graph.summaries.get('S1_2')!.total).toBe(model.memberIdsByLayer.get('S1_2')!.length)
   })
 })
 

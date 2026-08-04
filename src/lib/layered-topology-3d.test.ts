@@ -5,9 +5,11 @@ import { describe, expect, it } from 'vitest'
 import {
   KNOWLEDGE_LAYER_X,
   KNOWLEDGE_PLANE_Y,
+  MEMBER_X_SPAN_MAX,
   buildLayered3DGraph,
   domainBandY,
   knowledgeNodePosition,
+  memberBandX,
   subLayerZ,
   topologyNodePosition,
 } from './layered-topology-3d'
@@ -71,13 +73,25 @@ describe('子层 Z 分带', () => {
   })
 })
 
+describe('memberBandX 均匀排布（issue#8 自动布局）', () => {
+  it('count<=1 居中；多成员均匀、对称、互不重叠', () => {
+    expect(memberBandX(0, 1)).toBe(0)
+    const xs = [0, 1, 2, 3, 4].map((i) => memberBandX(i, 5))
+    expect(new Set(xs).size).toBe(5) // 互不重叠
+    expect(xs[2]).toBe(0) // 中间成员居中
+    expect(xs[0]).toBe(-xs[4]) // 对称
+    expect(Math.abs(xs[1] - xs[0])).toBe(Math.abs(xs[2] - xs[1])) // 均匀
+  })
+})
+
 describe('topologyNodePosition', () => {
-  it('域聚合头居中于域带中心（z=0）', () => {
+  it('域聚合头居中于域带中心（z=0、x=0）', () => {
     const collapsed = buildLayeredActiveGraph(model, { expandedLayers: emptyExpanded })
     const s3Agg = collapsed.nodes.find((n) => n.id === layerAggregateId('S3'))!
     const pos = topologyNodePosition(s3Agg)
     expect(pos.y).toBe(domainBandY('S3'))
     expect(pos.z).toBe(0)
+    expect(pos.x).toBe(0)
     expect(pos.fy).toBe(domainBandY('S3'))
     expect(pos.fz).toBe(0)
     expect(pos.fx).toBeNull()
@@ -119,16 +133,29 @@ describe('buildLayered3DGraph', () => {
     expect(g.summaries.get(layerAggregateId('S3_5'))).toBeUndefined()
   })
 
-  it('展开 S3+S3_5：子层聚合头与成员显露，无悬挂边', () => {
+  it('展开 S3+S3_5：S3_5 聚合头隐藏、真实成员显露，无悬挂边（需求1）', () => {
     const g = buildLayered3DGraph(
       input({ expandedLayers: { S3: true, S3_5: true } as Record<TopoLayerCode, boolean> }),
     )
-    expect(g.nodesById.has(layerAggregateId('S3_5'))).toBe(true)
+    // 展开的子层聚合头隐藏；展开的域聚合头隐藏；真实成员占据。
+    expect(g.nodesById.has(layerAggregateId('S3_5'))).toBe(false)
+    expect(g.nodesById.has(layerAggregateId('S3'))).toBe(false)
     expect(g.nodesById.has('disk-01a')).toBe(true)
     for (const link of g.links) {
       expect(g.nodesById.has(link.source as string)).toBe(true)
       expect(g.nodesById.has(link.target as string)).toBe(true)
     }
+  })
+
+  it('展开子层：真实成员按子层带均匀排布、互不重叠（issue#8 自动布局）', () => {
+    const g = buildLayered3DGraph(
+      input({ expandedLayers: { S3: true, S3_5: true } as Record<TopoLayerCode, boolean> }),
+    )
+    const memberIds = model.memberIdsByLayer.get('S3_5')!
+    const xs = memberIds.map((id) => g.nodesById.get(id)!.x)
+    expect(new Set(xs).size).toBe(xs.length) // 互不重叠
+    expect(Math.max(...xs) - Math.min(...xs)).toBeLessThanOrEqual(MEMBER_X_SPAN_MAX)
+    expect(xs).toEqual([...xs].sort((a, b) => a - b)) // 单调排布（拉均匀）
   })
 
   it('拓扑节点固定域带 Y + 子层 Z；x 自由（undefined）', () => {
@@ -139,9 +166,10 @@ describe('buildLayered3DGraph', () => {
     expect(disk.fy).toBe(domainBandY('S3'))
     expect(disk.fz).toBe(subLayerZ('S3_5'))
     expect(disk.fx).toBeUndefined()
-    const s3Agg = g.nodesById.get(layerAggregateId('S3'))!
-    expect(s3Agg.fy).toBe(domainBandY('S3'))
-    expect(s3Agg.fz).toBe(0)
+    // 未展开的 S1 域聚合头仍可见且固定在域带中心。
+    const s1Agg = g.nodesById.get(layerAggregateId('S1'))!
+    expect(s1Agg.fy).toBe(domainBandY('S1'))
+    expect(s1Agg.fz).toBe(0)
   })
 
   it('知识节点固定图谱分层 X + 平面 Y；z 自由', () => {
@@ -176,14 +204,31 @@ describe('buildLayered3DGraph', () => {
     expect(g.links.filter((l) => l.category === 'logic')).toHaveLength(0)
   })
 
-  it('聚合摘要带运行时上下文（候选计入候选数）', () => {
+  it('聚合摘要带运行时上下文（候选计入候选数；展开层聚合头隐藏无摘要）', () => {
     const g = buildLayered3DGraph(
       input({
-        expandedLayers: { S3: true, S3_5: true } as Record<TopoLayerCode, boolean>,
+        expandedLayers: { S3: true } as Record<TopoLayerCode, boolean>,
         aggregateContext: { candidateObjectIds: new Set(['disk-01a']) },
       }),
     )
+    // S3_5 收起 → 聚合头保留且候选计入。
     expect(g.summaries.get(layerAggregateId('S3_5'))!.candidate).toBe(1)
+    // S3 展开 → 域聚合头隐藏，无对应摘要。
+    expect(g.summaries.has(layerAggregateId('S3'))).toBe(false)
+  })
+
+  it('DETACHED 关键对象右移避让聚合头（不重叠）', () => {
+    const g = buildLayered3DGraph(
+      input({
+        expandedLayers: { S3: true } as Record<TopoLayerCode, boolean>,
+        criticalObjectIds: new Set(['disk-01a']),
+      }),
+    )
+    const header = g.nodesById.get(layerAggregateId('S3_5'))!
+    const detached = g.nodesById.get('disk-01a')!
+    // 聚合头居中 x=0；DETACHED 成员右移，二者 X 分离。
+    expect(header.x).toBe(0)
+    expect(detached.x).toBeGreaterThan(header.x + 20)
   })
 
   it('选中拓扑节点 → 图谱关联子图高亮', () => {

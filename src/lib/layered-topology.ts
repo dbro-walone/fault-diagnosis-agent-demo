@@ -426,7 +426,7 @@ function anchoredLayerFor(
   return null
 }
 
-/** 构建分层活动图：域聚合头始终显示；展开的层显示子层头/成员；关键对象 DETACHED。 */
+/** 构建分层活动图（issue#8 需求1：展开层隐藏其聚合头，由真实成员占据；收起层显示聚合头；关键对象 DETACHED）。 */
 export function buildLayeredActiveGraph(
   model: LayeredModelData,
   options: LayeredGraphOptions,
@@ -440,9 +440,9 @@ export function buildLayeredActiveGraph(
 
   for (const domain of TOPO_DOMAINS) {
     const domainExpanded = expandedLayers[domain.code] === true
-    visibleLayers.add(domain.code)
     if (!domainExpanded) {
       // 域收起：仅域聚合头；域内关键对象 DETACHED 保留。
+      visibleLayers.add(domain.code)
       for (const id of model.memberIdsByLayer.get(domain.code) ?? []) {
         if (criticalIds.has(id)) {
           visibleMembers.add(id)
@@ -453,21 +453,30 @@ export function buildLayeredActiveGraph(
       }
       continue
     }
-    // 域展开：显示子层（收起子层显示其聚合头；展开子层显示成员）。
+    // 域展开：域聚合头隐藏（issue#8 需求1），由子层聚合头/真实成员占据。
     for (const sub of TOPO_SUB_LAYERS) {
       if (sub.domain !== domain.code) continue
       const subExpanded = expandedLayers[sub.code] === true
-      visibleLayers.add(sub.code)
-      for (const id of model.memberIdsByLayer.get(sub.code) ?? []) {
-        if (subExpanded) {
+      const memberIds = model.memberIdsByLayer.get(sub.code) ?? []
+      if (subExpanded) {
+        // 子层展开：子层聚合头隐藏，真实成员全部显露并锚定到自身。
+        for (const id of memberIds) {
           visibleMembers.add(id)
           anchorByObjectId.set(id, id)
-        } else if (criticalIds.has(id)) {
-          visibleMembers.add(id)
-          anchorByObjectId.set(id, id)
-        } else {
-          anchorByObjectId.set(id, layerAggregateId(sub.code))
         }
+      } else {
+        // 子层收起：显示子层聚合头（该层有收起成员时）；关键对象 DETACHED 保留为真实成员。
+        let hasCollapsedMember = false
+        for (const id of memberIds) {
+          if (criticalIds.has(id)) {
+            visibleMembers.add(id)
+            anchorByObjectId.set(id, id)
+          } else {
+            hasCollapsedMember = true
+            anchorByObjectId.set(id, layerAggregateId(sub.code))
+          }
+        }
+        if (hasCollapsedMember) visibleLayers.add(sub.code)
       }
     }
   }
@@ -476,7 +485,7 @@ export function buildLayeredActiveGraph(
   for (const node of model.nodes) {
     if (visibleMembers.has(node.id)) nodes.push(node)
   }
-  // 聚合头节点（显示的子层 + 全部域）。
+  // 聚合头节点（仅收起层：未展开的域 + 未展开的子层）。
   for (const layerCode of visibleLayers) {
     const layer = topoLayerDef(layerCode)
     nodes.push(aggregateNodeFor(model, layer))

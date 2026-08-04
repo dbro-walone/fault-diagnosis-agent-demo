@@ -79,6 +79,24 @@ export function subLayerZ(code: TopoLayerCode): number {
   return Math.round(offset * SUB_LAYER_Z_GAP)
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// issue#8 自动布局：展开层真实成员在所属子层带内均匀排布（拉均匀、不重叠）
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** 子层带内相邻成员的水平间距（世界单位；成员节点半径约 7，46 足够不重叠）。 */
+export const MEMBER_X_SPACING = 46
+/** 子层带内成员水平排布的最大跨度（保持与旧 hash 分布 [-220,220] 同量级）。 */
+export const MEMBER_X_SPAN_MAX = 340
+/** DETACHED 关键对象右移避让聚合头的最小水平偏移（聚合头居中 x=0）。 */
+export const DETACHED_X_OFFSET = 40
+
+/** 子层成员在带内的均匀 X 坐标（index → 居中对称分布；count<=1 归中）。 */
+export function memberBandX(index: number, count: number): number {
+  if (count <= 1) return 0
+  const span = Math.min(MEMBER_X_SPAN_MAX, (count - 1) * MEMBER_X_SPACING)
+  return Math.round(-span / 2 + index * (span / (count - 1)))
+}
+
 /** 稳定散列 → [min, max) 内的初始坐标（确定性，便于视觉复现）。 */
 function hashSpread(id: string, min: number, max: number): number {
   let h = 0
@@ -100,7 +118,11 @@ export interface Node3DPosition {
   fz: number | null
 }
 
-/** 拓扑节点：域带 Y 固定 + 子层 Z 固定，x 自由（力导向水平排布）。 */
+/**
+ * 拓扑节点：域带 Y 固定 + 子层 Z 固定，x 自由（力导向水平排布）。
+ * 聚合头居中（x=0，issue#8 自动布局基准）；真实成员的实际 X 由
+ * buildLayered3DGraph 按 memberBandX 均匀排布覆盖（此处散列仅作兜底）。
+ */
 export function topologyNodePosition(node: GraphNode): Node3DPosition {
   const layerCode = isLayerAggregateId(node.id)
     ? (layerCodeOfAggregateId(node.id) as TopoLayerCode)
@@ -108,7 +130,8 @@ export function topologyNodePosition(node: GraphNode): Node3DPosition {
   const def = topoLayerDef(layerCode)
   const y = domainBandY(def.domain)
   const z = def.code === def.domain ? 0 : subLayerZ(def.code)
-  return { x: hashSpread(node.id, -220, 220), y, z, fx: null, fy: y, fz: z }
+  const x = isLayerAggregateId(node.id) ? 0 : hashSpread(node.id, -220, 220)
+  return { x, y, z, fx: null, fy: y, fz: z }
 }
 
 /** 知识节点：图谱分层 X 列固定 + 平面 Y 固定，z 自由。 */
@@ -248,8 +271,23 @@ export function buildLayered3DGraph(input: Layered3DGraphInput): Layered3DGraph 
     ? topologyAssociationsForKnowledge(selectedNodeId!, crossLinks, kgLinks, 3)
     : new Set<string>()
 
-  // 节点坐标：拓扑节点按 S1→S3 域/子层定 Y/Z；知识节点按图谱分层定 X。
-  for (const node of graph.nodes) applyNodePosition(node, topologyNodePosition(node))
+  // 节点坐标：拓扑节点按 S1→S3 域/子层定 Y/Z，成员按子层带均匀排布 X（issue#8 自动布局，
+  // 拉均匀、不重叠、层级清晰）；DETACHED 关键对象（层收起但成员可见）右移避让聚合头；
+  // 知识节点按图谱分层定 X。
+  for (const node of graph.nodes) {
+    const pos = topologyNodePosition(node)
+    if (!isLayerAggregateId(node.id)) {
+      const sub = node.group as TopoLayerCode
+      const memberIds = model.memberIdsByLayer.get(sub) ?? []
+      const idx = memberIds.indexOf(node.id)
+      pos.x = memberBandX(idx, memberIds.length)
+      if (expandedLayers[sub] !== true) {
+        // 层收起仍可见的成员 = DETACHED 关键对象：聚合头居中 x=0，成员右移避让不重叠。
+        pos.x = DETACHED_X_OFFSET + (idx % 8) * MEMBER_X_SPACING
+      }
+    }
+    applyNodePosition(node, pos)
+  }
   for (const node of kgNodes) applyNodePosition(node, knowledgeNodePosition(node))
   const nodes = [...graph.nodes, ...kgNodes]
   const nodesById = new Map(nodes.map((node) => [node.id, node]))

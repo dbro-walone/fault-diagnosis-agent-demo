@@ -420,13 +420,15 @@ export default function Layered3DCanvas(props: Layered3DCanvasProps) {
   }
 
   /**
-   * 诊断期间布局冻结（本轮优化 #1）：诊断执行（diagnosisScan 非空）时把拓扑/知识节点
-   * 的自由轴（拓扑 x / 知识 z）也钉到当前已结算坐标，d3 力导向无法再把节点推走——
-   * 位置稳定不闪，只做亮度/高亮变化。退出诊断后解除冻结、恢复力导向。
+   * issue#8 浏览态冷冻（需求2①）：浏览态与诊断态都锁层高/节点位置 —— 把拓扑/知识节点
+   * 的自由轴（拓扑 x / 知识 z）钉到当前坐标，d3 力导向无法再把节点推走，节点位置稳定不闪。
+   * 保留相机视角切换、展开/聚合、放大缩小；节点拖拽关闭（enableNodeDrag(false)），
+   * 不允许浏览态拖拽把层/节点拉散。展开聚合层是一次性主动动作：成员节点首次出现即按
+   * memberBandX 均匀排布（buildLayered3DGraph 已定坐标），随后恢复稳定。
    * 只解除"由冻结打上的钉"（__frozenByDiagnosis 标记），不干扰用户拖拽后 rePinNode
-   * 停留的自由轴钉。
+   * 停留的自由轴钉（当前拖拽关闭，rePinNode 保留为防御）。
    */
-  const freezeLayout = diagnosisScan != null
+  const freezeLayout = true
   const freezeFreeAxis = (node: GraphNode): void => {
     const raw = node as unknown as Record<string, unknown>
     if (node.plane === 'topology') {
@@ -704,7 +706,9 @@ export default function Layered3DCanvas(props: Layered3DCanvasProps) {
       graphInstance
         .backgroundColor('#0f1117')
         .showNavInfo(false)
-        .enableNodeDrag(true)
+        // issue#8 需求2①：浏览态严格冷冻，关闭节点拖拽（不把节点/层拉散）。
+        // 相机旋转/缩放与双击展开/收起保留。
+        .enableNodeDrag(false)
         .nodeRelSize(NODE_REL_SIZE)
         .nodeVal((node: GraphNode) => node.val)
         .nodeOpacity(0.85)
@@ -820,12 +824,14 @@ export default function Layered3DCanvas(props: Layered3DCanvasProps) {
     chipsByAnchorId,
   ])
 
-  // --- issue#7 C3：排查推进到某对象时自动展开其聚合层，使其可见并高亮 ----
-  // 诊断推进到 active_query_object_id 时，若该对象所属域/子层当前收起，自动展开
-  // （域收起 → 展开域；域已展开但子层收起 → 展开子层）。只处理"当前收起"的层，
-  // 幂等，不反向收拢用户手动展开的层。
+  // --- issue#7 C3 / issue#8 需求2③：诊断聚焦目标真实节点 —— 自动展开其聚合层 ----
+  // 诊断推进时，若 focus 目标（activeQuery > focus）处于被收起的聚合层内，画布自动展开到
+  // 该真实节点（域收起 → 先展开域，再展开子层；子层收起 → 展开子层）。展开后聚合头隐藏
+  // （需求1），真实成员占据并沿用 issue#7 的扫描/路径高亮/跟随。以 expandedLayers 为依赖，
+  // 逐层展开收敛（两次渲染展开两级），幂等；诊断结束 diagnosisScan 为空即停。
   useEffect(() => {
-    const focusId = diagnosisScan?.active_query_object_id ?? null
+    const focusId =
+      diagnosisScan?.active_query_object_id ?? diagnosisScan?.focus_object_id ?? null
     if (!focusId) return
     const node = model.nodesById.get(focusId)
     if (!node) return
@@ -839,7 +845,12 @@ export default function Layered3DCanvas(props: Layered3DCanvasProps) {
       autoExpandedLayerRef.current = sub
       onToggleLayerRef.current(sub)
     }
-  }, [diagnosisScan?.active_query_object_id, model])
+  }, [
+    diagnosisScan?.active_query_object_id,
+    diagnosisScan?.focus_object_id,
+    expandedLayers,
+    model,
+  ])
 
   // --- issue#6 阶段C：扫描雷达扫掠 RAF 动画（仅旋转当前扫描对象的扫掠精灵） ---
 
@@ -910,9 +921,9 @@ export default function Layered3DCanvas(props: Layered3DCanvasProps) {
         </div>
       )}
 
-      {/* 交互提示 */}
+      {/* 交互提示（issue#8：浏览态冷冻，节点位置锁定不可拖拽） */}
       <div className="pointer-events-none absolute bottom-3 left-1/2 z-10 -translate-x-1/2 rounded-lg border border-white/5 bg-[#11141c]/70 px-3 py-1.5 text-[10px] text-[#64748b] backdrop-blur-sm">
-        滚轮缩放 · 拖拽旋转 · 拖动节点 · 双击聚合层展开/收起 · 单击查看关联
+        滚轮缩放 · 拖拽旋转 · 双击聚合层展开/收起 · 单击查看关联
       </div>
 
       {/* 层图例（右侧，S1→S3 域带 + 图谱分层列） */}
