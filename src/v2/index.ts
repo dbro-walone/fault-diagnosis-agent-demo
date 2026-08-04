@@ -177,3 +177,79 @@ export {
   type ViewAction,
   type ViewLayerVisibility,
 } from './view-state'
+
+// 阶段6 —— 规范错误码（docs/19 §17.2）
+export {
+  ErrorPrefix,
+  errorCode,
+  FATAL_SILENT_REPAIRS,
+  ALL_ERROR_PREFIXES,
+} from './error-codes'
+
+// 阶段6 —— 工程接口基线（docs/19 §16）：Adapter / Topology / Knowledge / Runtime 四类契约
+export {
+  caseKnowledgeAdapter,
+  contractSurface,
+  type AdapterProfile,
+  type SessionInitRequest,
+  type ReleaseLedgerDigest,
+  type AdapterError,
+  type AdapterContract,
+  type ContractSurface,
+} from './contracts'
+
+// Topology Service（docs/19 §16.2 / §5.10）
+export {
+  query_topology,
+  query_topology_events,
+  find_paths,
+  find_shared_resources,
+  expand_by_relation,
+  createTopologyService,
+  type TopologyQueryRequest,
+  type TopologyQueryResult,
+  type TopologyPath,
+  type PathQueryOptions,
+  type SharedResourceQueryOptions,
+  type SharedResourceResult,
+  type ExpandResult,
+  type TopologyEventsQuery,
+  type TopologyService,
+} from './topology-service'
+
+// Knowledge Service（docs/19 §16.3 / §4.8）
+export {
+  match_entries,
+  expand_knowledge,
+  get_evidence_requirements,
+  createKnowledgeService,
+  type KnowledgeEntryMatchSet,
+  type KnownKnowledgeDelta,
+  type EvidenceRequirementItem,
+  type EvidenceRequirementSet,
+  type KnowledgeService,
+} from './knowledge-service'
+
+// Runtime Contract（docs/19 §16.4）
+export {
+  runtimeContract,
+  type RuntimeSessionHandle,
+  type RuntimeContract,
+} from './runtime-contract'
+
+// 阶段6 —— 校验器分层（docs/19 §17.1）
+export {
+  VALIDATORS,
+  VALIDATORS_DETERMINISM,
+  VALIDATOR_CATALOG,
+  validateAll,
+  validateCasePackage,
+  validateAdapterIntegration,
+  validateRuntimeReplay,
+  validateDeterministicStream,
+  validateFrontendContract,
+  type ValidatorKind,
+  type ValidatorIssue,
+  type ValidatorResult,
+  type ValidatorRunner,
+} from './validators'

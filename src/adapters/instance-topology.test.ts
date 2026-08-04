@@ -239,7 +239,7 @@ describe('§5.11 校验器', () => {
       { resource_id: 'a', resource_type: 'NOT_A_REAL_TYPE', name: 'A' },
     ], [])
     const issues = validateInstanceTopology(snap, kgRef)
-    expect(issues.some((i) => i.code === 'R1')).toBe(true)
+    expect(issues.some((i) => i.code === 'IT-KG-001')).toBe(true)
   })
 
   it('R4：多容器报错（原始快照含两个 CONTAINS 父边）', () => {
@@ -269,7 +269,7 @@ describe('§5.11 校验器', () => {
       ],
     }
     const issues = validateInstanceTopology(bad, kgRef)
-    expect(issues.some((i) => i.code === 'R4')).toBe(true)
+    expect(issues.some((i) => i.code === 'IT-SEM-001')).toBe(true)
   })
 
   it('R6：外部与内部非边界资源直接 CONNECTS_TO 报错', () => {
@@ -283,7 +283,7 @@ describe('§5.11 校验器', () => {
     ]
     const snap = convertV1ToInstanceTopology('t', resources, edges)
     const issues = validateInstanceTopology(snap, kgRef)
-    expect(issues.some((i) => i.code === 'R6')).toBe(true)
+    expect(issues.some((i) => i.code === 'IT-SEM-003')).toBe(true)
   })
 
   it('R10：FAILOVER_TO 出现在稳定关系中报错', () => {
@@ -313,6 +313,6 @@ describe('§5.11 校验器', () => {
       ],
     }
     const issues = validateInstanceTopology(bad, kgRef)
-    expect(issues.some((i) => i.code === 'R10')).toBe(true)
+    expect(issues.some((i) => i.code === 'IT-STATE-001')).toBe(true)
   })
 })
