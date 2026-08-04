@@ -23,6 +23,14 @@ import {
   type PlannerTarget,
   type RuntimeEvent,
 } from './runtime-types'
+import {
+  activeBindingsOf,
+  buildKnowledgePlaneIndex,
+  deriveDynamicBindings,
+  resourceTypeResolverOf,
+  type CrossPlaneBinding,
+} from './cross-plane-binding'
+import type { InstanceTopologySnapshot } from '../adapters/v1_to_instance_topology'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 用户选择（Projection-only，与 agent_focus 分离）
@@ -522,6 +530,10 @@ export class ProjectionStore {
   /** issue#6 阶段C：知识图谱节点/连线参考（静态 model knowledge 平面），仅作图谱点亮推导。 */
   private knowledgeNodes: KnowledgeGraphNodeRef[] | null = null
   private knowledgeLinks: KnowledgeGraphLinkRef[] | null = null
+  /** 阶段3：Case 静态 CrossPlaneBinding（INSTANCE_OF / CONFORMS_TO / ENTRY_OBJECT_TYPE）。 */
+  private staticBindings: CrossPlaneBinding[] | null = null
+  /** 阶段3：InstanceTopology 快照（供动态 Binding 的对象资源类型解析）。 */
+  private instanceTopology: InstanceTopologySnapshot | null = null
 
   /**
    * 绑定 Runtime 快照（只读消费，不改写 Runtime）。
@@ -529,6 +541,7 @@ export class ProjectionStore {
    * （原始日志行、未被证据引用的告警等）。未提供时回退快照内已发现 Fact。
    * context.knowledgeNodes/knowledgeLinks：知识图谱参考（来自静态 model），供"图谱原始点 +
    * 关联知识点点亮"推导；未提供时图谱点亮为空但不抛错。
+   * context.staticBindings / context.instanceTopology：阶段3 跨平面 Binding 数据。
    */
   bind(
     snapshot: DiagnosisSessionSnapshot,
@@ -536,12 +549,16 @@ export class ProjectionStore {
       observationsFacts?: CanonicalFact[]
       knowledgeNodes?: KnowledgeGraphNodeRef[]
       knowledgeLinks?: KnowledgeGraphLinkRef[]
+      staticBindings?: CrossPlaneBinding[]
+      instanceTopology?: InstanceTopologySnapshot
     },
   ): void {
     this.snapshot = snapshot
     this.observationsFacts = context?.observationsFacts ?? null
     this.knowledgeNodes = context?.knowledgeNodes ?? null
     this.knowledgeLinks = context?.knowledgeLinks ?? null
+    this.staticBindings = context?.staticBindings ?? null
+    this.instanceTopology = context?.instanceTopology ?? null
   }
 
   get userSelection(): UserSelection {
@@ -812,6 +829,24 @@ export class ProjectionStore {
   /** 当前快照的活动逻辑路径（根因起点 → 证据/事实对象 → 影响链），供画布渲染红线。 */
   activePath(): string[] {
     return activeDiagnosisPath(this.require())
+  }
+
+  // —— 阶段3：跨平面 Binding ——
+  /**
+   * 当前 ACTIVE CrossPlaneBinding（docs/19 §6.2：前端只绘制 ACTIVE）。
+   * = 静态 Binding（恒 ACTIVE）+ 由快照派生的动态 Binding（候选/证据/根因）。
+   * 回放时快照为当时状态，动态 Binding 随之恢复，不泄露未来。
+   * 未提供静态 Binding / InstanceTopology 时回退空集（不抛错）。
+   */
+  activeBindings(): CrossPlaneBinding[] {
+    const s = this.require()
+    const staticPart = this.staticBindings ?? []
+    const index = buildKnowledgePlaneIndex()
+    const resourceTypeOf = this.instanceTopology
+      ? resourceTypeResolverOf(this.instanceTopology)
+      : () => null
+    const dynamicPart = deriveDynamicBindings(s, resourceTypeOf, index)
+    return activeBindingsOf([...staticPart, ...dynamicPart])
   }
 }
 

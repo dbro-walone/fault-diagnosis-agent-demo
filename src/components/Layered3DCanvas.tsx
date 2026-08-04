@@ -3,7 +3,7 @@ import * as THREE from 'three'
 import { ScanSearch } from 'lucide-react'
 
 import { LensId } from '../../schemas'
-import { KNOWLEDGE_LAYERS } from '@/lib/knowledge-plane'
+import { isStaticCrossRelation, KNOWLEDGE_LAYERS } from '@/lib/knowledge-plane'
 import {
   isLayerAggregateId,
   layerCodeOfAggregateId,
@@ -51,7 +51,7 @@ import {
   type MetricChip,
 } from '@/lib/three-visuals'
 import { LINK_COLORS, STATUS_COLORS, cn } from '@/lib/utils'
-import type { DiagnosisScanVM, ExaminedVerdict } from '../v2'
+import type { CrossPlaneBinding, DiagnosisScanVM, ExaminedVerdict } from '../v2'
 
 // ---------------------------------------------------------------------------
 // 相机预设（分层 3D：S1 顶带 y≈134 … S3 底带 y≈6，知识平面 y=-70）
@@ -178,6 +178,11 @@ export interface Layered3DCanvasProps {
   visibleKgLayers?: Record<string, boolean>
   /** issue#6 阶段C：逐对象诊断循环 view-model（聚焦→查询→判断→推进 + 图谱点亮）。 */
   diagnosisScan?: DiagnosisScanVM | null
+  /**
+   * 阶段3：当前 ACTIVE CrossPlaneBinding（docs/19 §6.2）。
+   * 跨平面光柱/曲线只由 ACTIVE Binding 生成；诊断推进时动态绑定激活即点亮。
+   */
+  activeBindings?: CrossPlaneBinding[]
 }
 
 // ---------------------------------------------------------------------------
@@ -204,6 +209,7 @@ export default function Layered3DCanvas(props: Layered3DCanvasProps) {
     knowledgeLinks,
     visibleKgLayers,
     diagnosisScan,
+    activeBindings,
   } = props
 
   const containerRef = useRef<HTMLDivElement>(null)
@@ -257,6 +263,7 @@ export default function Layered3DCanvas(props: Layered3DCanvasProps) {
         logicPath,
         selectedNodeId,
         aggregateContext,
+        activeBindings,
       }),
     [
       model,
@@ -268,6 +275,7 @@ export default function Layered3DCanvas(props: Layered3DCanvasProps) {
       logicPath,
       selectedNodeId,
       aggregateContext,
+      activeBindings,
     ],
   )
 
@@ -634,9 +642,11 @@ export default function Layered3DCanvas(props: Layered3DCanvasProps) {
     if (pathVisual.edgeKeys.has(key)) return PATH_COLORS.edge
     if (link.category === 'cross') {
       if (isCrossLinkActive(link)) return 'rgba(20, 184, 166, 0.95)'
-      return link.relation === 'INSTANCE_OF'
+      // 阶段3：静态 Binding（INSTANCE_OF 等）淡显；动态 Binding（候选/证据/根因
+      // 激活的 ACTIVE）跨层点亮为 teal。
+      return isStaticCrossRelation(link.relation)
         ? 'rgba(148, 163, 184, 0.22)'
-        : 'rgba(148, 163, 184, 0.42)'
+        : 'rgba(20, 184, 166, 0.5)'
     }
     if (link.category === 'topology') return LINK_COLORS.topology
     if (link.category === 'knowledge') return LINK_COLORS.knowledge

@@ -7,6 +7,7 @@
  */
 
 import * as THREE from 'three'
+import { isStaticCrossRelation } from './knowledge-plane'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // issue#7 P0 —— three.js OrbitControls 多指针状态机缺陷修补
@@ -712,7 +713,8 @@ export function linkWidthFor(link: GraphLink, businessPath: boolean): number {
   // F2：红色虚拟逻辑链（根因 → 证据 → 影响）——粗线突出，与物理连线区分。
   if (link.category === 'logic') return 3.2
   if (link.category === 'knowledge') return 0.7 + (link.weight ?? 0.5) * 0.5
-  if (link.category === 'cross') return link.relation === 'INSTANCE_OF' ? 0.5 : 1.1
+  // 阶段3：静态 Binding（INSTANCE_OF 等）淡显细线；动态 Binding 激活后粗一档。
+  if (link.category === 'cross') return isStaticCrossRelation(link.relation) ? 0.5 : 1.3
   return 1.1
 }
 

@@ -51,6 +51,33 @@ export {
   type TraceScorePoint,
 } from './case-adapter'
 
+// 阶段3 —— CrossPlaneBinding 跨平面绑定（docs/19 §6）
+export {
+  BindingPlane,
+  BindingStatus,
+  CrossPlaneBindingType,
+  STATIC_BINDING_TYPES,
+  DYNAMIC_BINDING_TYPES,
+  ALL_BINDING_TYPES,
+  transitionBindingStatus,
+  buildKnowledgePlaneIndex,
+  compileStaticBindings,
+  matchEvidenceToRule,
+  deriveDynamicBindings,
+  activeBindingsOf,
+  resourceTypeResolverOf,
+  v1TypeToCode,
+  validateCrossPlaneBindings,
+  ACTIVE_HYPOTHESIS_STATUSES,
+  type CrossPlaneBinding,
+  type BindingCreatedBy,
+  type BindingLifecycleTrigger,
+  type KnowledgePlaneIndex,
+  type KnowledgeRuleDef,
+  type TopologyCapabilityDef,
+  type BindingValidationIssue,
+} from './cross-plane-binding'
+
 // 纯函数归并器
 export {
   createEmptySnapshot,

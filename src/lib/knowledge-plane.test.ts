@@ -1,8 +1,9 @@
 // 知识图谱下层（主画布 issue #4 落地补全）：布局 / 跨层映射 / 关联集 纯函数校验。
 // KnowledgeGraphPackage 3.0.0 四层结构（Domain Root + L1~L4）：
 //   1. layoutKnowledgeGraph：全部知识节点落位、连线端点可见、画布尺寸为正；
-//   2. buildCrossLayerLinks：INSTANCE_OF 按 resource_type 通用解析（任意 Case 成立），
-//      显式 APPLICABLE_FAULT_MODE / EVIDENCE_MAPPING 在 id 命中时并入；
+//   2. buildCrossLayerLinks：阶段3 起只消费 ACTIVE CrossPlaneBinding（docs/19 §6.2），
+//      静态 INSTANCE_OF 淡显、候选/证据/根因动态 Binding 跨层点亮；
+//      未传 bindings 时回退 INSTANCE_OF 按 resource_type 通用解析；
 //   3. knowledgeAssociations：拓扑实例 → 资源类型 → 场景/模式 → 机理/证据要求 → 规则；
 //   4. topologyAssociationsForKnowledge：图谱节点 → 关联拓扑实例。
 // 只读 model / case 数据；不做诊断计算。
@@ -18,6 +19,14 @@ import {
   topologyAssociationsForKnowledge,
   type CrossRelation,
 } from './knowledge-plane'
+import {
+  activeBindingsOf,
+  buildKnowledgePlaneIndex,
+  deriveDynamicBindings,
+  loadAdaptedCase,
+  replayCase,
+  resourceTypeResolverOf,
+} from '../v2'
 
 const model = loadModelData()
 const knowledgeNodes = model.nodes.filter((n) => n.plane === 'knowledge')
@@ -98,31 +107,75 @@ describe('knowledge-plane 跨层映射', () => {
     }
   })
 
-  it('显式 APPLICABLE_FAULT_MODE / EVIDENCE_MAPPING 在 id 命中时并入', () => {
-    // controller_warm_reset_001 含 controller-0a，与 cross-layer-mappings.json 命中。
+  it('ACTIVE CrossPlaneBinding：静态 INSTANCE_OF 淡显 + 动态候选/证据/根因点亮', () => {
+    // controller_warm_reset_001 完整回放后的 ACTIVE Binding 集（静态 + 动态派生）。
     const topo = buildLayeredModelData('controller_warm_reset_001')
-    const cross = buildCrossLayerLinks(topo.nodes, knowledgeNodes)
-    const fm = cross.filter(
-      (l) => l.topologyId === 'controller-0a' && l.relation === 'APPLICABLE_FAULT_MODE',
+    const adapted = loadAdaptedCase('controller_warm_reset_001')
+    const snap = replayCase('controller_warm_reset_001')
+    const index = buildKnowledgePlaneIndex()
+    const dynamic = deriveDynamicBindings(
+      snap,
+      resourceTypeResolverOf(adapted.instanceTopology),
+      index,
     )
-    expect(fm.length).toBeGreaterThan(0)
-    expect(fm.some((l) => l.knowledgeId === kgNodeId('L2', 'CONTROLLER_WARM_RESET'))).toBe(true)
-    const em = cross.filter(
-      (l) => l.topologyId === 'controller-0a' && l.relation === 'EVIDENCE_MAPPING',
-    )
-    expect(em.length).toBeGreaterThan(0)
-    expect(em.some((l) => l.knowledgeId === kgNodeId('L4', 'CONTROLLER_RESET_ALARM_RULE'))).toBe(true)
+    const cross = buildCrossLayerLinks(topo.nodes, knowledgeNodes, activeBindingsOf([...adapted.staticBindings, ...dynamic]))
+
+    // 静态 INSTANCE_OF：controller-0a → ot-controller（始终存在）。
+    expect(
+      cross.some(
+        (l) =>
+          l.topologyId === 'controller-0a' &&
+          l.relation === 'INSTANCE_OF' &&
+          l.knowledgeId === kgNodeId('L1', 'CONTROLLER'),
+      ),
+    ).toBe(true)
+
+    // 根因确认：ROOT_CAUSE_CONFIRMED_AS controller-0a → 控制器热复位（动态点亮）。
+    expect(
+      cross.some(
+        (l) =>
+          l.topologyId === 'controller-0a' &&
+          l.relation === 'ROOT_CAUSE_CONFIRMED_AS' &&
+          l.knowledgeId === kgNodeId('L2', 'CONTROLLER_WARM_RESET'),
+      ),
+    ).toBe(true)
+
+    // 证据命中规则：EVIDENCE_MATCHES_RULE controller-0a → 复位严重告警规则。
+    expect(
+      cross.some(
+        (l) =>
+          l.topologyId === 'controller-0a' &&
+          l.relation === 'EVIDENCE_MATCHES_RULE' &&
+          l.knowledgeId === kgNodeId('L4', 'CONTROLLER_RESET_ALARM_RULE'),
+      ),
+    ).toBe(true)
+
+    // 被排除候选的 CANDIDATE_* 绑定为 REVOKED，不进入 ACTIVE 连线。
+    expect(
+      cross.some((l) => l.topologyId === 'storage-pool-01' && l.relation === 'CANDIDATE_OF_FAULT_MODE'),
+    ).toBe(false)
   })
 
-  it('跨层映射端点均存在于对应图内', () => {
+  it('跨层映射端点均存在于对应图内，关系为合法 Binding 类型', () => {
     const topo = buildLayeredModelData('layered_topology_demo_001')
-    const cross = buildCrossLayerLinks(topo.nodes, knowledgeNodes)
+    // 浏览态：仅静态 Binding（ACTIVE）。
+    const adapted = loadAdaptedCase('layered_topology_demo_001')
+    const cross = buildCrossLayerLinks(topo.nodes, knowledgeNodes, adapted.staticBindings)
     const topoIds = new Set(topo.nodes.map((n) => n.id))
     const kgIds = new Set(knowledgeNodes.map((n) => n.id))
+    const legalRelations: CrossRelation[] = [
+      'INSTANCE_OF',
+      'CONFORMS_TO',
+      'ENTRY_OBJECT_TYPE',
+      'CANDIDATE_ON_RESOURCE',
+      'CANDIDATE_OF_FAULT_MODE',
+      'EVIDENCE_MATCHES_RULE',
+      'ROOT_CAUSE_CONFIRMED_AS',
+    ]
     for (const l of cross) {
       expect(topoIds.has(l.topologyId), `topology ${l.topologyId}`).toBe(true)
       expect(kgIds.has(l.knowledgeId), `knowledge ${l.knowledgeId}`).toBe(true)
-      expect(['INSTANCE_OF', 'APPLICABLE_FAULT_MODE', 'EVIDENCE_MAPPING'] as CrossRelation[]).toContain(l.relation)
+      expect(legalRelations).toContain(l.relation)
     }
   })
 })

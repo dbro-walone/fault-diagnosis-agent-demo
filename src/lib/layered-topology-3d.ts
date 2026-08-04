@@ -32,6 +32,7 @@ import {
   topologyAssociationsForKnowledge,
   type CrossLayerLink,
 } from './knowledge-plane'
+import type { CrossPlaneBinding } from '../v2/cross-plane-binding'
 import type {
   ActiveGraph,
   AggregateSummary,
@@ -196,6 +197,11 @@ export interface Layered3DGraphInput {
   selectedNodeId: string | null
   /** 聚合摘要运行时上下文（docs/05 §5）。 */
   aggregateContext: AggregateSummaryContext
+  /**
+   * 阶段3：当前 ACTIVE CrossPlaneBinding（docs/19 §6.2）。
+   * 跨层映射连线只由 ACTIVE Binding 生成；未传时回退通用 INSTANCE_OF 解析。
+   */
+  activeBindings?: CrossPlaneBinding[]
 }
 
 export interface Layered3DGraph extends ActiveGraph {
@@ -230,8 +236,8 @@ export function buildLayered3DGraph(input: Layered3DGraphInput): Layered3DGraph 
     (l) => kgNodeIds.has(l.source as string) && kgNodeIds.has(l.target as string),
   )
 
-  // 跨层映射 + 选中高亮（纯函数，复用 knowledge-plane 语义）。
-  const crossLinks = buildCrossLayerLinks(model.nodes, kgNodes)
+  // 跨层映射 + 选中高亮（阶段3：只消费 ACTIVE CrossPlaneBinding；未传时兼容回退）。
+  const crossLinks = buildCrossLayerLinks(model.nodes, kgNodes, input.activeBindings)
   const selectedIsTopology =
     selectedNodeId != null && model.nodesById.has(selectedNodeId)
   const selectedIsKnowledge = selectedNodeId != null && kgNodeIds.has(selectedNodeId)

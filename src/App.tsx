@@ -23,6 +23,7 @@ import {
   loadAdaptedCase,
   ProjectionStore,
   activeDiagnosisPath,
+  activeBindingsOf,
   type DiagnosisRuntime,
 } from './v2'
 
@@ -367,10 +368,14 @@ export default function App() {
     // issue#6 阶段B：传入 Case 全量观测 Fact（原始日志/未被证据引用的告警），
     // 供"对象观测三标签"补全 items 内容（快照内已发现 Fact 优先，回放不泄露未来）。
     // issue#6 阶段C：传入知识图谱参考，供"图谱原始点 + 关联知识点点亮"推导。
+    // 阶段3：传入静态 Binding + InstanceTopology，供"当前 ACTIVE CrossPlaneBinding"投影。
+    const adapted = loadAdaptedCase(runtime?.caseId ?? '')
     store.bind(snapshot, {
-      observationsFacts: loadAdaptedCase(runtime?.caseId ?? '').facts,
+      observationsFacts: adapted.facts,
       knowledgeNodes: knowledgeRefs,
       knowledgeLinks: knowledgeLinkRefs,
+      staticBindings: adapted.staticBindings,
+      instanceTopology: adapted.instanceTopology,
     })
     return {
       store,
@@ -379,8 +384,16 @@ export default function App() {
       planner: store.plannerTargets(),
       timeline: store.timeline(),
       scan: store.diagnosisScan(),
+      bindings: store.activeBindings(),
     }
   }, [snapshot, runtime, knowledgeRefs, knowledgeLinkRefs])
+
+  // 阶段3：画布跨平面光柱只消费 ACTIVE CrossPlaneBinding。
+  // 诊断会话中取投影 Store 汇出（静态 + 动态 ACTIVE）；浏览态取当前分层 Case 静态 Binding。
+  const canvasActiveBindings = useMemo(() => {
+    if (runtime && vms) return vms.bindings
+    return activeBindingsOf(loadAdaptedCase(layeredCaseId).staticBindings)
+  }, [runtime, vms, layeredCaseId])
 
   return (
     <div className="relative h-screen w-screen overflow-hidden bg-[#0f1117] text-[#e2e8f0]">
@@ -415,6 +428,7 @@ export default function App() {
         knowledgeLinks={knowledgeLinks}
         visibleKgLayers={visibleKgLayers}
         diagnosisScan={vms?.scan ?? null}
+        activeBindings={canvasActiveBindings}
       />
 
       {/* F0：诊断会话默认收起 Object Explorer；退出/手动展开后恢复 */}

@@ -5,10 +5,10 @@
  * GraphLink 契约（src/lib/model-loader），本模块提供：
  *   - layoutKnowledgeGraph：按图谱分层（OBJECT_TYPE → SYMPTOM → FAULT_MODE/MECHANISM
  *     → EVIDENCE_RULE/CASE）把知识节点排成纵向列布局，返回节点坐标/画布尺寸；
- *   - buildCrossLayerLinks：拓扑实例 ↔ 图谱节点的跨层映射。INSTANCE_OF 按
- *     resource_type（图谱节点 attributes.resource_types）通用解析（不依赖具体 Case 的
- *     实例 id，任意分层 Case 都成立）；再叠加 cross-layer-mappings.json 中与当前
- *     拓扑实例 id 命中的 APPLICABLE_FAULT_MODE / EVIDENCE_MAPPING 显式映射。
+ *   - buildCrossLayerLinks：拓扑实例 ↔ 图谱节点的跨层映射。阶段3 起只消费
+ *     ACTIVE CrossPlaneBinding（docs/19 §6.2，跨平面光柱/曲线只允许 ACTIVE），
+ *     不再按同名字符串/静态文件猜测；未传 bindings 时回退按 resource_type 通用
+ *     INSTANCE_OF 解析（兼容旧画布）。
  *   - knowledgeAssociations / topologyAssociationsForKnowledge：点选一侧时求另一侧
  *     关联集（经知识图谱出边 BFS），驱动跨层高亮。
  *
@@ -16,7 +16,8 @@
  */
 
 import type { GraphLink, GraphNode } from './model-loader'
-import crossMappingsJson from '../../model/mappings/cross-layer-mappings.json'
+import type { CrossPlaneBinding } from '../v2/cross-plane-binding'
+import { STATIC_BINDING_TYPES } from '../v2/cross-plane-binding'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 图谱分层定义（KnowledgeGraphPackage 3.0.0：Domain Root + L1~L4，docs/19 §4.3）
@@ -124,13 +125,18 @@ export function layoutKnowledgeGraph(
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 跨层映射：拓扑实例 ↔ 图谱节点
+// 跨层映射：拓扑实例 ↔ 图谱节点（阶段3：只基于 ACTIVE CrossPlaneBinding）
 // ─────────────────────────────────────────────────────────────────────────────
 
+/** 跨层映射关系（与 CrossPlaneBindingType 对齐；保留旧语义命名以便兼容）。 */
 export type CrossRelation =
   | 'INSTANCE_OF'
-  | 'APPLICABLE_FAULT_MODE'
-  | 'EVIDENCE_MAPPING'
+  | 'CONFORMS_TO'
+  | 'ENTRY_OBJECT_TYPE'
+  | 'CANDIDATE_ON_RESOURCE'
+  | 'CANDIDATE_OF_FAULT_MODE'
+  | 'EVIDENCE_MATCHES_RULE'
+  | 'ROOT_CAUSE_CONFIRMED_AS'
 
 export interface CrossLayerLink {
   id: string
@@ -141,18 +147,10 @@ export interface CrossLayerLink {
   relation: CrossRelation
 }
 
-interface CrossMappingEntry {
-  mapping_id: string
-  relation_type: string
-  source_id: string
-  target_id: string
+/** 静态跨层关系（淡显）；其余为动态诊断点亮关系。 */
+export function isStaticCrossRelation(relation: string): boolean {
+  return STATIC_BINDING_TYPES.has(relation as CrossRelation)
 }
-
-interface CrossMappingsDoc {
-  mappings: CrossMappingEntry[]
-}
-
-const CROSS_MAPPINGS = (crossMappingsJson as CrossMappingsDoc).mappings ?? []
 
 /** 图谱 L1 RESOURCE_TYPE 节点（properties.resource_types ∪ code）→ 节点 id（大写规整）。 */
 function resourceTypeToObjectType(nodes: GraphNode[]): Map<string, string> {
@@ -176,20 +174,51 @@ function resourceTypeToObjectType(nodes: GraphNode[]): Map<string, string> {
 }
 
 /**
- * 构建拓扑 ↔ 图谱跨层映射连线：
- *   - INSTANCE_OF：按实例 resource_type → 图谱对象类型（通用，任意 Case 成立）；
- *   - APPLICABLE_FAULT_MODE / EVIDENCE_MAPPING：取 cross-layer-mappings.json 中与
- *     当前拓扑实例 id 命中的显式映射（如 controller-0a → 控制器热复位/证据规则）。
+ * 构建拓扑 ↔ 图谱跨层映射连线（docs/19 §6.2：前端只绘制 ACTIVE Binding）。
+ *
+ * 传入 ACTIVE CrossPlaneBinding 时：把每个 Binding 的 source/target 端点落到
+ * 拓扑/知识节点（CONFORMS_TO 指向 `kg:capability:*` 无可见节点，自动跳过）；
+ * 同一端点对去重（CANDIDATE_ON_RESOURCE 与 CANDIDATE_OF_FAULT_MODE 共享端点）。
+ *
+ * 未传 bindings（旧画布兼容）：回退按实例 resource_type → 图谱对象类型的
+ * INSTANCE_OF 通用解析（任意 Case 成立，不再读取静态映射文件）。
  */
 export function buildCrossLayerLinks(
   topologyNodes: GraphNode[],
   knowledgeNodes: GraphNode[],
+  bindings?: CrossPlaneBinding[],
 ): CrossLayerLink[] {
   const result: CrossLayerLink[] = []
-  const topoById = new Set(topologyNodes.map((n) => n.id))
-  const kgById = new Set(knowledgeNodes.map((n) => n.id))
-  const byResourceType = resourceTypeToObjectType(knowledgeNodes)
 
+  if (bindings) {
+    const topoById = new Set(topologyNodes.map((n) => n.id))
+    const kgById = new Set(knowledgeNodes.map((n) => n.id))
+    const seenPairs = new Set<string>()
+    for (const b of bindings) {
+      if (b.status !== 'ACTIVE') continue
+      let topologyId: string | null = null
+      let knowledgeId: string | null = null
+      if (b.source_plane === 'TOPOLOGY') topologyId = b.source_ref
+      else knowledgeId = b.source_ref
+      if (b.target_plane === 'TOPOLOGY') topologyId = b.target_ref
+      else knowledgeId = b.target_ref
+      if (!topologyId || !knowledgeId) continue
+      if (!topoById.has(topologyId) || !kgById.has(knowledgeId)) continue
+      const key = `${topologyId}|${knowledgeId}`
+      if (seenPairs.has(key)) continue
+      seenPairs.add(key)
+      result.push({
+        id: b.binding_id,
+        topologyId,
+        knowledgeId,
+        relation: b.binding_type,
+      })
+    }
+    return result
+  }
+
+  // —— 无 bindings 的兼容回退：INSTANCE_OF 通用解析 ——
+  const byResourceType = resourceTypeToObjectType(knowledgeNodes)
   for (const topo of topologyNodes) {
     const otId = byResourceType.get((topo.kind ?? '').trim().toUpperCase())
     if (otId) {
@@ -201,19 +230,6 @@ export function buildCrossLayerLinks(
       })
     }
   }
-
-  for (const m of CROSS_MAPPINGS) {
-    if (!topoById.has(m.source_id) || !kgById.has(m.target_id)) continue
-    if (m.relation_type === 'APPLICABLE_FAULT_MODE' || m.relation_type === 'EVIDENCE_MAPPING') {
-      result.push({
-        id: m.mapping_id,
-        topologyId: m.source_id,
-        knowledgeId: m.target_id,
-        relation: m.relation_type,
-      })
-    }
-  }
-
   return result
 }
 
@@ -262,6 +278,12 @@ export function reachableKnowledgeNodes(
 /**
  * 拓扑实例 → 其下层图谱关联节点集：从该实例的跨层映射目标（对象类型/故障模式/
  * 证据规则）沿知识图谱出边展开（覆盖 现象 → 模式 → 机制 → 证据 → 案例）。
+ *
+ * 阶段3：静态 INSTANCE_OF 目标（L1 RESOURCE_TYPE）的反向 APPLIES_TO_TYPE 前驱
+ * 提供"该类型适用哪些故障模式/场景"——旧 cross-layer-mappings.json 里
+ * APPLICABLE_FAULT_MODE 静态映射的数据驱动等价（任意 Case 成立，无 case_id 特判）。
+ * 诊断态下动态 Binding（CANDIDATE / EVIDENCE_MATCHES_RULE / ROOT_CAUSE）的
+ * 目标直接入起点，点亮范围随诊断推进。
  */
 export function knowledgeAssociations(
   topologyId: string,
@@ -269,10 +291,21 @@ export function knowledgeAssociations(
   knowledgeLinks: GraphLink[],
   depth = 3,
 ): Set<string> {
-  const startIds = crossLinks
-    .filter((l) => l.topologyId === topologyId)
-    .map((l) => l.knowledgeId)
-  return reachableKnowledgeNodes(startIds, knowledgeLinks, depth)
+  const start = new Set(
+    crossLinks
+      .filter((l) => l.topologyId === topologyId)
+      .map((l) => l.knowledgeId),
+  )
+  // 反向 APPLIES_TO_TYPE：fm/scenario --APPLIES_TO_TYPE→ RESOURCE_TYPE 节点。
+  for (const l of crossLinks) {
+    if (l.topologyId !== topologyId || l.relation !== 'INSTANCE_OF') continue
+    for (const link of knowledgeLinks) {
+      if (link.relation === 'APPLIES_TO_TYPE' && link.target === l.knowledgeId) {
+        start.add(link.source as string)
+      }
+    }
+  }
+  return reachableKnowledgeNodes([...start], knowledgeLinks, depth)
 }
 
 /**

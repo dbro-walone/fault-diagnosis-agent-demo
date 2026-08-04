@@ -19,6 +19,11 @@ import {
   type InstanceTopologySnapshot,
 } from '../adapters/v1_to_instance_topology'
 import {
+  buildKnowledgePlaneIndex,
+  compileStaticBindings,
+  type CrossPlaneBinding,
+} from './cross-plane-binding'
+import {
   CandidateStatus,
   EvidenceEffect,
   EvidenceQuality,
@@ -459,6 +464,10 @@ export interface AdaptedCase {
   edges: V1Edge[]
   /** InstanceTopology Contract 1.0 规范快照（docs/19 §5）——由同一 V1 转换器编译。 */
   instanceTopology: InstanceTopologySnapshot
+  /** 阶段3：静态 CrossPlaneBinding（INSTANCE_OF / CONFORMS_TO / ENTRY_OBJECT_TYPE，均 ACTIVE）。 */
+  staticBindings: CrossPlaneBinding[]
+  /** 阶段3：resource_id → resource_type_code 索引（供 EVIDENCE_MATCHES_RULE 对象类型门）。 */
+  resourceTypeByObject: Map<string, string>
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -988,6 +997,21 @@ export function loadAdaptedCase(caseId: string): AdaptedCase {
   const conclusion = buildConclusion(pkg)
   const traceByCandidate = buildTrace(pkg)
   const symptom = buildSymptom(pkg)
+  const instanceTopology = convertV1ToInstanceTopology(caseId, pkg.resources, pkg.edges)
+
+  // 阶段3：静态 CrossPlaneBinding 编译（docs/19 §6.2 静态行）。
+  // 入口对象取"用户公开的原始现象"命中的首个、且其资源类型在 L1 有对应节点的对象
+  // （§6.3 场景入口匹配只允许公开信息；入口类型无知识节点时退回首对象）。
+  const kgIndex = buildKnowledgePlaneIndex()
+  const entryObjectId =
+    symptom.object_refs.find((oid) => {
+      const inst = instanceTopology.resources.find((r) => r.resource_id === oid)
+      return inst ? kgIndex.resourceTypeNodeByCode.has(inst.resource_type_code) : false
+    }) ?? symptom.object_refs[0] ?? null
+  const staticBindings = compileStaticBindings(instanceTopology, kgIndex, entryObjectId)
+  const resourceTypeByObject = new Map(
+    instanceTopology.resources.map((r) => [r.resource_id, r.resource_type_code]),
+  )
 
   const adapted: AdaptedCase = {
     caseId,
@@ -1008,7 +1032,9 @@ export function loadAdaptedCase(caseId: string): AdaptedCase {
     plannerPlan: pkg.plannerPlan,
     resources: pkg.resources,
     edges: pkg.edges,
-    instanceTopology: convertV1ToInstanceTopology(caseId, pkg.resources, pkg.edges),
+    instanceTopology,
+    staticBindings,
+    resourceTypeByObject,
   }
   ADAPTED_CACHE.set(caseId, adapted)
   return adapted
