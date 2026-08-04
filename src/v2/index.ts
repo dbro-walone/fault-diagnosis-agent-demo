@@ -13,6 +13,29 @@ export * from './runtime-types'
 // Case 发现与路由
 export { listCases, listCaseIds, getCase, caseExists, type CaseRouteEntry } from './manifest'
 
+// InstanceTopology Contract 1.0 —— V1→规范转换器与渲染投影
+export {
+  convertV1ToInstanceTopology,
+  instanceTopologyToGraph,
+  deriveSnapshotAt,
+  deriveSpatialDomain,
+  stateDimensionForCode,
+  V1_RESOURCE_TYPE_MAP,
+  V1_LAYER_CODE_MAP,
+  V1_RELATION_MAP,
+  SYMMETRIC_RELATIONS,
+  INSTANCE_TOPOLOGY_SCHEMA_NAME,
+  INSTANCE_TOPOLOGY_SCHEMA_VERSION,
+  type InstanceTopologySnapshot,
+  type ResourceInstance,
+  type TopologyRelation,
+  type RelationSet,
+  type InstanceState,
+  type TopologyEvent,
+  type ProjectedResource,
+  type ProjectedEdge,
+} from '../adapters/v1_to_instance_topology'
+
 // V1→V2 适配
 export {
   loadAdaptedCase,

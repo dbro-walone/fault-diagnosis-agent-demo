@@ -1,0 +1,3452 @@
+{
+  "schema_name": "dme-instance-topology",
+  "schema_version": "1.0.0",
+  "topology_id": "topo-layered_topology_demo_001",
+  "environment_id": "env-layered_topology_demo_001",
+  "snapshot_at": null,
+  "resources": [
+    {
+      "resource_id": "db-app-01",
+      "resource_type_code": "BUSINESS",
+      "name": "数据库业务",
+      "external_refs": [
+        {
+          "system": "DME",
+          "id": "db-app-01"
+        }
+      ],
+      "placement": {
+        "spatial_domain": "DEVICE_EXTERNAL",
+        "layer_code": "S1_1",
+        "zone_code": "BUSINESS_SIDE"
+      },
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_resource_type": "BUSINESS_APP",
+        "device_hint": null,
+        "zone_code": "BUSINESS_SIDE",
+        "attributes": {
+          "service": "db",
+          "health": "NORMAL",
+          "topo_layer": "S1_1"
+        }
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "resources.json#db-app-01"
+      }
+    },
+    {
+      "resource_id": "credit-app-01",
+      "resource_type_code": "BUSINESS",
+      "name": "信用卡业务",
+      "external_refs": [
+        {
+          "system": "DME",
+          "id": "credit-app-01"
+        }
+      ],
+      "placement": {
+        "spatial_domain": "DEVICE_EXTERNAL",
+        "layer_code": "S1_1",
+        "zone_code": "BUSINESS_SIDE"
+      },
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_resource_type": "BUSINESS_APP",
+        "device_hint": null,
+        "zone_code": "BUSINESS_SIDE",
+        "attributes": {
+          "service": "credit",
+          "health": "NORMAL",
+          "topo_layer": "S1_1"
+        }
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "resources.json#credit-app-01"
+      }
+    },
+    {
+      "resource_id": "backup-app-01",
+      "resource_type_code": "BUSINESS",
+      "name": "备份业务",
+      "external_refs": [
+        {
+          "system": "DME",
+          "id": "backup-app-01"
+        }
+      ],
+      "placement": {
+        "spatial_domain": "DEVICE_EXTERNAL",
+        "layer_code": "S1_1",
+        "zone_code": "BUSINESS_SIDE"
+      },
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_resource_type": "BUSINESS_APP",
+        "device_hint": null,
+        "zone_code": "BUSINESS_SIDE",
+        "attributes": {
+          "service": "backup",
+          "health": "WARNING",
+          "topo_layer": "S1_1"
+        }
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "resources.json#backup-app-01"
+      }
+    },
+    {
+      "resource_id": "archive-app-01",
+      "resource_type_code": "BUSINESS",
+      "name": "归档业务",
+      "external_refs": [
+        {
+          "system": "DME",
+          "id": "archive-app-01"
+        }
+      ],
+      "placement": {
+        "spatial_domain": "DEVICE_EXTERNAL",
+        "layer_code": "S1_1",
+        "zone_code": "BUSINESS_SIDE"
+      },
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_resource_type": "BUSINESS_APP",
+        "device_hint": null,
+        "zone_code": "BUSINESS_SIDE",
+        "attributes": {
+          "service": "archive",
+          "health": "NORMAL",
+          "topo_layer": "S1_1"
+        }
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "resources.json#archive-app-01"
+      }
+    },
+    {
+      "resource_id": "file-share-app-01",
+      "resource_type_code": "BUSINESS",
+      "name": "文件共享业务",
+      "external_refs": [
+        {
+          "system": "DME",
+          "id": "file-share-app-01"
+        }
+      ],
+      "placement": {
+        "spatial_domain": "DEVICE_EXTERNAL",
+        "layer_code": "S1_1",
+        "zone_code": "BUSINESS_SIDE"
+      },
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_resource_type": "BUSINESS_APP",
+        "device_hint": null,
+        "zone_code": "BUSINESS_SIDE",
+        "attributes": {
+          "service": "file",
+          "health": "NORMAL",
+          "topo_layer": "S1_1"
+        }
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "resources.json#file-share-app-01"
+      }
+    },
+    {
+      "resource_id": "bs-db-01",
+      "resource_type_code": "BUSINESS",
+      "name": "数据库业务服务",
+      "external_refs": [
+        {
+          "system": "DME",
+          "id": "bs-db-01"
+        }
+      ],
+      "placement": {
+        "spatial_domain": "DEVICE_EXTERNAL",
+        "layer_code": "S1_1",
+        "zone_code": "BUSINESS_SIDE"
+      },
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_resource_type": "BUSINESS_SERVICE",
+        "device_hint": null,
+        "zone_code": "BUSINESS_SIDE",
+        "attributes": {
+          "health": "NORMAL",
+          "topo_layer": "S1_2"
+        }
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "resources.json#bs-db-01"
+      }
+    },
+    {
+      "resource_id": "bs-credit-01",
+      "resource_type_code": "BUSINESS",
+      "name": "信用卡业务服务",
+      "external_refs": [
+        {
+          "system": "DME",
+          "id": "bs-credit-01"
+        }
+      ],
+      "placement": {
+        "spatial_domain": "DEVICE_EXTERNAL",
+        "layer_code": "S1_1",
+        "zone_code": "BUSINESS_SIDE"
+      },
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_resource_type": "BUSINESS_SERVICE",
+        "device_hint": null,
+        "zone_code": "BUSINESS_SIDE",
+        "attributes": {
+          "health": "NORMAL",
+          "topo_layer": "S1_2"
+        }
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "resources.json#bs-credit-01"
+      }
+    },
+    {
+      "resource_id": "bs-backup-01",
+      "resource_type_code": "BUSINESS",
+      "name": "备份业务服务",
+      "external_refs": [
+        {
+          "system": "DME",
+          "id": "bs-backup-01"
+        }
+      ],
+      "placement": {
+        "spatial_domain": "DEVICE_EXTERNAL",
+        "layer_code": "S1_1",
+        "zone_code": "BUSINESS_SIDE"
+      },
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_resource_type": "BUSINESS_SERVICE",
+        "device_hint": null,
+        "zone_code": "BUSINESS_SIDE",
+        "attributes": {
+          "health": "WARNING",
+          "topo_layer": "S1_2"
+        }
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "resources.json#bs-backup-01"
+      }
+    },
+    {
+      "resource_id": "file-client-01",
+      "resource_type_code": "HOST",
+      "name": "文件客户端",
+      "external_refs": [
+        {
+          "system": "DME",
+          "id": "file-client-01"
+        }
+      ],
+      "placement": {
+        "spatial_domain": "DEVICE_EXTERNAL",
+        "layer_code": "S1_2",
+        "zone_code": "BUSINESS_SIDE"
+      },
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_resource_type": "STORAGE_CLIENT",
+        "device_hint": null,
+        "zone_code": "BUSINESS_SIDE",
+        "attributes": {
+          "health": "NORMAL",
+          "topo_layer": "S1_3"
+        }
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "resources.json#file-client-01"
+      }
+    },
+    {
+      "resource_id": "client-os-01",
+      "resource_type_code": "HOST",
+      "name": "客户端OS",
+      "external_refs": [
+        {
+          "system": "DME",
+          "id": "client-os-01"
+        }
+      ],
+      "placement": {
+        "spatial_domain": "DEVICE_EXTERNAL",
+        "layer_code": "S1_2",
+        "zone_code": "BUSINESS_SIDE"
+      },
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_resource_type": "CLIENT_OS",
+        "device_hint": null,
+        "zone_code": "BUSINESS_SIDE",
+        "attributes": {
+          "health": "NORMAL",
+          "topo_layer": "S1_3"
+        }
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "resources.json#client-os-01"
+      }
+    },
+    {
+      "resource_id": "mount-point-01",
+      "resource_type_code": "HOST",
+      "name": "挂载点",
+      "external_refs": [
+        {
+          "system": "DME",
+          "id": "mount-point-01"
+        }
+      ],
+      "placement": {
+        "spatial_domain": "DEVICE_EXTERNAL",
+        "layer_code": "S1_2",
+        "zone_code": "BUSINESS_SIDE"
+      },
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_resource_type": "MOUNT_POINT",
+        "device_hint": null,
+        "zone_code": "BUSINESS_SIDE",
+        "attributes": {
+          "health": "NORMAL",
+          "topo_layer": "S1_3"
+        }
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "resources.json#mount-point-01"
+      }
+    },
+    {
+      "resource_id": "host-if-01",
+      "resource_type_code": "HOST",
+      "name": "主机网卡接口-01",
+      "external_refs": [
+        {
+          "system": "DME",
+          "id": "host-if-01"
+        }
+      ],
+      "placement": {
+        "spatial_domain": "DEVICE_EXTERNAL",
+        "layer_code": "S2",
+        "zone_code": "ACCESS_SIDE"
+      },
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_resource_type": "HOST_INTERFACE",
+        "device_hint": null,
+        "zone_code": "ACCESS_SIDE",
+        "attributes": {
+          "health": "NORMAL",
+          "topo_layer": "S2_1"
+        }
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "resources.json#host-if-01"
+      }
+    },
+    {
+      "resource_id": "host-if-02",
+      "resource_type_code": "HOST",
+      "name": "主机网卡接口-02",
+      "external_refs": [
+        {
+          "system": "DME",
+          "id": "host-if-02"
+        }
+      ],
+      "placement": {
+        "spatial_domain": "DEVICE_EXTERNAL",
+        "layer_code": "S2",
+        "zone_code": "ACCESS_SIDE"
+      },
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_resource_type": "HOST_INTERFACE",
+        "device_hint": null,
+        "zone_code": "ACCESS_SIDE",
+        "attributes": {
+          "health": "NORMAL",
+          "topo_layer": "S2_1"
+        }
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "resources.json#host-if-02"
+      }
+    },
+    {
+      "resource_id": "host-if-03",
+      "resource_type_code": "HOST",
+      "name": "主机网卡接口-03",
+      "external_refs": [
+        {
+          "system": "DME",
+          "id": "host-if-03"
+        }
+      ],
+      "placement": {
+        "spatial_domain": "DEVICE_EXTERNAL",
+        "layer_code": "S2",
+        "zone_code": "ACCESS_SIDE"
+      },
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_resource_type": "HOST_INTERFACE",
+        "device_hint": null,
+        "zone_code": "ACCESS_SIDE",
+        "attributes": {
+          "health": "NORMAL",
+          "topo_layer": "S2_1"
+        }
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "resources.json#host-if-03"
+      }
+    },
+    {
+      "resource_id": "fab-a",
+      "resource_type_code": "SAN_FABRIC",
+      "name": "SAN Fabric-A",
+      "external_refs": [
+        {
+          "system": "DME",
+          "id": "fab-a"
+        }
+      ],
+      "placement": {
+        "spatial_domain": "DEVICE_EXTERNAL",
+        "layer_code": "S2",
+        "zone_code": "NETWORK_SIDE"
+      },
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_resource_type": "NETWORK_FABRIC",
+        "device_hint": null,
+        "zone_code": "NETWORK_SIDE",
+        "attributes": {
+          "fabric": "a",
+          "health": "NORMAL",
+          "topo_layer": "S2_2"
+        }
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "resources.json#fab-a"
+      }
+    },
+    {
+      "resource_id": "fab-b",
+      "resource_type_code": "SAN_FABRIC",
+      "name": "SAN Fabric-B",
+      "external_refs": [
+        {
+          "system": "DME",
+          "id": "fab-b"
+        }
+      ],
+      "placement": {
+        "spatial_domain": "DEVICE_EXTERNAL",
+        "layer_code": "S2",
+        "zone_code": "NETWORK_SIDE"
+      },
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_resource_type": "NETWORK_FABRIC",
+        "device_hint": null,
+        "zone_code": "NETWORK_SIDE",
+        "attributes": {
+          "fabric": "b",
+          "health": "NORMAL",
+          "topo_layer": "S2_2"
+        }
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "resources.json#fab-b"
+      }
+    },
+    {
+      "resource_id": "fab-c",
+      "resource_type_code": "SAN_FABRIC",
+      "name": "ETH Fabric-C",
+      "external_refs": [
+        {
+          "system": "DME",
+          "id": "fab-c"
+        }
+      ],
+      "placement": {
+        "spatial_domain": "DEVICE_EXTERNAL",
+        "layer_code": "S2",
+        "zone_code": "NETWORK_SIDE"
+      },
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_resource_type": "NETWORK_FABRIC",
+        "device_hint": null,
+        "zone_code": "NETWORK_SIDE",
+        "attributes": {
+          "fabric": "c",
+          "health": "NORMAL",
+          "topo_layer": "S2_2"
+        }
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "resources.json#fab-c"
+      }
+    },
+    {
+      "resource_id": "link-host-fab-a",
+      "resource_type_code": "SAN_FABRIC",
+      "name": "主机-FabricA访问链路",
+      "external_refs": [
+        {
+          "system": "DME",
+          "id": "link-host-fab-a"
+        }
+      ],
+      "placement": {
+        "spatial_domain": "DEVICE_EXTERNAL",
+        "layer_code": "S2",
+        "zone_code": "NETWORK_SIDE"
+      },
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_resource_type": "ACCESS_LINK",
+        "device_hint": null,
+        "zone_code": "NETWORK_SIDE",
+        "attributes": {
+          "health": "NORMAL",
+          "topo_layer": "S2_3"
+        }
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "resources.json#link-host-fab-a"
+      }
+    },
+    {
+      "resource_id": "link-host-fab-b",
+      "resource_type_code": "SAN_FABRIC",
+      "name": "主机-FabricB访问链路",
+      "external_refs": [
+        {
+          "system": "DME",
+          "id": "link-host-fab-b"
+        }
+      ],
+      "placement": {
+        "spatial_domain": "DEVICE_EXTERNAL",
+        "layer_code": "S2",
+        "zone_code": "NETWORK_SIDE"
+      },
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_resource_type": "ACCESS_LINK",
+        "device_hint": null,
+        "zone_code": "NETWORK_SIDE",
+        "attributes": {
+          "health": "NORMAL",
+          "topo_layer": "S2_3"
+        }
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "resources.json#link-host-fab-b"
+      }
+    },
+    {
+      "resource_id": "link-host-fab-c",
+      "resource_type_code": "SAN_FABRIC",
+      "name": "主机-FabricC访问链路",
+      "external_refs": [
+        {
+          "system": "DME",
+          "id": "link-host-fab-c"
+        }
+      ],
+      "placement": {
+        "spatial_domain": "DEVICE_EXTERNAL",
+        "layer_code": "S2",
+        "zone_code": "NETWORK_SIDE"
+      },
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_resource_type": "ACCESS_LINK",
+        "device_hint": null,
+        "zone_code": "NETWORK_SIDE",
+        "attributes": {
+          "health": "NORMAL",
+          "topo_layer": "S2_3"
+        }
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "resources.json#link-host-fab-c"
+      }
+    },
+    {
+      "resource_id": "link-fab-stor-a",
+      "resource_type_code": "SAN_FABRIC",
+      "name": "FabricA-存储访问链路",
+      "external_refs": [
+        {
+          "system": "DME",
+          "id": "link-fab-stor-a"
+        }
+      ],
+      "placement": {
+        "spatial_domain": "DEVICE_EXTERNAL",
+        "layer_code": "S2",
+        "zone_code": "NETWORK_SIDE"
+      },
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_resource_type": "ACCESS_LINK",
+        "device_hint": null,
+        "zone_code": "NETWORK_SIDE",
+        "attributes": {
+          "health": "NORMAL",
+          "topo_layer": "S2_3"
+        }
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "resources.json#link-fab-stor-a"
+      }
+    },
+    {
+      "resource_id": "link-fab-stor-b",
+      "resource_type_code": "SAN_FABRIC",
+      "name": "FabricB-存储访问链路",
+      "external_refs": [
+        {
+          "system": "DME",
+          "id": "link-fab-stor-b"
+        }
+      ],
+      "placement": {
+        "spatial_domain": "DEVICE_EXTERNAL",
+        "layer_code": "S2",
+        "zone_code": "NETWORK_SIDE"
+      },
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_resource_type": "ACCESS_LINK",
+        "device_hint": null,
+        "zone_code": "NETWORK_SIDE",
+        "attributes": {
+          "health": "NORMAL",
+          "topo_layer": "S2_3"
+        }
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "resources.json#link-fab-stor-b"
+      }
+    },
+    {
+      "resource_id": "link-fab-stor-c",
+      "resource_type_code": "SAN_FABRIC",
+      "name": "FabricC-存储访问链路",
+      "external_refs": [
+        {
+          "system": "DME",
+          "id": "link-fab-stor-c"
+        }
+      ],
+      "placement": {
+        "spatial_domain": "DEVICE_EXTERNAL",
+        "layer_code": "S2",
+        "zone_code": "NETWORK_SIDE"
+      },
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_resource_type": "ACCESS_LINK",
+        "device_hint": null,
+        "zone_code": "NETWORK_SIDE",
+        "attributes": {
+          "health": "NORMAL",
+          "topo_layer": "S2_3"
+        }
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "resources.json#link-fab-stor-c"
+      }
+    },
+    {
+      "resource_id": "fc-port-01a",
+      "resource_type_code": "FC_PORT",
+      "name": "FC端口-01A",
+      "external_refs": [
+        {
+          "system": "DME",
+          "id": "fc-port-01a"
+        }
+      ],
+      "placement": {
+        "spatial_domain": "DEVICE_INTERNAL",
+        "layer_code": "S3_1",
+        "zone_code": "FRONTEND_ACCESS"
+      },
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_resource_type": "FC_PORT",
+        "device_hint": "storage-01",
+        "zone_code": "FRONTEND_ACCESS",
+        "attributes": {
+          "controller": "a",
+          "health": "NORMAL",
+          "topo_layer": "S3_1"
+        }
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "resources.json#fc-port-01a"
+      }
+    },
+    {
+      "resource_id": "fc-port-01b",
+      "resource_type_code": "FC_PORT",
+      "name": "FC端口-01B",
+      "external_refs": [
+        {
+          "system": "DME",
+          "id": "fc-port-01b"
+        }
+      ],
+      "placement": {
+        "spatial_domain": "DEVICE_INTERNAL",
+        "layer_code": "S3_1",
+        "zone_code": "FRONTEND_ACCESS"
+      },
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_resource_type": "FC_PORT",
+        "device_hint": "storage-01",
+        "zone_code": "FRONTEND_ACCESS",
+        "attributes": {
+          "controller": "b",
+          "health": "NORMAL",
+          "topo_layer": "S3_1"
+        }
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "resources.json#fc-port-01b"
+      }
+    },
+    {
+      "resource_id": "eth-port-01a",
+      "resource_type_code": "FC_PORT",
+      "name": "ETH端口-01A",
+      "external_refs": [
+        {
+          "system": "DME",
+          "id": "eth-port-01a"
+        }
+      ],
+      "placement": {
+        "spatial_domain": "DEVICE_INTERNAL",
+        "layer_code": "S3_1",
+        "zone_code": "FRONTEND_ACCESS"
+      },
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_resource_type": "ETH_PORT",
+        "device_hint": "storage-01",
+        "zone_code": "FRONTEND_ACCESS",
+        "attributes": {
+          "controller": "a",
+          "health": "NORMAL",
+          "topo_layer": "S3_1"
+        }
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "resources.json#eth-port-01a"
+      }
+    },
+    {
+      "resource_id": "lif-01a",
+      "resource_type_code": "FC_PORT",
+      "name": "LIF-01A",
+      "external_refs": [
+        {
+          "system": "DME",
+          "id": "lif-01a"
+        }
+      ],
+      "placement": {
+        "spatial_domain": "DEVICE_INTERNAL",
+        "layer_code": "S3_1",
+        "zone_code": "FRONTEND_ACCESS"
+      },
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_resource_type": "LIF",
+        "device_hint": "storage-01",
+        "zone_code": "FRONTEND_ACCESS",
+        "attributes": {
+          "controller": "a",
+          "health": "NORMAL",
+          "topo_layer": "S3_1"
+        }
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "resources.json#lif-01a"
+      }
+    },
+    {
+      "resource_id": "ctl-01a",
+      "resource_type_code": "CONTROLLER",
+      "name": "控制器-01A",
+      "external_refs": [
+        {
+          "system": "DME",
+          "id": "ctl-01a"
+        }
+      ],
+      "placement": {
+        "spatial_domain": "DEVICE_INTERNAL",
+        "layer_code": "S3_2",
+        "zone_code": "CONTROL_SERVICE"
+      },
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_resource_type": "CONTROLLER",
+        "device_hint": "storage-01",
+        "zone_code": "CONTROL_SERVICE",
+        "attributes": {
+          "role": "active",
+          "health": "NORMAL",
+          "topo_layer": "S3_2"
+        }
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "resources.json#ctl-01a"
+      }
+    },
+    {
+      "resource_id": "ctl-01b",
+      "resource_type_code": "CONTROLLER",
+      "name": "控制器-01B",
+      "external_refs": [
+        {
+          "system": "DME",
+          "id": "ctl-01b"
+        }
+      ],
+      "placement": {
+        "spatial_domain": "DEVICE_INTERNAL",
+        "layer_code": "S3_2",
+        "zone_code": "CONTROL_SERVICE"
+      },
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_resource_type": "CONTROLLER",
+        "device_hint": "storage-01",
+        "zone_code": "CONTROL_SERVICE",
+        "attributes": {
+          "role": "standby",
+          "health": "NORMAL",
+          "topo_layer": "S3_2"
+        }
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "resources.json#ctl-01b"
+      }
+    },
+    {
+      "resource_id": "cpu-01a",
+      "resource_type_code": "CONTROLLER",
+      "name": "控制器CPU-01A",
+      "external_refs": [
+        {
+          "system": "DME",
+          "id": "cpu-01a"
+        }
+      ],
+      "placement": {
+        "spatial_domain": "DEVICE_INTERNAL",
+        "layer_code": "S3_2",
+        "zone_code": "CONTROL_SERVICE"
+      },
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_resource_type": "CPU",
+        "device_hint": "storage-01",
+        "zone_code": "CONTROL_SERVICE",
+        "attributes": {
+          "role": "active",
+          "health": "NORMAL",
+          "topo_layer": "S3_2"
+        }
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "resources.json#cpu-01a"
+      }
+    },
+    {
+      "resource_id": "mem-01a",
+      "resource_type_code": "CONTROLLER",
+      "name": "控制器内存-01A",
+      "external_refs": [
+        {
+          "system": "DME",
+          "id": "mem-01a"
+        }
+      ],
+      "placement": {
+        "spatial_domain": "DEVICE_INTERNAL",
+        "layer_code": "S3_2",
+        "zone_code": "CONTROL_SERVICE"
+      },
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_resource_type": "MEMORY",
+        "device_hint": "storage-01",
+        "zone_code": "CONTROL_SERVICE",
+        "attributes": {
+          "role": "active",
+          "health": "NORMAL",
+          "topo_layer": "S3_2"
+        }
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "resources.json#mem-01a"
+      }
+    },
+    {
+      "resource_id": "cache-01a",
+      "resource_type_code": "CONTROLLER",
+      "name": "控制器缓存-01A",
+      "external_refs": [
+        {
+          "system": "DME",
+          "id": "cache-01a"
+        }
+      ],
+      "placement": {
+        "spatial_domain": "DEVICE_INTERNAL",
+        "layer_code": "S3_2",
+        "zone_code": "CONTROL_SERVICE"
+      },
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_resource_type": "CACHE",
+        "device_hint": "storage-01",
+        "zone_code": "CONTROL_SERVICE",
+        "attributes": {
+          "role": "active",
+          "health": "NORMAL",
+          "topo_layer": "S3_2"
+        }
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "resources.json#cache-01a"
+      }
+    },
+    {
+      "resource_id": "svc-block-01",
+      "resource_type_code": "BLOCK_SERVICE",
+      "name": "Block服务-01",
+      "external_refs": [
+        {
+          "system": "DME",
+          "id": "svc-block-01"
+        }
+      ],
+      "placement": {
+        "spatial_domain": "DEVICE_INTERNAL",
+        "layer_code": "S3_3",
+        "zone_code": "CONTROL_SERVICE"
+      },
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_resource_type": "BLOCK_SERVICE",
+        "device_hint": "storage-01",
+        "zone_code": "CONTROL_SERVICE",
+        "attributes": {
+          "health": "NORMAL",
+          "topo_layer": "S3_3"
+        }
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "resources.json#svc-block-01"
+      }
+    },
+    {
+      "resource_id": "svc-nas-01",
+      "resource_type_code": "BLOCK_SERVICE",
+      "name": "NAS服务-01",
+      "external_refs": [
+        {
+          "system": "DME",
+          "id": "svc-nas-01"
+        }
+      ],
+      "placement": {
+        "spatial_domain": "DEVICE_INTERNAL",
+        "layer_code": "S3_3",
+        "zone_code": "CONTROL_SERVICE"
+      },
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_resource_type": "NAS_SERVICE",
+        "device_hint": "storage-01",
+        "zone_code": "CONTROL_SERVICE",
+        "attributes": {
+          "health": "NORMAL",
+          "topo_layer": "S3_3"
+        }
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "resources.json#svc-nas-01"
+      }
+    },
+    {
+      "resource_id": "svc-object-01",
+      "resource_type_code": "BLOCK_SERVICE",
+      "name": "Object服务-01",
+      "external_refs": [
+        {
+          "system": "DME",
+          "id": "svc-object-01"
+        }
+      ],
+      "placement": {
+        "spatial_domain": "DEVICE_INTERNAL",
+        "layer_code": "S3_3",
+        "zone_code": "CONTROL_SERVICE"
+      },
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_resource_type": "OBJECT_SERVICE",
+        "device_hint": "storage-01",
+        "zone_code": "CONTROL_SERVICE",
+        "attributes": {
+          "health": "NORMAL",
+          "topo_layer": "S3_3"
+        }
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "resources.json#svc-object-01"
+      }
+    },
+    {
+      "resource_id": "svc-snapshot-01",
+      "resource_type_code": "BLOCK_SERVICE",
+      "name": "快照服务-01",
+      "external_refs": [
+        {
+          "system": "DME",
+          "id": "svc-snapshot-01"
+        }
+      ],
+      "placement": {
+        "spatial_domain": "DEVICE_INTERNAL",
+        "layer_code": "S3_3",
+        "zone_code": "CONTROL_SERVICE"
+      },
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_resource_type": "SNAPSHOT_SERVICE",
+        "device_hint": "storage-01",
+        "zone_code": "CONTROL_SERVICE",
+        "attributes": {
+          "health": "NORMAL",
+          "topo_layer": "S3_3"
+        }
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "resources.json#svc-snapshot-01"
+      }
+    },
+    {
+      "resource_id": "svc-qos-01",
+      "resource_type_code": "BLOCK_SERVICE",
+      "name": "QoS服务-01",
+      "external_refs": [
+        {
+          "system": "DME",
+          "id": "svc-qos-01"
+        }
+      ],
+      "placement": {
+        "spatial_domain": "DEVICE_INTERNAL",
+        "layer_code": "S3_3",
+        "zone_code": "CONTROL_SERVICE"
+      },
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_resource_type": "QOS_SERVICE",
+        "device_hint": "storage-01",
+        "zone_code": "CONTROL_SERVICE",
+        "attributes": {
+          "health": "NORMAL",
+          "topo_layer": "S3_3"
+        }
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "resources.json#svc-qos-01"
+      }
+    },
+    {
+      "resource_id": "svc-repl-01",
+      "resource_type_code": "BLOCK_SERVICE",
+      "name": "复制服务-01",
+      "external_refs": [
+        {
+          "system": "DME",
+          "id": "svc-repl-01"
+        }
+      ],
+      "placement": {
+        "spatial_domain": "DEVICE_INTERNAL",
+        "layer_code": "S3_3",
+        "zone_code": "CONTROL_SERVICE"
+      },
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_resource_type": "REPLICATION_SERVICE",
+        "device_hint": "storage-01",
+        "zone_code": "CONTROL_SERVICE",
+        "attributes": {
+          "health": "NORMAL",
+          "topo_layer": "S3_3"
+        }
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "resources.json#svc-repl-01"
+      }
+    },
+    {
+      "resource_id": "pool-01a",
+      "resource_type_code": "STORAGE_POOL",
+      "name": "存储池-01A",
+      "external_refs": [
+        {
+          "system": "DME",
+          "id": "pool-01a"
+        }
+      ],
+      "placement": {
+        "spatial_domain": "DEVICE_INTERNAL",
+        "layer_code": "S3_4",
+        "zone_code": "LOGICAL_RESOURCE"
+      },
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_resource_type": "POOL",
+        "device_hint": "storage-01",
+        "zone_code": "LOGICAL_RESOURCE",
+        "attributes": {
+          "health": "WARNING",
+          "topo_layer": "S3_4"
+        }
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "resources.json#pool-01a"
+      }
+    },
+    {
+      "resource_id": "raid-01a",
+      "resource_type_code": "STORAGE_POOL",
+      "name": "RAID组-01A",
+      "external_refs": [
+        {
+          "system": "DME",
+          "id": "raid-01a"
+        }
+      ],
+      "placement": {
+        "spatial_domain": "DEVICE_INTERNAL",
+        "layer_code": "S3_4",
+        "zone_code": "LOGICAL_RESOURCE"
+      },
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_resource_type": "RAID",
+        "device_hint": "storage-01",
+        "zone_code": "LOGICAL_RESOURCE",
+        "attributes": {
+          "health": "WARNING",
+          "topo_layer": "S3_4"
+        }
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "resources.json#raid-01a"
+      }
+    },
+    {
+      "resource_id": "lun-01a",
+      "resource_type_code": "LUN",
+      "name": "LUN-01A",
+      "external_refs": [
+        {
+          "system": "DME",
+          "id": "lun-01a"
+        }
+      ],
+      "placement": {
+        "spatial_domain": "DEVICE_INTERNAL",
+        "layer_code": "S3_4",
+        "zone_code": "LOGICAL_RESOURCE"
+      },
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_resource_type": "LUN",
+        "device_hint": "storage-01",
+        "zone_code": "LOGICAL_RESOURCE",
+        "attributes": {
+          "health": "NORMAL",
+          "topo_layer": "S3_4"
+        }
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "resources.json#lun-01a"
+      }
+    },
+    {
+      "resource_id": "lun-backup-01",
+      "resource_type_code": "LUN",
+      "name": "LUN-BACKUP-01",
+      "external_refs": [
+        {
+          "system": "DME",
+          "id": "lun-backup-01"
+        }
+      ],
+      "placement": {
+        "spatial_domain": "DEVICE_INTERNAL",
+        "layer_code": "S3_4",
+        "zone_code": "LOGICAL_RESOURCE"
+      },
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_resource_type": "LUN",
+        "device_hint": "storage-01",
+        "zone_code": "LOGICAL_RESOURCE",
+        "attributes": {
+          "health": "WARNING",
+          "topo_layer": "S3_4"
+        }
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "resources.json#lun-backup-01"
+      }
+    },
+    {
+      "resource_id": "fs-01a",
+      "resource_type_code": "LUN",
+      "name": "文件系统-01A",
+      "external_refs": [
+        {
+          "system": "DME",
+          "id": "fs-01a"
+        }
+      ],
+      "placement": {
+        "spatial_domain": "DEVICE_INTERNAL",
+        "layer_code": "S3_4",
+        "zone_code": "LOGICAL_RESOURCE"
+      },
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_resource_type": "FILESYSTEM",
+        "device_hint": "storage-01",
+        "zone_code": "LOGICAL_RESOURCE",
+        "attributes": {
+          "health": "NORMAL",
+          "topo_layer": "S3_4"
+        }
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "resources.json#fs-01a"
+      }
+    },
+    {
+      "resource_id": "disk-domain-01a",
+      "resource_type_code": "STORAGE_POOL",
+      "name": "磁盘域-01A",
+      "external_refs": [
+        {
+          "system": "DME",
+          "id": "disk-domain-01a"
+        }
+      ],
+      "placement": {
+        "spatial_domain": "DEVICE_INTERNAL",
+        "layer_code": "S3_4",
+        "zone_code": "LOGICAL_RESOURCE"
+      },
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_resource_type": "DISK_DOMAIN",
+        "device_hint": "storage-01",
+        "zone_code": "LOGICAL_RESOURCE",
+        "attributes": {
+          "health": "NORMAL",
+          "topo_layer": "S3_4"
+        }
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "resources.json#disk-domain-01a"
+      }
+    },
+    {
+      "resource_id": "enc-01a",
+      "resource_type_code": "DISK_ENCLOSURE",
+      "name": "机框-01A",
+      "external_refs": [
+        {
+          "system": "DME",
+          "id": "enc-01a"
+        }
+      ],
+      "placement": {
+        "spatial_domain": "DEVICE_INTERNAL",
+        "layer_code": "S3_5",
+        "zone_code": "PHYSICAL_RESOURCE"
+      },
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_resource_type": "ENCLOSURE",
+        "device_hint": "storage-01",
+        "zone_code": "PHYSICAL_RESOURCE",
+        "attributes": {
+          "media": "HDD",
+          "health": "NORMAL",
+          "topo_layer": "S3_5"
+        }
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "resources.json#enc-01a"
+      }
+    },
+    {
+      "resource_id": "disk-01a",
+      "resource_type_code": "DISK",
+      "name": "磁盘-01A",
+      "external_refs": [
+        {
+          "system": "DME",
+          "id": "disk-01a"
+        }
+      ],
+      "placement": {
+        "spatial_domain": "DEVICE_INTERNAL",
+        "layer_code": "S3_5",
+        "zone_code": "PHYSICAL_RESOURCE"
+      },
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_resource_type": "DISK",
+        "device_hint": "storage-01",
+        "zone_code": "PHYSICAL_RESOURCE",
+        "attributes": {
+          "media": "SSD",
+          "health": "FAULT",
+          "topo_layer": "S3_5"
+        }
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "resources.json#disk-01a"
+      }
+    },
+    {
+      "resource_id": "disk-01b",
+      "resource_type_code": "DISK",
+      "name": "磁盘-01B",
+      "external_refs": [
+        {
+          "system": "DME",
+          "id": "disk-01b"
+        }
+      ],
+      "placement": {
+        "spatial_domain": "DEVICE_INTERNAL",
+        "layer_code": "S3_5",
+        "zone_code": "PHYSICAL_RESOURCE"
+      },
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_resource_type": "DISK",
+        "device_hint": "storage-01",
+        "zone_code": "PHYSICAL_RESOURCE",
+        "attributes": {
+          "media": "SSD",
+          "health": "NORMAL",
+          "topo_layer": "S3_5"
+        }
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "resources.json#disk-01b"
+      }
+    },
+    {
+      "resource_id": "disk-01c",
+      "resource_type_code": "DISK",
+      "name": "磁盘-01C",
+      "external_refs": [
+        {
+          "system": "DME",
+          "id": "disk-01c"
+        }
+      ],
+      "placement": {
+        "spatial_domain": "DEVICE_INTERNAL",
+        "layer_code": "S3_5",
+        "zone_code": "PHYSICAL_RESOURCE"
+      },
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_resource_type": "DISK",
+        "device_hint": "storage-01",
+        "zone_code": "PHYSICAL_RESOURCE",
+        "attributes": {
+          "media": "HDD",
+          "health": "NORMAL",
+          "topo_layer": "S3_5"
+        }
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "resources.json#disk-01c"
+      }
+    },
+    {
+      "resource_id": "psu-01a",
+      "resource_type_code": "DISK",
+      "name": "电源-01A",
+      "external_refs": [
+        {
+          "system": "DME",
+          "id": "psu-01a"
+        }
+      ],
+      "placement": {
+        "spatial_domain": "DEVICE_INTERNAL",
+        "layer_code": "S3_5",
+        "zone_code": "PHYSICAL_RESOURCE"
+      },
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_resource_type": "POWER",
+        "device_hint": "storage-01",
+        "zone_code": "PHYSICAL_RESOURCE",
+        "attributes": {
+          "media": "HDD",
+          "health": "NORMAL",
+          "topo_layer": "S3_5"
+        }
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "resources.json#psu-01a"
+      }
+    },
+    {
+      "resource_id": "fan-01a",
+      "resource_type_code": "DISK",
+      "name": "风扇-01A",
+      "external_refs": [
+        {
+          "system": "DME",
+          "id": "fan-01a"
+        }
+      ],
+      "placement": {
+        "spatial_domain": "DEVICE_INTERNAL",
+        "layer_code": "S3_5",
+        "zone_code": "PHYSICAL_RESOURCE"
+      },
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_resource_type": "FAN",
+        "device_hint": "storage-01",
+        "zone_code": "PHYSICAL_RESOURCE",
+        "attributes": {
+          "media": "HDD",
+          "health": "NORMAL",
+          "topo_layer": "S3_5"
+        }
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "resources.json#fan-01a"
+      }
+    },
+    {
+      "resource_id": "bbu-01a",
+      "resource_type_code": "DISK",
+      "name": "BBU-01A",
+      "external_refs": [
+        {
+          "system": "DME",
+          "id": "bbu-01a"
+        }
+      ],
+      "placement": {
+        "spatial_domain": "DEVICE_INTERNAL",
+        "layer_code": "S3_5",
+        "zone_code": "PHYSICAL_RESOURCE"
+      },
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_resource_type": "BBU",
+        "device_hint": "storage-01",
+        "zone_code": "PHYSICAL_RESOURCE",
+        "attributes": {
+          "media": "HDD",
+          "health": "NORMAL",
+          "topo_layer": "S3_5"
+        }
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "resources.json#bbu-01a"
+      }
+    },
+    {
+      "resource_id": "storage-01",
+      "resource_type_code": "STORAGE_DEVICE",
+      "name": "storage-01",
+      "external_refs": [
+        {
+          "system": "DME",
+          "id": "storage-01"
+        }
+      ],
+      "placement": {
+        "spatial_domain": "DEVICE_BOUNDARY",
+        "layer_code": "S3_5",
+        "zone_code": null
+      },
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "derived_container": true
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "resources.json#storage-01.derived_device"
+      }
+    }
+  ],
+  "relations": [
+    {
+      "relation_id": "e-db-app-bs",
+      "relation_type": "DEPENDS_ON",
+      "source_ref": "db-app-01",
+      "target_ref": "bs-db-01",
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_relation_type": "DEPENDS_ON",
+        "direction": "directed",
+        "path_group": null,
+        "redundancy_group": null
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "topology.json#e-db-app-bs"
+      }
+    },
+    {
+      "relation_id": "e-credit-app-bs",
+      "relation_type": "DEPENDS_ON",
+      "source_ref": "credit-app-01",
+      "target_ref": "bs-credit-01",
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_relation_type": "DEPENDS_ON",
+        "direction": "directed",
+        "path_group": null,
+        "redundancy_group": null
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "topology.json#e-credit-app-bs"
+      }
+    },
+    {
+      "relation_id": "e-backup-app-bs",
+      "relation_type": "DEPENDS_ON",
+      "source_ref": "backup-app-01",
+      "target_ref": "bs-backup-01",
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_relation_type": "DEPENDS_ON",
+        "direction": "directed",
+        "path_group": "backup-path",
+        "redundancy_group": null
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "topology.json#e-backup-app-bs"
+      }
+    },
+    {
+      "relation_id": "e-archive-app-bs",
+      "relation_type": "DEPENDS_ON",
+      "source_ref": "archive-app-01",
+      "target_ref": "bs-backup-01",
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_relation_type": "DEPENDS_ON",
+        "direction": "directed",
+        "path_group": null,
+        "redundancy_group": null
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "topology.json#e-archive-app-bs"
+      }
+    },
+    {
+      "relation_id": "e-bs-db-os",
+      "relation_type": "HOSTS",
+      "source_ref": "client-os-01",
+      "target_ref": "bs-db-01",
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_relation_type": "HOSTS",
+        "direction": "directed",
+        "path_group": null,
+        "redundancy_group": null
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "topology.json#e-bs-db-os"
+      }
+    },
+    {
+      "relation_id": "e-bs-credit-os",
+      "relation_type": "HOSTS",
+      "source_ref": "client-os-01",
+      "target_ref": "bs-credit-01",
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_relation_type": "HOSTS",
+        "direction": "directed",
+        "path_group": null,
+        "redundancy_group": null
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "topology.json#e-bs-credit-os"
+      }
+    },
+    {
+      "relation_id": "e-bs-backup-client",
+      "relation_type": "HOSTS",
+      "source_ref": "file-client-01",
+      "target_ref": "bs-backup-01",
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_relation_type": "HOSTS",
+        "direction": "directed",
+        "path_group": "backup-path",
+        "redundancy_group": null
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "topology.json#e-bs-backup-client"
+      }
+    },
+    {
+      "relation_id": "e-file-share-app-client",
+      "relation_type": "DEPENDS_ON",
+      "source_ref": "file-share-app-01",
+      "target_ref": "file-client-01",
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_relation_type": "DEPENDS_ON",
+        "direction": "directed",
+        "path_group": null,
+        "redundancy_group": null
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "topology.json#e-file-share-app-client"
+      }
+    },
+    {
+      "relation_id": "e-file-client-mount",
+      "relation_type": "HOSTS",
+      "source_ref": "file-client-01",
+      "target_ref": "mount-point-01",
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_relation_type": "HOSTS",
+        "direction": "directed",
+        "path_group": null,
+        "redundancy_group": null
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "topology.json#e-file-client-mount"
+      }
+    },
+    {
+      "relation_id": "e-os-hif-1",
+      "relation_type": "HOSTS",
+      "source_ref": "client-os-01",
+      "target_ref": "host-if-01",
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_relation_type": "HOSTS",
+        "direction": "directed",
+        "path_group": "backup-path",
+        "redundancy_group": null
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "topology.json#e-os-hif-1"
+      }
+    },
+    {
+      "relation_id": "e-mount-hif-2",
+      "relation_type": "HOSTS",
+      "source_ref": "mount-point-01",
+      "target_ref": "host-if-02",
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_relation_type": "HOSTS",
+        "direction": "directed",
+        "path_group": null,
+        "redundancy_group": null
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "topology.json#e-mount-hif-2"
+      }
+    },
+    {
+      "relation_id": "e-mount-hif-3",
+      "relation_type": "HOSTS",
+      "source_ref": "mount-point-01",
+      "target_ref": "host-if-03",
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_relation_type": "HOSTS",
+        "direction": "directed",
+        "path_group": null,
+        "redundancy_group": null
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "topology.json#e-mount-hif-3"
+      }
+    },
+    {
+      "relation_id": "e-hif1-link-a",
+      "relation_type": "CONNECTS_TO",
+      "source_ref": "host-if-01",
+      "target_ref": "link-host-fab-a",
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_relation_type": "CONNECTS_TO",
+        "direction": "directed",
+        "path_group": "backup-path",
+        "redundancy_group": null
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "topology.json#e-hif1-link-a"
+      }
+    },
+    {
+      "relation_id": "e-hif2-link-b",
+      "relation_type": "CONNECTS_TO",
+      "source_ref": "host-if-02",
+      "target_ref": "link-host-fab-b",
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_relation_type": "CONNECTS_TO",
+        "direction": "directed",
+        "path_group": null,
+        "redundancy_group": null
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "topology.json#e-hif2-link-b"
+      }
+    },
+    {
+      "relation_id": "e-hif3-link-c",
+      "relation_type": "CONNECTS_TO",
+      "source_ref": "host-if-03",
+      "target_ref": "link-host-fab-c",
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_relation_type": "CONNECTS_TO",
+        "direction": "directed",
+        "path_group": null,
+        "redundancy_group": null
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "topology.json#e-hif3-link-c"
+      }
+    },
+    {
+      "relation_id": "e-linka-fab-a",
+      "relation_type": "CONNECTS_TO",
+      "source_ref": "fab-a",
+      "target_ref": "link-host-fab-a",
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_relation_type": "CONNECTS_TO",
+        "direction": "directed",
+        "path_group": "backup-path",
+        "redundancy_group": null
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "topology.json#e-linka-fab-a"
+      }
+    },
+    {
+      "relation_id": "e-linkb-fab-b",
+      "relation_type": "CONNECTS_TO",
+      "source_ref": "fab-b",
+      "target_ref": "link-host-fab-b",
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_relation_type": "CONNECTS_TO",
+        "direction": "directed",
+        "path_group": null,
+        "redundancy_group": null
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "topology.json#e-linkb-fab-b"
+      }
+    },
+    {
+      "relation_id": "e-linkc-fab-c",
+      "relation_type": "CONNECTS_TO",
+      "source_ref": "fab-c",
+      "target_ref": "link-host-fab-c",
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_relation_type": "CONNECTS_TO",
+        "direction": "directed",
+        "path_group": null,
+        "redundancy_group": null
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "topology.json#e-linkc-fab-c"
+      }
+    },
+    {
+      "relation_id": "e-faba-link-stor-a",
+      "relation_type": "CONNECTS_TO",
+      "source_ref": "fab-a",
+      "target_ref": "link-fab-stor-a",
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_relation_type": "CONNECTS_TO",
+        "direction": "directed",
+        "path_group": "backup-path",
+        "redundancy_group": null
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "topology.json#e-faba-link-stor-a"
+      }
+    },
+    {
+      "relation_id": "e-fabb-link-stor-b",
+      "relation_type": "CONNECTS_TO",
+      "source_ref": "fab-b",
+      "target_ref": "link-fab-stor-b",
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_relation_type": "CONNECTS_TO",
+        "direction": "directed",
+        "path_group": null,
+        "redundancy_group": null
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "topology.json#e-fabb-link-stor-b"
+      }
+    },
+    {
+      "relation_id": "e-fabc-link-stor-c",
+      "relation_type": "CONNECTS_TO",
+      "source_ref": "fab-c",
+      "target_ref": "link-fab-stor-c",
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_relation_type": "CONNECTS_TO",
+        "direction": "directed",
+        "path_group": null,
+        "redundancy_group": null
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "topology.json#e-fabc-link-stor-c"
+      }
+    },
+    {
+      "relation_id": "e-link-stor-a-fc-a",
+      "relation_type": "CONNECTS_TO",
+      "source_ref": "fc-port-01a",
+      "target_ref": "link-fab-stor-a",
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_relation_type": "PHYSICAL_CONNECTS",
+        "direction": "directed",
+        "path_group": "backup-path",
+        "redundancy_group": null
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "topology.json#e-link-stor-a-fc-a"
+      }
+    },
+    {
+      "relation_id": "e-link-stor-b-fc-b",
+      "relation_type": "CONNECTS_TO",
+      "source_ref": "fc-port-01b",
+      "target_ref": "link-fab-stor-b",
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_relation_type": "PHYSICAL_CONNECTS",
+        "direction": "directed",
+        "path_group": null,
+        "redundancy_group": null
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "topology.json#e-link-stor-b-fc-b"
+      }
+    },
+    {
+      "relation_id": "e-link-stor-c-eth",
+      "relation_type": "CONNECTS_TO",
+      "source_ref": "eth-port-01a",
+      "target_ref": "link-fab-stor-c",
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_relation_type": "PHYSICAL_CONNECTS",
+        "direction": "directed",
+        "path_group": null,
+        "redundancy_group": null
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "topology.json#e-link-stor-c-eth"
+      }
+    },
+    {
+      "relation_id": "e-faba-fc-a",
+      "relation_type": "CONNECTS_TO",
+      "source_ref": "fab-a",
+      "target_ref": "fc-port-01a",
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_relation_type": "PHYSICAL_CONNECTS",
+        "direction": "directed",
+        "path_group": "backup-path",
+        "redundancy_group": null
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "topology.json#e-faba-fc-a"
+      }
+    },
+    {
+      "relation_id": "e-fabb-fc-b",
+      "relation_type": "CONNECTS_TO",
+      "source_ref": "fab-b",
+      "target_ref": "fc-port-01b",
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_relation_type": "PHYSICAL_CONNECTS",
+        "direction": "directed",
+        "path_group": null,
+        "redundancy_group": null
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "topology.json#e-fabb-fc-b"
+      }
+    },
+    {
+      "relation_id": "e-fc-a-ctl-a",
+      "relation_type": "DEPENDS_ON",
+      "source_ref": "fc-port-01a",
+      "target_ref": "ctl-01a",
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_relation_type": "DEPENDS_ON",
+        "direction": "directed",
+        "path_group": "backup-path",
+        "redundancy_group": null
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "topology.json#e-fc-a-ctl-a"
+      }
+    },
+    {
+      "relation_id": "e-fc-b-ctl-b",
+      "relation_type": "DEPENDS_ON",
+      "source_ref": "fc-port-01b",
+      "target_ref": "ctl-01b",
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_relation_type": "DEPENDS_ON",
+        "direction": "directed",
+        "path_group": null,
+        "redundancy_group": null
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "topology.json#e-fc-b-ctl-b"
+      }
+    },
+    {
+      "relation_id": "e-eth-ctl-a",
+      "relation_type": "DEPENDS_ON",
+      "source_ref": "eth-port-01a",
+      "target_ref": "ctl-01a",
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_relation_type": "DEPENDS_ON",
+        "direction": "directed",
+        "path_group": null,
+        "redundancy_group": null
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "topology.json#e-eth-ctl-a"
+      }
+    },
+    {
+      "relation_id": "e-lif-ctl-a",
+      "relation_type": "DEPENDS_ON",
+      "source_ref": "lif-01a",
+      "target_ref": "ctl-01a",
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_relation_type": "DEPENDS_ON",
+        "direction": "directed",
+        "path_group": null,
+        "redundancy_group": null
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "topology.json#e-lif-ctl-a"
+      }
+    },
+    {
+      "relation_id": "e-ctl-a-cpu",
+      "relation_type": "CONTAINS",
+      "source_ref": "ctl-01a",
+      "target_ref": "cpu-01a",
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_relation_type": "CONTAINS",
+        "direction": "directed",
+        "path_group": null,
+        "redundancy_group": null
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "topology.json#e-ctl-a-cpu"
+      }
+    },
+    {
+      "relation_id": "e-ctl-a-mem",
+      "relation_type": "CONTAINS",
+      "source_ref": "ctl-01a",
+      "target_ref": "mem-01a",
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_relation_type": "CONTAINS",
+        "direction": "directed",
+        "path_group": null,
+        "redundancy_group": null
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "topology.json#e-ctl-a-mem"
+      }
+    },
+    {
+      "relation_id": "e-ctl-a-cache",
+      "relation_type": "CONTAINS",
+      "source_ref": "ctl-01a",
+      "target_ref": "cache-01a",
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_relation_type": "CONTAINS",
+        "direction": "directed",
+        "path_group": null,
+        "redundancy_group": null
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "topology.json#e-ctl-a-cache"
+      }
+    },
+    {
+      "relation_id": "e-ctl-a-enc",
+      "relation_type": "CONTAINS",
+      "source_ref": "enc-01a",
+      "target_ref": "ctl-01a",
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_relation_type": "BELONGS_TO",
+        "direction": "directed",
+        "path_group": null,
+        "redundancy_group": null
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "topology.json#e-ctl-a-enc"
+      }
+    },
+    {
+      "relation_id": "e-ctl-b-enc",
+      "relation_type": "CONTAINS",
+      "source_ref": "enc-01a",
+      "target_ref": "ctl-01b",
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_relation_type": "BELONGS_TO",
+        "direction": "directed",
+        "path_group": null,
+        "redundancy_group": null
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "topology.json#e-ctl-b-enc"
+      }
+    },
+    {
+      "relation_id": "e-ctl-a-block",
+      "relation_type": "PROVIDES_SERVICE_TO",
+      "source_ref": "ctl-01a",
+      "target_ref": "svc-block-01",
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_relation_type": "PROVIDES_SERVICE",
+        "direction": "directed",
+        "path_group": "backup-path",
+        "redundancy_group": null
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "topology.json#e-ctl-a-block"
+      }
+    },
+    {
+      "relation_id": "e-ctl-a-nas",
+      "relation_type": "PROVIDES_SERVICE_TO",
+      "source_ref": "ctl-01a",
+      "target_ref": "svc-nas-01",
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_relation_type": "PROVIDES_SERVICE",
+        "direction": "directed",
+        "path_group": null,
+        "redundancy_group": null
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "topology.json#e-ctl-a-nas"
+      }
+    },
+    {
+      "relation_id": "e-ctl-b-object",
+      "relation_type": "PROVIDES_SERVICE_TO",
+      "source_ref": "ctl-01b",
+      "target_ref": "svc-object-01",
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_relation_type": "PROVIDES_SERVICE",
+        "direction": "directed",
+        "path_group": null,
+        "redundancy_group": null
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "topology.json#e-ctl-b-object"
+      }
+    },
+    {
+      "relation_id": "e-block-snapshot",
+      "relation_type": "DEPENDS_ON",
+      "source_ref": "svc-block-01",
+      "target_ref": "svc-snapshot-01",
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_relation_type": "DEPENDS_ON",
+        "direction": "directed",
+        "path_group": null,
+        "redundancy_group": null
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "topology.json#e-block-snapshot"
+      }
+    },
+    {
+      "relation_id": "e-block-qos",
+      "relation_type": "DEPENDS_ON",
+      "source_ref": "svc-block-01",
+      "target_ref": "svc-qos-01",
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_relation_type": "DEPENDS_ON",
+        "direction": "directed",
+        "path_group": null,
+        "redundancy_group": null
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "topology.json#e-block-qos"
+      }
+    },
+    {
+      "relation_id": "e-block-repl",
+      "relation_type": "DEPENDS_ON",
+      "source_ref": "svc-block-01",
+      "target_ref": "svc-repl-01",
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_relation_type": "DEPENDS_ON",
+        "direction": "directed",
+        "path_group": null,
+        "redundancy_group": null
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "topology.json#e-block-repl"
+      }
+    },
+    {
+      "relation_id": "e-nas-repl",
+      "relation_type": "DEPENDS_ON",
+      "source_ref": "svc-nas-01",
+      "target_ref": "svc-repl-01",
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_relation_type": "DEPENDS_ON",
+        "direction": "directed",
+        "path_group": null,
+        "redundancy_group": null
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "topology.json#e-nas-repl"
+      }
+    },
+    {
+      "relation_id": "e-block-lun-a",
+      "relation_type": "PROVIDES_SERVICE_TO",
+      "source_ref": "svc-block-01",
+      "target_ref": "lun-01a",
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_relation_type": "PROVIDES_SERVICE",
+        "direction": "directed",
+        "path_group": null,
+        "redundancy_group": null
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "topology.json#e-block-lun-a"
+      }
+    },
+    {
+      "relation_id": "e-block-lun-backup",
+      "relation_type": "PROVIDES_SERVICE_TO",
+      "source_ref": "svc-block-01",
+      "target_ref": "lun-backup-01",
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_relation_type": "PROVIDES_SERVICE",
+        "direction": "directed",
+        "path_group": "backup-path",
+        "redundancy_group": null
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "topology.json#e-block-lun-backup"
+      }
+    },
+    {
+      "relation_id": "e-nas-fs",
+      "relation_type": "PROVIDES_SERVICE_TO",
+      "source_ref": "svc-nas-01",
+      "target_ref": "fs-01a",
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_relation_type": "PROVIDES_SERVICE",
+        "direction": "directed",
+        "path_group": null,
+        "redundancy_group": null
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "topology.json#e-nas-fs"
+      }
+    },
+    {
+      "relation_id": "e-lun-a-pool",
+      "relation_type": "BACKED_BY",
+      "source_ref": "lun-01a",
+      "target_ref": "pool-01a",
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_relation_type": "BACKED_BY",
+        "direction": "directed",
+        "path_group": null,
+        "redundancy_group": null
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "topology.json#e-lun-a-pool"
+      }
+    },
+    {
+      "relation_id": "e-lun-backup-pool",
+      "relation_type": "BACKED_BY",
+      "source_ref": "lun-backup-01",
+      "target_ref": "pool-01a",
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_relation_type": "BACKED_BY",
+        "direction": "directed",
+        "path_group": "backup-path",
+        "redundancy_group": null
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "topology.json#e-lun-backup-pool"
+      }
+    },
+    {
+      "relation_id": "e-fs-pool",
+      "relation_type": "BACKED_BY",
+      "source_ref": "fs-01a",
+      "target_ref": "pool-01a",
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_relation_type": "BACKED_BY",
+        "direction": "directed",
+        "path_group": null,
+        "redundancy_group": null
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "topology.json#e-fs-pool"
+      }
+    },
+    {
+      "relation_id": "e-pool-raid",
+      "relation_type": "BACKED_BY",
+      "source_ref": "pool-01a",
+      "target_ref": "raid-01a",
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_relation_type": "BACKED_BY",
+        "direction": "directed",
+        "path_group": "backup-path",
+        "redundancy_group": null
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "topology.json#e-pool-raid"
+      }
+    },
+    {
+      "relation_id": "e-raid-diskdomain",
+      "relation_type": "BACKED_BY",
+      "source_ref": "raid-01a",
+      "target_ref": "disk-domain-01a",
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_relation_type": "BACKED_BY",
+        "direction": "directed",
+        "path_group": "backup-path",
+        "redundancy_group": null
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "topology.json#e-raid-diskdomain"
+      }
+    },
+    {
+      "relation_id": "e-pool-diskdomain",
+      "relation_type": "BACKED_BY",
+      "source_ref": "pool-01a",
+      "target_ref": "disk-domain-01a",
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_relation_type": "BACKED_BY",
+        "direction": "directed",
+        "path_group": null,
+        "redundancy_group": null
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "topology.json#e-pool-diskdomain"
+      }
+    },
+    {
+      "relation_id": "e-diskdomain-enc",
+      "relation_type": "CONTAINS",
+      "source_ref": "enc-01a",
+      "target_ref": "disk-domain-01a",
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_relation_type": "BELONGS_TO",
+        "direction": "directed",
+        "path_group": "backup-path",
+        "redundancy_group": null
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "topology.json#e-diskdomain-enc"
+      }
+    },
+    {
+      "relation_id": "e-enc-disk-a",
+      "relation_type": "CONTAINS",
+      "source_ref": "enc-01a",
+      "target_ref": "disk-01a",
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_relation_type": "CONTAINS",
+        "direction": "directed",
+        "path_group": "backup-path",
+        "redundancy_group": null
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "topology.json#e-enc-disk-a"
+      }
+    },
+    {
+      "relation_id": "e-enc-disk-b",
+      "relation_type": "CONTAINS",
+      "source_ref": "enc-01a",
+      "target_ref": "disk-01b",
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_relation_type": "CONTAINS",
+        "direction": "directed",
+        "path_group": null,
+        "redundancy_group": null
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "topology.json#e-enc-disk-b"
+      }
+    },
+    {
+      "relation_id": "e-enc-disk-c",
+      "relation_type": "CONTAINS",
+      "source_ref": "enc-01a",
+      "target_ref": "disk-01c",
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_relation_type": "CONTAINS",
+        "direction": "directed",
+        "path_group": null,
+        "redundancy_group": null
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "topology.json#e-enc-disk-c"
+      }
+    },
+    {
+      "relation_id": "e-enc-psu",
+      "relation_type": "CONTAINS",
+      "source_ref": "enc-01a",
+      "target_ref": "psu-01a",
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_relation_type": "CONTAINS",
+        "direction": "directed",
+        "path_group": null,
+        "redundancy_group": null
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "topology.json#e-enc-psu"
+      }
+    },
+    {
+      "relation_id": "e-enc-fan",
+      "relation_type": "CONTAINS",
+      "source_ref": "enc-01a",
+      "target_ref": "fan-01a",
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_relation_type": "CONTAINS",
+        "direction": "directed",
+        "path_group": null,
+        "redundancy_group": null
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "topology.json#e-enc-fan"
+      }
+    },
+    {
+      "relation_id": "e-enc-bbu",
+      "relation_type": "CONTAINS",
+      "source_ref": "enc-01a",
+      "target_ref": "bbu-01a",
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_relation_type": "CONTAINS",
+        "direction": "directed",
+        "path_group": null,
+        "redundancy_group": null
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "topology.json#e-enc-bbu"
+      }
+    },
+    {
+      "relation_id": "e-os-lun-backup",
+      "relation_type": "ACCESSES",
+      "source_ref": "client-os-01",
+      "target_ref": "lun-backup-01",
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_relation_type": "ACCESSES",
+        "direction": "directed",
+        "path_group": "backup-path",
+        "redundancy_group": null
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "topology.json#e-os-lun-backup"
+      }
+    },
+    {
+      "relation_id": "contains-storage-01-fc-port-01a",
+      "relation_type": "CONTAINS",
+      "source_ref": "storage-01",
+      "target_ref": "fc-port-01a",
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "direction": "container",
+        "path_group": null,
+        "redundancy_group": null,
+        "derived_from_parent_id": true
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "resources.json#fc-port-01a.parent_id"
+      }
+    },
+    {
+      "relation_id": "contains-storage-01-fc-port-01b",
+      "relation_type": "CONTAINS",
+      "source_ref": "storage-01",
+      "target_ref": "fc-port-01b",
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "direction": "container",
+        "path_group": null,
+        "redundancy_group": null,
+        "derived_from_parent_id": true
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "resources.json#fc-port-01b.parent_id"
+      }
+    },
+    {
+      "relation_id": "contains-storage-01-eth-port-01a",
+      "relation_type": "CONTAINS",
+      "source_ref": "storage-01",
+      "target_ref": "eth-port-01a",
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "direction": "container",
+        "path_group": null,
+        "redundancy_group": null,
+        "derived_from_parent_id": true
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "resources.json#eth-port-01a.parent_id"
+      }
+    },
+    {
+      "relation_id": "contains-storage-01-lif-01a",
+      "relation_type": "CONTAINS",
+      "source_ref": "storage-01",
+      "target_ref": "lif-01a",
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "direction": "container",
+        "path_group": null,
+        "redundancy_group": null,
+        "derived_from_parent_id": true
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "resources.json#lif-01a.parent_id"
+      }
+    },
+    {
+      "relation_id": "contains-storage-01-svc-block-01",
+      "relation_type": "CONTAINS",
+      "source_ref": "storage-01",
+      "target_ref": "svc-block-01",
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "direction": "container",
+        "path_group": null,
+        "redundancy_group": null,
+        "derived_from_parent_id": true
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "resources.json#svc-block-01.parent_id"
+      }
+    },
+    {
+      "relation_id": "contains-storage-01-svc-nas-01",
+      "relation_type": "CONTAINS",
+      "source_ref": "storage-01",
+      "target_ref": "svc-nas-01",
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "direction": "container",
+        "path_group": null,
+        "redundancy_group": null,
+        "derived_from_parent_id": true
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "resources.json#svc-nas-01.parent_id"
+      }
+    },
+    {
+      "relation_id": "contains-storage-01-svc-object-01",
+      "relation_type": "CONTAINS",
+      "source_ref": "storage-01",
+      "target_ref": "svc-object-01",
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "direction": "container",
+        "path_group": null,
+        "redundancy_group": null,
+        "derived_from_parent_id": true
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "resources.json#svc-object-01.parent_id"
+      }
+    },
+    {
+      "relation_id": "contains-storage-01-svc-snapshot-01",
+      "relation_type": "CONTAINS",
+      "source_ref": "storage-01",
+      "target_ref": "svc-snapshot-01",
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "direction": "container",
+        "path_group": null,
+        "redundancy_group": null,
+        "derived_from_parent_id": true
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "resources.json#svc-snapshot-01.parent_id"
+      }
+    },
+    {
+      "relation_id": "contains-storage-01-svc-qos-01",
+      "relation_type": "CONTAINS",
+      "source_ref": "storage-01",
+      "target_ref": "svc-qos-01",
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "direction": "container",
+        "path_group": null,
+        "redundancy_group": null,
+        "derived_from_parent_id": true
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "resources.json#svc-qos-01.parent_id"
+      }
+    },
+    {
+      "relation_id": "contains-storage-01-svc-repl-01",
+      "relation_type": "CONTAINS",
+      "source_ref": "storage-01",
+      "target_ref": "svc-repl-01",
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "direction": "container",
+        "path_group": null,
+        "redundancy_group": null,
+        "derived_from_parent_id": true
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "resources.json#svc-repl-01.parent_id"
+      }
+    },
+    {
+      "relation_id": "contains-storage-01-pool-01a",
+      "relation_type": "CONTAINS",
+      "source_ref": "storage-01",
+      "target_ref": "pool-01a",
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "direction": "container",
+        "path_group": null,
+        "redundancy_group": null,
+        "derived_from_parent_id": true
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "resources.json#pool-01a.parent_id"
+      }
+    },
+    {
+      "relation_id": "contains-storage-01-raid-01a",
+      "relation_type": "CONTAINS",
+      "source_ref": "storage-01",
+      "target_ref": "raid-01a",
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "direction": "container",
+        "path_group": null,
+        "redundancy_group": null,
+        "derived_from_parent_id": true
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "resources.json#raid-01a.parent_id"
+      }
+    },
+    {
+      "relation_id": "contains-storage-01-lun-01a",
+      "relation_type": "CONTAINS",
+      "source_ref": "storage-01",
+      "target_ref": "lun-01a",
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "direction": "container",
+        "path_group": null,
+        "redundancy_group": null,
+        "derived_from_parent_id": true
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "resources.json#lun-01a.parent_id"
+      }
+    },
+    {
+      "relation_id": "contains-storage-01-lun-backup-01",
+      "relation_type": "CONTAINS",
+      "source_ref": "storage-01",
+      "target_ref": "lun-backup-01",
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "direction": "container",
+        "path_group": null,
+        "redundancy_group": null,
+        "derived_from_parent_id": true
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "resources.json#lun-backup-01.parent_id"
+      }
+    },
+    {
+      "relation_id": "contains-storage-01-fs-01a",
+      "relation_type": "CONTAINS",
+      "source_ref": "storage-01",
+      "target_ref": "fs-01a",
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "direction": "container",
+        "path_group": null,
+        "redundancy_group": null,
+        "derived_from_parent_id": true
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "resources.json#fs-01a.parent_id"
+      }
+    },
+    {
+      "relation_id": "contains-storage-01-enc-01a",
+      "relation_type": "CONTAINS",
+      "source_ref": "storage-01",
+      "target_ref": "enc-01a",
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "direction": "container",
+        "path_group": null,
+        "redundancy_group": null,
+        "derived_from_parent_id": true
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "resources.json#enc-01a.parent_id"
+      }
+    }
+  ],
+  "relation_sets": [],
+  "states": [
+    {
+      "state_id": "state-backup-app-01-health",
+      "subject_kind": "RESOURCE",
+      "subject_ref": "backup-app-01",
+      "state_dimension": "HEALTH",
+      "state_code": "WARNING",
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "observed_at": null,
+      "time_quality": "LEGACY_UNTIMED",
+      "evidence_eligible": false,
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "resources.json#backup-app-01.attributes.health"
+      }
+    },
+    {
+      "state_id": "state-bs-backup-01-health",
+      "subject_kind": "RESOURCE",
+      "subject_ref": "bs-backup-01",
+      "state_dimension": "HEALTH",
+      "state_code": "WARNING",
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "observed_at": null,
+      "time_quality": "LEGACY_UNTIMED",
+      "evidence_eligible": false,
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "resources.json#bs-backup-01.attributes.health"
+      }
+    },
+    {
+      "state_id": "state-ctl-01a-role",
+      "subject_kind": "RESOURCE",
+      "subject_ref": "ctl-01a",
+      "state_dimension": "OPERATIONAL_ROLE",
+      "state_code": "ACTIVE",
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "observed_at": null,
+      "time_quality": "LEGACY_UNTIMED",
+      "evidence_eligible": false,
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "resources.json#ctl-01a.attributes.role"
+      }
+    },
+    {
+      "state_id": "state-ctl-01b-role",
+      "subject_kind": "RESOURCE",
+      "subject_ref": "ctl-01b",
+      "state_dimension": "OPERATIONAL_ROLE",
+      "state_code": "STANDBY",
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "observed_at": null,
+      "time_quality": "LEGACY_UNTIMED",
+      "evidence_eligible": false,
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "resources.json#ctl-01b.attributes.role"
+      }
+    },
+    {
+      "state_id": "state-cpu-01a-role",
+      "subject_kind": "RESOURCE",
+      "subject_ref": "cpu-01a",
+      "state_dimension": "OPERATIONAL_ROLE",
+      "state_code": "ACTIVE",
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "observed_at": null,
+      "time_quality": "LEGACY_UNTIMED",
+      "evidence_eligible": false,
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "resources.json#cpu-01a.attributes.role"
+      }
+    },
+    {
+      "state_id": "state-mem-01a-role",
+      "subject_kind": "RESOURCE",
+      "subject_ref": "mem-01a",
+      "state_dimension": "OPERATIONAL_ROLE",
+      "state_code": "ACTIVE",
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "observed_at": null,
+      "time_quality": "LEGACY_UNTIMED",
+      "evidence_eligible": false,
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "resources.json#mem-01a.attributes.role"
+      }
+    },
+    {
+      "state_id": "state-cache-01a-role",
+      "subject_kind": "RESOURCE",
+      "subject_ref": "cache-01a",
+      "state_dimension": "OPERATIONAL_ROLE",
+      "state_code": "ACTIVE",
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "observed_at": null,
+      "time_quality": "LEGACY_UNTIMED",
+      "evidence_eligible": false,
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "resources.json#cache-01a.attributes.role"
+      }
+    },
+    {
+      "state_id": "state-pool-01a-health",
+      "subject_kind": "RESOURCE",
+      "subject_ref": "pool-01a",
+      "state_dimension": "HEALTH",
+      "state_code": "WARNING",
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "observed_at": null,
+      "time_quality": "LEGACY_UNTIMED",
+      "evidence_eligible": false,
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "resources.json#pool-01a.attributes.health"
+      }
+    },
+    {
+      "state_id": "state-raid-01a-health",
+      "subject_kind": "RESOURCE",
+      "subject_ref": "raid-01a",
+      "state_dimension": "HEALTH",
+      "state_code": "WARNING",
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "observed_at": null,
+      "time_quality": "LEGACY_UNTIMED",
+      "evidence_eligible": false,
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "resources.json#raid-01a.attributes.health"
+      }
+    },
+    {
+      "state_id": "state-lun-backup-01-health",
+      "subject_kind": "RESOURCE",
+      "subject_ref": "lun-backup-01",
+      "state_dimension": "HEALTH",
+      "state_code": "WARNING",
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "observed_at": null,
+      "time_quality": "LEGACY_UNTIMED",
+      "evidence_eligible": false,
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "resources.json#lun-backup-01.attributes.health"
+      }
+    },
+    {
+      "state_id": "state-disk-01a-health",
+      "subject_kind": "RESOURCE",
+      "subject_ref": "disk-01a",
+      "state_dimension": "HEALTH",
+      "state_code": "FAULT",
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "observed_at": null,
+      "time_quality": "LEGACY_UNTIMED",
+      "evidence_eligible": false,
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "resources.json#disk-01a.attributes.health"
+      }
+    }
+  ],
+  "events": [],
+  "provenance": {
+    "source_type": "CASE_MOCK",
+    "source_ref": "layered_topology_demo_001",
+    "case_id": "layered_topology_demo_001"
+  }
+}

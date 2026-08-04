@@ -13,6 +13,7 @@
 import { OntologyLinkType, OntologyObjectType } from '../../schemas/enums'
 import type { JsonValue, OntologyLink, OntologyObject } from '../../schemas/types'
 import { loadAdaptedCase } from '../v2'
+import { instanceTopologyToGraph } from '../adapters/v1_to_instance_topology'
 import {
   computeGroupSummary,
   type ActiveGraph,
@@ -335,8 +336,11 @@ export function buildLayeredModelData(caseId = 'layered_topology_demo_001'): Lay
   const cached = cacheByCaseId.get(caseId)
   if (cached) return cached
   const adapted = loadAdaptedCase(caseId)
-  const nodes = adapted.resources.map(toGraphNode)
-  const links = adapted.edges.map(toGraphLink)
+  // 下游读取规范 InstanceTopology（docs/19 §5）经 instanceTopologyToGraph 投影成渲染图；
+  // 投影保留 V1 relation_type/path_group/relation_id，保证现有 3D 分层、路径高亮不破坏。
+  const { resources, edges } = instanceTopologyToGraph(adapted.instanceTopology)
+  const nodes = resources.map(toGraphNode)
+  const links = edges.map(toGraphLink)
   const nodesById = new Map(nodes.map((node) => [node.id, node]))
   const memberIdsByLayer = buildMemberIds(nodes)
   const layerOf = (id: string): TopoLayerCode => nodesById.get(id)?.group as TopoLayerCode

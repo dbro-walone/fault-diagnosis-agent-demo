@@ -1,0 +1,15 @@
+{
+  "schema_name": "dme-instance-topology-layer-codes",
+  "schema_version": "1.0.0",
+  "description": "存储访问分层受控 layer_code（docs/19 §5.4 冻结）。placement.layer_code 只允许下列 8 个值；domain 表示其所属展示域带。",
+  "layer_codes": [
+    { "code": "S1_1", "name": "业务应用子层", "domain": "S1", "typical": ["数据库业务", "信用卡业务", "核心交易", "备份", "AI 训练业务"] },
+    { "code": "S1_2", "name": "存储客户端子层", "domain": "S1", "typical": ["Host", "VM", "客户端 OS", "挂载点", "文件客户端"] },
+    { "code": "S2", "name": "网络访问层", "domain": "S2", "typical": ["链路", "SAN/IP 交换设备", "HBA/NIC 端口"] },
+    { "code": "S3_1", "name": "存储前端子层", "domain": "S3", "typical": ["FC/ETH 端口", "I/O 模块", "NAS LIF/逻辑端口"] },
+    { "code": "S3_2", "name": "控制器子层", "domain": "S3", "typical": ["Controller", "CPU", "内存", "缓存"] },
+    { "code": "S3_3", "name": "数据与文件服务子层", "domain": "S3", "typical": ["Block", "NAS", "文件/对象", "迁移", "容灾", "备份", "快照", "QoS 服务"] },
+    { "code": "S3_4", "name": "存储逻辑资源子层", "domain": "S3", "typical": ["LUN", "文件系统", "存储池", "硬盘域", "RAID"] },
+    { "code": "S3_5", "name": "存储物理与基础设施子层", "domain": "S3", "typical": ["硬盘", "硬盘框", "BBU", "电源", "风扇"] }
+  ]
+}

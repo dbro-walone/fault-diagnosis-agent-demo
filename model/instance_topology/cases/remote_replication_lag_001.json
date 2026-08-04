@@ -1,0 +1,972 @@
+{
+  "schema_name": "dme-instance-topology",
+  "schema_version": "1.0.0",
+  "topology_id": "topo-remote_replication_lag_001",
+  "environment_id": "env-remote_replication_lag_001",
+  "snapshot_at": "2026-08-01T16:14:00.000+08:00",
+  "resources": [
+    {
+      "resource_id": "prod-business",
+      "resource_type_code": "BUSINESS",
+      "name": "生产业务",
+      "external_refs": [
+        {
+          "system": "DME",
+          "id": "prod-business"
+        }
+      ],
+      "placement": {
+        "spatial_domain": "DEVICE_EXTERNAL",
+        "layer_code": "S1_1",
+        "zone_code": "BUSINESS_SIDE"
+      },
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_resource_type": "BUSINESS",
+        "device_hint": null,
+        "zone_code": "BUSINESS_SIDE",
+        "attributes": {
+          "service": "core-transaction"
+        }
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "resources.json#prod-business"
+      }
+    },
+    {
+      "resource_id": "storage-a",
+      "resource_type_code": "STORAGE_DEVICE",
+      "name": "Storage-A",
+      "external_refs": [
+        {
+          "system": "DME",
+          "id": "storage-a"
+        }
+      ],
+      "placement": {
+        "spatial_domain": "DEVICE_BOUNDARY",
+        "layer_code": "S3_5",
+        "zone_code": "SOURCE_DEVICE"
+      },
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_resource_type": "STORAGE_DEVICE",
+        "device_hint": "storage-a",
+        "zone_code": "SOURCE_DEVICE",
+        "attributes": {
+          "site": "production",
+          "model": "MockStorage-X"
+        }
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "resources.json#storage-a"
+      }
+    },
+    {
+      "resource_id": "lun-prod",
+      "resource_type_code": "LUN",
+      "name": "LUN-PROD",
+      "external_refs": [
+        {
+          "system": "DME",
+          "id": "lun-prod"
+        }
+      ],
+      "placement": {
+        "spatial_domain": "DEVICE_INTERNAL",
+        "layer_code": "S3_4",
+        "zone_code": "SOURCE_LOGICAL"
+      },
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_resource_type": "LUN",
+        "device_hint": "storage-a",
+        "zone_code": "SOURCE_LOGICAL",
+        "attributes": {
+          "capacity_tb": 20
+        }
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "resources.json#lun-prod"
+      }
+    },
+    {
+      "resource_id": "pool-a",
+      "resource_type_code": "STORAGE_POOL",
+      "name": "Pool-A",
+      "external_refs": [
+        {
+          "system": "DME",
+          "id": "pool-a"
+        }
+      ],
+      "placement": {
+        "spatial_domain": "DEVICE_INTERNAL",
+        "layer_code": "S3_4",
+        "zone_code": "SOURCE_BACKEND"
+      },
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_resource_type": "STORAGE_POOL",
+        "device_hint": "storage-a",
+        "zone_code": "SOURCE_BACKEND",
+        "attributes": {
+          "utilization_pct": 58,
+          "state": "normal"
+        }
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "resources.json#pool-a"
+      }
+    },
+    {
+      "resource_id": "repl-port-a",
+      "resource_type_code": "FC_PORT",
+      "name": "Replication-Port-A",
+      "external_refs": [
+        {
+          "system": "DME",
+          "id": "repl-port-a"
+        }
+      ],
+      "placement": {
+        "spatial_domain": "DEVICE_INTERNAL",
+        "layer_code": "S3_1",
+        "zone_code": "SOURCE_FRONTEND"
+      },
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_resource_type": "REPLICATION_PORT",
+        "device_hint": "storage-a",
+        "zone_code": "SOURCE_FRONTEND",
+        "attributes": {
+          "speed_gbps": 25,
+          "state": "up"
+        }
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "resources.json#repl-port-a"
+      }
+    },
+    {
+      "resource_id": "replication-session-rs01",
+      "resource_type_code": "REPLICATION_SESSION",
+      "name": "ReplicationSession-RS01",
+      "external_refs": [
+        {
+          "system": "DME",
+          "id": "replication-session-rs01"
+        }
+      ],
+      "placement": {
+        "spatial_domain": "CROSS_SITE_NETWORK",
+        "layer_code": "S3_3",
+        "zone_code": "REPLICATION_SERVICE"
+      },
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_resource_type": "REPLICATION_SESSION",
+        "device_hint": null,
+        "zone_code": "REPLICATION_SERVICE",
+        "attributes": {
+          "mode": "asynchronous",
+          "target_rpo_seconds": 60,
+          "throttle": "unlimited"
+        }
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "resources.json#replication-session-rs01"
+      }
+    },
+    {
+      "resource_id": "wan-path-01",
+      "resource_type_code": "SAN_FABRIC",
+      "name": "Replication-WAN-01",
+      "external_refs": [
+        {
+          "system": "DME",
+          "id": "wan-path-01"
+        }
+      ],
+      "placement": {
+        "spatial_domain": "CROSS_SITE_NETWORK",
+        "layer_code": "S2",
+        "zone_code": "REPLICATION_NETWORK"
+      },
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_resource_type": "NETWORK_PATH",
+        "device_hint": null,
+        "zone_code": "REPLICATION_NETWORK",
+        "attributes": {
+          "provider": "MockWAN",
+          "capacity_gbps": 25,
+          "state": "degraded"
+        }
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "resources.json#wan-path-01"
+      }
+    },
+    {
+      "resource_id": "wan-router-a",
+      "resource_type_code": "SAN_FABRIC",
+      "name": "WAN-Router-A",
+      "external_refs": [
+        {
+          "system": "DME",
+          "id": "wan-router-a"
+        }
+      ],
+      "placement": {
+        "spatial_domain": "CROSS_SITE_NETWORK",
+        "layer_code": "S2",
+        "zone_code": "REPLICATION_NETWORK"
+      },
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_resource_type": "NETWORK_DEVICE",
+        "device_hint": null,
+        "zone_code": "REPLICATION_NETWORK",
+        "attributes": {
+          "site": "production",
+          "state": "up"
+        }
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "resources.json#wan-router-a"
+      }
+    },
+    {
+      "resource_id": "wan-router-b",
+      "resource_type_code": "SAN_FABRIC",
+      "name": "WAN-Router-B",
+      "external_refs": [
+        {
+          "system": "DME",
+          "id": "wan-router-b"
+        }
+      ],
+      "placement": {
+        "spatial_domain": "CROSS_SITE_NETWORK",
+        "layer_code": "S2",
+        "zone_code": "REPLICATION_NETWORK"
+      },
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_resource_type": "NETWORK_DEVICE",
+        "device_hint": null,
+        "zone_code": "REPLICATION_NETWORK",
+        "attributes": {
+          "site": "dr",
+          "state": "up"
+        }
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "resources.json#wan-router-b"
+      }
+    },
+    {
+      "resource_id": "storage-b",
+      "resource_type_code": "STORAGE_DEVICE",
+      "name": "Storage-B",
+      "external_refs": [
+        {
+          "system": "DME",
+          "id": "storage-b"
+        }
+      ],
+      "placement": {
+        "spatial_domain": "DEVICE_BOUNDARY",
+        "layer_code": "S3_5",
+        "zone_code": "TARGET_DEVICE"
+      },
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_resource_type": "STORAGE_DEVICE",
+        "device_hint": "storage-b",
+        "zone_code": "TARGET_DEVICE",
+        "attributes": {
+          "site": "disaster-recovery",
+          "model": "MockStorage-X"
+        }
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "resources.json#storage-b"
+      }
+    },
+    {
+      "resource_id": "repl-port-b",
+      "resource_type_code": "FC_PORT",
+      "name": "Replication-Port-B",
+      "external_refs": [
+        {
+          "system": "DME",
+          "id": "repl-port-b"
+        }
+      ],
+      "placement": {
+        "spatial_domain": "DEVICE_INTERNAL",
+        "layer_code": "S3_1",
+        "zone_code": "TARGET_FRONTEND"
+      },
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_resource_type": "REPLICATION_PORT",
+        "device_hint": "storage-b",
+        "zone_code": "TARGET_FRONTEND",
+        "attributes": {
+          "speed_gbps": 25,
+          "state": "up"
+        }
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "resources.json#repl-port-b"
+      }
+    },
+    {
+      "resource_id": "lun-dr",
+      "resource_type_code": "LUN",
+      "name": "LUN-DR",
+      "external_refs": [
+        {
+          "system": "DME",
+          "id": "lun-dr"
+        }
+      ],
+      "placement": {
+        "spatial_domain": "DEVICE_INTERNAL",
+        "layer_code": "S3_4",
+        "zone_code": "TARGET_LOGICAL"
+      },
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_resource_type": "LUN",
+        "device_hint": "storage-b",
+        "zone_code": "TARGET_LOGICAL",
+        "attributes": {
+          "capacity_tb": 20
+        }
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "resources.json#lun-dr"
+      }
+    },
+    {
+      "resource_id": "pool-b",
+      "resource_type_code": "STORAGE_POOL",
+      "name": "Pool-B",
+      "external_refs": [
+        {
+          "system": "DME",
+          "id": "pool-b"
+        }
+      ],
+      "placement": {
+        "spatial_domain": "DEVICE_INTERNAL",
+        "layer_code": "S3_4",
+        "zone_code": "TARGET_BACKEND"
+      },
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_resource_type": "STORAGE_POOL",
+        "device_hint": "storage-b",
+        "zone_code": "TARGET_BACKEND",
+        "attributes": {
+          "utilization_pct": 55,
+          "state": "normal"
+        }
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "resources.json#pool-b"
+      }
+    }
+  ],
+  "relations": [
+    {
+      "relation_id": "e-business-prod-lun",
+      "relation_type": "ACCESSES",
+      "source_ref": "prod-business",
+      "target_ref": "lun-prod",
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_relation_type": "ACCESSES",
+        "direction": "directed",
+        "path_group": "production-io",
+        "redundancy_group": null
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "topology.json#e-business-prod-lun"
+      }
+    },
+    {
+      "relation_id": "e-lun-prod-pool-a",
+      "relation_type": "BACKED_BY",
+      "source_ref": "lun-prod",
+      "target_ref": "pool-a",
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_relation_type": "BACKED_BY",
+        "direction": "directed",
+        "path_group": "source-backend",
+        "redundancy_group": null
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "topology.json#e-lun-prod-pool-a"
+      }
+    },
+    {
+      "relation_id": "e-lun-prod-session",
+      "relation_type": "DEPENDS_ON",
+      "source_ref": "replication-session-rs01",
+      "target_ref": "lun-prod",
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_relation_type": "SOURCE_OF",
+        "direction": "directed",
+        "path_group": "replication-path",
+        "redundancy_group": null
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "topology.json#e-lun-prod-session"
+      }
+    },
+    {
+      "relation_id": "e-session-port-a",
+      "relation_type": "DEPENDS_ON",
+      "source_ref": "replication-session-rs01",
+      "target_ref": "repl-port-a",
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_relation_type": "SENDS_VIA",
+        "direction": "directed",
+        "path_group": "replication-path",
+        "redundancy_group": null
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "topology.json#e-session-port-a"
+      }
+    },
+    {
+      "relation_id": "e-port-a-router-a",
+      "relation_type": "CONNECTS_TO",
+      "source_ref": "repl-port-a",
+      "target_ref": "wan-router-a",
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_relation_type": "PHYSICAL_CONNECTS",
+        "direction": "directed",
+        "path_group": "replication-path",
+        "redundancy_group": null
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "topology.json#e-port-a-router-a"
+      }
+    },
+    {
+      "relation_id": "e-router-a-wan",
+      "relation_type": "CONNECTS_TO",
+      "source_ref": "wan-path-01",
+      "target_ref": "wan-router-a",
+      "valid_time": {
+        "from": "2026-08-01T16:03:00.000+08:00",
+        "to": "2026-08-01T16:10:00.000+08:00"
+      },
+      "properties": {
+        "original_relation_type": "ROUTES_THROUGH",
+        "direction": "directed",
+        "path_group": "replication-path",
+        "redundancy_group": null
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "topology.json#e-router-a-wan"
+      }
+    },
+    {
+      "relation_id": "e-wan-router-b",
+      "relation_type": "CONNECTS_TO",
+      "source_ref": "wan-path-01",
+      "target_ref": "wan-router-b",
+      "valid_time": {
+        "from": "2026-08-01T16:03:00.000+08:00",
+        "to": "2026-08-01T16:10:00.000+08:00"
+      },
+      "properties": {
+        "original_relation_type": "ROUTES_THROUGH",
+        "direction": "directed",
+        "path_group": "replication-path",
+        "redundancy_group": null
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "topology.json#e-wan-router-b"
+      }
+    },
+    {
+      "relation_id": "e-router-b-port-b",
+      "relation_type": "CONNECTS_TO",
+      "source_ref": "repl-port-b",
+      "target_ref": "wan-router-b",
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_relation_type": "PHYSICAL_CONNECTS",
+        "direction": "directed",
+        "path_group": "replication-path",
+        "redundancy_group": null
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "topology.json#e-router-b-port-b"
+      }
+    },
+    {
+      "relation_id": "e-port-b-session",
+      "relation_type": "DEPENDS_ON",
+      "source_ref": "replication-session-rs01",
+      "target_ref": "repl-port-b",
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_relation_type": "RECEIVES_FOR",
+        "direction": "directed",
+        "path_group": "replication-path",
+        "redundancy_group": null
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "topology.json#e-port-b-session"
+      }
+    },
+    {
+      "relation_id": "e-session-lun-dr",
+      "relation_type": "REPLICATES_TO",
+      "source_ref": "replication-session-rs01",
+      "target_ref": "lun-dr",
+      "valid_time": {
+        "from": "2026-08-01T16:03:00.000+08:00",
+        "to": "2026-08-01T16:14:00.000+08:00"
+      },
+      "properties": {
+        "original_relation_type": "REPLICATES_TO",
+        "direction": "directed",
+        "path_group": "replication-path",
+        "redundancy_group": null
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "topology.json#e-session-lun-dr"
+      }
+    },
+    {
+      "relation_id": "e-lun-dr-pool-b",
+      "relation_type": "BACKED_BY",
+      "source_ref": "lun-dr",
+      "target_ref": "pool-b",
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_relation_type": "BACKED_BY",
+        "direction": "directed",
+        "path_group": "target-backend",
+        "redundancy_group": null
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "topology.json#e-lun-dr-pool-b"
+      }
+    },
+    {
+      "relation_id": "e-storage-a-session",
+      "relation_type": "CONTAINS",
+      "source_ref": "storage-a",
+      "target_ref": "replication-session-rs01",
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_relation_type": "OWNS",
+        "direction": "directed",
+        "path_group": "replication-service",
+        "redundancy_group": null
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "topology.json#e-storage-a-session"
+      }
+    },
+    {
+      "relation_id": "e-session-storage-b",
+      "relation_type": "DEPENDS_ON",
+      "source_ref": "replication-session-rs01",
+      "target_ref": "storage-b",
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_relation_type": "TARGETS",
+        "direction": "directed",
+        "path_group": "replication-service",
+        "redundancy_group": null
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "topology.json#e-session-storage-b"
+      }
+    },
+    {
+      "relation_id": "contains-storage-a-lun-prod",
+      "relation_type": "CONTAINS",
+      "source_ref": "storage-a",
+      "target_ref": "lun-prod",
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "direction": "container",
+        "path_group": null,
+        "redundancy_group": null,
+        "derived_from_parent_id": true
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "resources.json#lun-prod.parent_id"
+      }
+    },
+    {
+      "relation_id": "contains-storage-a-pool-a",
+      "relation_type": "CONTAINS",
+      "source_ref": "storage-a",
+      "target_ref": "pool-a",
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "direction": "container",
+        "path_group": null,
+        "redundancy_group": null,
+        "derived_from_parent_id": true
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "resources.json#pool-a.parent_id"
+      }
+    },
+    {
+      "relation_id": "contains-storage-a-repl-port-a",
+      "relation_type": "CONTAINS",
+      "source_ref": "storage-a",
+      "target_ref": "repl-port-a",
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "direction": "container",
+        "path_group": null,
+        "redundancy_group": null,
+        "derived_from_parent_id": true
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "resources.json#repl-port-a.parent_id"
+      }
+    },
+    {
+      "relation_id": "contains-storage-b-repl-port-b",
+      "relation_type": "CONTAINS",
+      "source_ref": "storage-b",
+      "target_ref": "repl-port-b",
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "direction": "container",
+        "path_group": null,
+        "redundancy_group": null,
+        "derived_from_parent_id": true
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "resources.json#repl-port-b.parent_id"
+      }
+    },
+    {
+      "relation_id": "contains-storage-b-lun-dr",
+      "relation_type": "CONTAINS",
+      "source_ref": "storage-b",
+      "target_ref": "lun-dr",
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "direction": "container",
+        "path_group": null,
+        "redundancy_group": null,
+        "derived_from_parent_id": true
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "resources.json#lun-dr.parent_id"
+      }
+    },
+    {
+      "relation_id": "contains-storage-b-pool-b",
+      "relation_type": "CONTAINS",
+      "source_ref": "storage-b",
+      "target_ref": "pool-b",
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "direction": "container",
+        "path_group": null,
+        "redundancy_group": null,
+        "derived_from_parent_id": true
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "resources.json#pool-b.parent_id"
+      }
+    }
+  ],
+  "relation_sets": [],
+  "states": [
+    {
+      "state_id": "state-e-router-a-wan",
+      "subject_kind": "RELATION",
+      "subject_ref": "e-router-a-wan",
+      "state_dimension": "LINK_STATE",
+      "state_code": "DEGRADED",
+      "valid_time": {
+        "from": "2026-08-01T16:03:00.000+08:00",
+        "to": "2026-08-01T16:10:00.000+08:00"
+      },
+      "observed_at": "2026-08-01T16:03:00.000+08:00",
+      "time_quality": "LEGACY_TIMED",
+      "evidence_eligible": false,
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "topology.json#e-router-a-wan"
+      }
+    },
+    {
+      "state_id": "state-e-wan-router-b",
+      "subject_kind": "RELATION",
+      "subject_ref": "e-wan-router-b",
+      "state_dimension": "LINK_STATE",
+      "state_code": "DEGRADED",
+      "valid_time": {
+        "from": "2026-08-01T16:03:00.000+08:00",
+        "to": "2026-08-01T16:10:00.000+08:00"
+      },
+      "observed_at": "2026-08-01T16:03:00.000+08:00",
+      "time_quality": "LEGACY_TIMED",
+      "evidence_eligible": false,
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "topology.json#e-wan-router-b"
+      }
+    },
+    {
+      "state_id": "state-e-session-lun-dr",
+      "subject_kind": "RELATION",
+      "subject_ref": "e-session-lun-dr",
+      "state_dimension": "LINK_STATE",
+      "state_code": "DEGRADED",
+      "valid_time": {
+        "from": "2026-08-01T16:03:00.000+08:00",
+        "to": "2026-08-01T16:14:00.000+08:00"
+      },
+      "observed_at": "2026-08-01T16:03:00.000+08:00",
+      "time_quality": "LEGACY_TIMED",
+      "evidence_eligible": false,
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "topology.json#e-session-lun-dr"
+      }
+    },
+    {
+      "state_id": "state-repl-port-a-state",
+      "subject_kind": "RESOURCE",
+      "subject_ref": "repl-port-a",
+      "state_dimension": "LINK_STATE",
+      "state_code": "UP",
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "observed_at": null,
+      "time_quality": "LEGACY_UNTIMED",
+      "evidence_eligible": false,
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "resources.json#repl-port-a.attributes.state"
+      }
+    },
+    {
+      "state_id": "state-wan-path-01-state",
+      "subject_kind": "RESOURCE",
+      "subject_ref": "wan-path-01",
+      "state_dimension": "LINK_STATE",
+      "state_code": "DEGRADED",
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "observed_at": null,
+      "time_quality": "LEGACY_UNTIMED",
+      "evidence_eligible": false,
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "resources.json#wan-path-01.attributes.state"
+      }
+    },
+    {
+      "state_id": "state-wan-router-a-state",
+      "subject_kind": "RESOURCE",
+      "subject_ref": "wan-router-a",
+      "state_dimension": "LINK_STATE",
+      "state_code": "UP",
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "observed_at": null,
+      "time_quality": "LEGACY_UNTIMED",
+      "evidence_eligible": false,
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "resources.json#wan-router-a.attributes.state"
+      }
+    },
+    {
+      "state_id": "state-wan-router-b-state",
+      "subject_kind": "RESOURCE",
+      "subject_ref": "wan-router-b",
+      "state_dimension": "LINK_STATE",
+      "state_code": "UP",
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "observed_at": null,
+      "time_quality": "LEGACY_UNTIMED",
+      "evidence_eligible": false,
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "resources.json#wan-router-b.attributes.state"
+      }
+    },
+    {
+      "state_id": "state-repl-port-b-state",
+      "subject_kind": "RESOURCE",
+      "subject_ref": "repl-port-b",
+      "state_dimension": "LINK_STATE",
+      "state_code": "UP",
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "observed_at": null,
+      "time_quality": "LEGACY_UNTIMED",
+      "evidence_eligible": false,
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "resources.json#repl-port-b.attributes.state"
+      }
+    }
+  ],
+  "events": [],
+  "provenance": {
+    "source_type": "CASE_MOCK",
+    "source_ref": "remote_replication_lag_001",
+    "case_id": "remote_replication_lag_001"
+  }
+}

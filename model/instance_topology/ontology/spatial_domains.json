@@ -1,0 +1,15 @@
+{
+  "schema_name": "dme-instance-topology-spatial-domains",
+  "schema_version": "1.0.0",
+  "description": "空间域冻结注册表（docs/19 §5.4）：placement.spatial_domain 只允许下列 8 个值。",
+  "spatial_domains": [
+    { "code": "ENVIRONMENT", "name": "环境", "description": "环境级聚合" },
+    { "code": "SITE", "name": "站点", "description": "站点级聚合" },
+    { "code": "DEVICE_EXTERNAL", "name": "设备外部", "description": "设备外部（客户端/网络/访问链路）" },
+    { "code": "STORAGE_CLUSTER", "name": "存储集群", "description": "存储集群级" },
+    { "code": "DEVICE_BOUNDARY", "name": "设备边界", "description": "设备根容器（Storage Device）" },
+    { "code": "DEVICE_INTERNAL", "name": "设备内部", "description": "设备内部资源" },
+    { "code": "CROSS_SITE_NETWORK", "name": "跨站点网络", "description": "跨站点网络链路/路由器/复制会话" },
+    { "code": "UNRESOLVED", "name": "未解析", "description": "无法从 V1 字段推导" }
+  ]
+}

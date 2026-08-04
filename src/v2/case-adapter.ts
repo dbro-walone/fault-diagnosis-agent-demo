@@ -15,6 +15,10 @@
  */
 
 import {
+  convertV1ToInstanceTopology,
+  type InstanceTopologySnapshot,
+} from '../adapters/v1_to_instance_topology'
+import {
   CandidateStatus,
   EvidenceEffect,
   EvidenceQuality,
@@ -453,6 +457,8 @@ export interface AdaptedCase {
   /** 资源/拓扑原始数据，供 Projection Store 构建图谱。 */
   resources: V1Resource[]
   edges: V1Edge[]
+  /** InstanceTopology Contract 1.0 规范快照（docs/19 §5）——由同一 V1 转换器编译。 */
+  instanceTopology: InstanceTopologySnapshot
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1002,6 +1008,7 @@ export function loadAdaptedCase(caseId: string): AdaptedCase {
     plannerPlan: pkg.plannerPlan,
     resources: pkg.resources,
     edges: pkg.edges,
+    instanceTopology: convertV1ToInstanceTopology(caseId, pkg.resources, pkg.edges),
   }
   ADAPTED_CACHE.set(caseId, adapted)
   return adapted

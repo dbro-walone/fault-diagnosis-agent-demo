@@ -1,0 +1,620 @@
+{
+  "schema_name": "dme-instance-topology",
+  "schema_version": "1.0.0",
+  "topology_id": "topo-disk_raid_degrade_001",
+  "environment_id": "env-disk_raid_degrade_001",
+  "snapshot_at": null,
+  "resources": [
+    {
+      "resource_id": "business-arch",
+      "resource_type_code": "BUSINESS",
+      "name": "归档业务",
+      "external_refs": [
+        {
+          "system": "DME",
+          "id": "business-arch"
+        }
+      ],
+      "placement": {
+        "spatial_domain": "DEVICE_EXTERNAL",
+        "layer_code": "S1_1",
+        "zone_code": "BUSINESS_SIDE"
+      },
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_resource_type": "BUSINESS",
+        "device_hint": null,
+        "zone_code": "BUSINESS_SIDE",
+        "attributes": {
+          "service": "archive-db"
+        }
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "resources.json#business-arch"
+      }
+    },
+    {
+      "resource_id": "host-02",
+      "resource_type_code": "HOST",
+      "name": "Host-02",
+      "external_refs": [
+        {
+          "system": "DME",
+          "id": "host-02"
+        }
+      ],
+      "placement": {
+        "spatial_domain": "DEVICE_EXTERNAL",
+        "layer_code": "S1_2",
+        "zone_code": "ACCESS_SIDE"
+      },
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_resource_type": "HOST",
+        "device_hint": null,
+        "zone_code": "ACCESS_SIDE",
+        "attributes": {
+          "os": "Linux",
+          "multipath": "enabled"
+        }
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "resources.json#host-02"
+      }
+    },
+    {
+      "resource_id": "storage-02",
+      "resource_type_code": "STORAGE_DEVICE",
+      "name": "Storage-02",
+      "external_refs": [
+        {
+          "system": "DME",
+          "id": "storage-02"
+        }
+      ],
+      "placement": {
+        "spatial_domain": "DEVICE_BOUNDARY",
+        "layer_code": "S3_5",
+        "zone_code": "ROOT"
+      },
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_resource_type": "STORAGE_DEVICE",
+        "device_hint": "storage-02",
+        "zone_code": "ROOT",
+        "attributes": {
+          "model": "MockStorage-Y"
+        }
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "resources.json#storage-02"
+      }
+    },
+    {
+      "resource_id": "controller-2a",
+      "resource_type_code": "CONTROLLER",
+      "name": "Controller-2A",
+      "external_refs": [
+        {
+          "system": "DME",
+          "id": "controller-2a"
+        }
+      ],
+      "placement": {
+        "spatial_domain": "DEVICE_INTERNAL",
+        "layer_code": "S3_2",
+        "zone_code": "CONTROL_SERVICE"
+      },
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_resource_type": "CONTROLLER",
+        "device_hint": "storage-02",
+        "zone_code": "CONTROL_SERVICE",
+        "attributes": {
+          "role": "active",
+          "slot": "2A"
+        }
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "resources.json#controller-2a"
+      }
+    },
+    {
+      "resource_id": "block-service-02",
+      "resource_type_code": "BLOCK_SERVICE",
+      "name": "Block Service-02",
+      "external_refs": [
+        {
+          "system": "DME",
+          "id": "block-service-02"
+        }
+      ],
+      "placement": {
+        "spatial_domain": "DEVICE_INTERNAL",
+        "layer_code": "S3_3",
+        "zone_code": "CONTROL_SERVICE"
+      },
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_resource_type": "BLOCK_SERVICE",
+        "device_hint": "storage-02",
+        "zone_code": "CONTROL_SERVICE",
+        "attributes": {
+          "raid": "RAID6"
+        }
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "resources.json#block-service-02"
+      }
+    },
+    {
+      "resource_id": "lun-arch02",
+      "resource_type_code": "LUN",
+      "name": "LUN-ARCH02",
+      "external_refs": [
+        {
+          "system": "DME",
+          "id": "lun-arch02"
+        }
+      ],
+      "placement": {
+        "spatial_domain": "DEVICE_INTERNAL",
+        "layer_code": "S3_4",
+        "zone_code": "LOGICAL_RESOURCE"
+      },
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_resource_type": "LUN",
+        "device_hint": "storage-02",
+        "zone_code": "LOGICAL_RESOURCE",
+        "attributes": {
+          "capacity_tb": 16,
+          "protocol": "FC"
+        }
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "resources.json#lun-arch02"
+      }
+    },
+    {
+      "resource_id": "storage-pool-02",
+      "resource_type_code": "STORAGE_POOL",
+      "name": "Storage Pool-02",
+      "external_refs": [
+        {
+          "system": "DME",
+          "id": "storage-pool-02"
+        }
+      ],
+      "placement": {
+        "spatial_domain": "DEVICE_INTERNAL",
+        "layer_code": "S3_4",
+        "zone_code": "LOGICAL_RESOURCE"
+      },
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_resource_type": "STORAGE_POOL",
+        "device_hint": "storage-02",
+        "zone_code": "LOGICAL_RESOURCE",
+        "attributes": {
+          "raid": "RAID6",
+          "utilization_pct": 58.4
+        }
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "resources.json#storage-pool-02"
+      }
+    },
+    {
+      "resource_id": "disk-enclosure-02",
+      "resource_type_code": "DISK_ENCLOSURE",
+      "name": "Disk Enclosure-02",
+      "external_refs": [
+        {
+          "system": "DME",
+          "id": "disk-enclosure-02"
+        }
+      ],
+      "placement": {
+        "spatial_domain": "DEVICE_INTERNAL",
+        "layer_code": "S3_5",
+        "zone_code": "PHYSICAL_RESOURCE"
+      },
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_resource_type": "DISK_ENCLOSURE",
+        "device_hint": "storage-02",
+        "zone_code": "PHYSICAL_RESOURCE",
+        "attributes": {
+          "disk_count": 8
+        }
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "resources.json#disk-enclosure-02"
+      }
+    },
+    {
+      "resource_id": "disk-02a",
+      "resource_type_code": "DISK",
+      "name": "Disk-02A",
+      "external_refs": [
+        {
+          "system": "DME",
+          "id": "disk-02a"
+        }
+      ],
+      "placement": {
+        "spatial_domain": "DEVICE_INTERNAL",
+        "layer_code": "S3_5",
+        "zone_code": "PHYSICAL_RESOURCE"
+      },
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_resource_type": "DISK",
+        "device_hint": "storage-02",
+        "zone_code": "PHYSICAL_RESOURCE",
+        "attributes": {
+          "media": "SSD",
+          "health": "degraded"
+        }
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "resources.json#disk-02a"
+      }
+    },
+    {
+      "resource_id": "disk-02b",
+      "resource_type_code": "DISK",
+      "name": "Disk-02B",
+      "external_refs": [
+        {
+          "system": "DME",
+          "id": "disk-02b"
+        }
+      ],
+      "placement": {
+        "spatial_domain": "DEVICE_INTERNAL",
+        "layer_code": "S3_5",
+        "zone_code": "PHYSICAL_RESOURCE"
+      },
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_resource_type": "DISK",
+        "device_hint": "storage-02",
+        "zone_code": "PHYSICAL_RESOURCE",
+        "attributes": {
+          "media": "SSD",
+          "health": "normal"
+        }
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "resources.json#disk-02b"
+      }
+    }
+  ],
+  "relations": [
+    {
+      "relation_id": "e-host-02-arch-lun",
+      "relation_type": "ACCESSES",
+      "source_ref": "host-02",
+      "target_ref": "lun-arch02",
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_relation_type": "ACCESSES",
+        "direction": "directed",
+        "path_group": "arch-path",
+        "redundancy_group": null
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "topology.json#e-host-02-arch-lun"
+      }
+    },
+    {
+      "relation_id": "e-arch-lun-pool",
+      "relation_type": "BACKED_BY",
+      "source_ref": "lun-arch02",
+      "target_ref": "storage-pool-02",
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_relation_type": "BACKED_BY",
+        "direction": "directed",
+        "path_group": "arch-path",
+        "redundancy_group": null
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "topology.json#e-arch-lun-pool"
+      }
+    },
+    {
+      "relation_id": "e-pool-enclosure",
+      "relation_type": "BACKED_BY",
+      "source_ref": "storage-pool-02",
+      "target_ref": "disk-enclosure-02",
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_relation_type": "BACKED_BY",
+        "direction": "directed",
+        "path_group": "arch-path",
+        "redundancy_group": null
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "topology.json#e-pool-enclosure"
+      }
+    },
+    {
+      "relation_id": "e-enclosure-disk-2a",
+      "relation_type": "CONTAINS",
+      "source_ref": "disk-enclosure-02",
+      "target_ref": "disk-02a",
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_relation_type": "CONTAINS",
+        "direction": "directed",
+        "path_group": "arch-path",
+        "redundancy_group": null
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "topology.json#e-enclosure-disk-2a"
+      }
+    },
+    {
+      "relation_id": "e-enclosure-disk-2b",
+      "relation_type": "CONTAINS",
+      "source_ref": "disk-enclosure-02",
+      "target_ref": "disk-02b",
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_relation_type": "CONTAINS",
+        "direction": "directed",
+        "path_group": "arch-path",
+        "redundancy_group": null
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "topology.json#e-enclosure-disk-2b"
+      }
+    },
+    {
+      "relation_id": "e-block-arch",
+      "relation_type": "PROVIDES_SERVICE_TO",
+      "source_ref": "block-service-02",
+      "target_ref": "lun-arch02",
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "original_relation_type": "PROVIDES_SERVICE",
+        "direction": "directed",
+        "path_group": "arch-path",
+        "redundancy_group": null
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "topology.json#e-block-arch"
+      }
+    },
+    {
+      "relation_id": "contains-storage-02-controller-2a",
+      "relation_type": "CONTAINS",
+      "source_ref": "storage-02",
+      "target_ref": "controller-2a",
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "direction": "container",
+        "path_group": null,
+        "redundancy_group": null,
+        "derived_from_parent_id": true
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "resources.json#controller-2a.parent_id"
+      }
+    },
+    {
+      "relation_id": "contains-storage-02-block-service-02",
+      "relation_type": "CONTAINS",
+      "source_ref": "storage-02",
+      "target_ref": "block-service-02",
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "direction": "container",
+        "path_group": null,
+        "redundancy_group": null,
+        "derived_from_parent_id": true
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "resources.json#block-service-02.parent_id"
+      }
+    },
+    {
+      "relation_id": "contains-storage-02-lun-arch02",
+      "relation_type": "CONTAINS",
+      "source_ref": "storage-02",
+      "target_ref": "lun-arch02",
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "direction": "container",
+        "path_group": null,
+        "redundancy_group": null,
+        "derived_from_parent_id": true
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "resources.json#lun-arch02.parent_id"
+      }
+    },
+    {
+      "relation_id": "contains-storage-02-storage-pool-02",
+      "relation_type": "CONTAINS",
+      "source_ref": "storage-02",
+      "target_ref": "storage-pool-02",
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "direction": "container",
+        "path_group": null,
+        "redundancy_group": null,
+        "derived_from_parent_id": true
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "resources.json#storage-pool-02.parent_id"
+      }
+    },
+    {
+      "relation_id": "contains-storage-02-disk-enclosure-02",
+      "relation_type": "CONTAINS",
+      "source_ref": "storage-02",
+      "target_ref": "disk-enclosure-02",
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "properties": {
+        "direction": "container",
+        "path_group": null,
+        "redundancy_group": null,
+        "derived_from_parent_id": true
+      },
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "resources.json#disk-enclosure-02.parent_id"
+      }
+    }
+  ],
+  "relation_sets": [],
+  "states": [
+    {
+      "state_id": "state-controller-2a-role",
+      "subject_kind": "RESOURCE",
+      "subject_ref": "controller-2a",
+      "state_dimension": "OPERATIONAL_ROLE",
+      "state_code": "ACTIVE",
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "observed_at": null,
+      "time_quality": "LEGACY_UNTIMED",
+      "evidence_eligible": false,
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "resources.json#controller-2a.attributes.role"
+      }
+    },
+    {
+      "state_id": "state-disk-02a-health",
+      "subject_kind": "RESOURCE",
+      "subject_ref": "disk-02a",
+      "state_dimension": "HEALTH",
+      "state_code": "DEGRADED",
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "observed_at": null,
+      "time_quality": "LEGACY_UNTIMED",
+      "evidence_eligible": false,
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "resources.json#disk-02a.attributes.health"
+      }
+    },
+    {
+      "state_id": "state-disk-02b-health",
+      "subject_kind": "RESOURCE",
+      "subject_ref": "disk-02b",
+      "state_dimension": "HEALTH",
+      "state_code": "NORMAL",
+      "valid_time": {
+        "from": null,
+        "to": null
+      },
+      "observed_at": null,
+      "time_quality": "LEGACY_UNTIMED",
+      "evidence_eligible": false,
+      "provenance": {
+        "source_type": "CASE_MOCK",
+        "source_ref": "resources.json#disk-02b.attributes.health"
+      }
+    }
+  ],
+  "events": [],
+  "provenance": {
+    "source_type": "CASE_MOCK",
+    "source_ref": "disk_raid_degrade_001",
+    "case_id": "disk_raid_degrade_001"
+  }
+}
