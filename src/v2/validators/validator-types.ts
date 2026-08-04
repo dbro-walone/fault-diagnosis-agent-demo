@@ -19,6 +19,7 @@ export type ValidatorKind =
   | 'LEAK'
   | 'RUNTIME_REPLAY'
   | 'FRONTEND_CONTRACT'
+  | 'BUSINESS_GATES'
 
 /** 单个校验问题：code 使用规范错误码（docs/19 §17.2）。 */
 export interface ValidatorIssue {

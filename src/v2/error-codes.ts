@@ -44,6 +44,8 @@ export const ErrorPrefix = {
   VWB: 'VWB',
   /** 阶段3 既定：CrossPlaneBinding 生命周期校验（概念归 IT-KG）。 */
   BIND: 'BIND',
+  /** 阶段7：九道 Gate 验收的业务断言（Business Gates Validator，Gate 5.2~5.4 / Gate 9）。 */
+  BGT: 'BGT',
 } as const
 export type ErrorPrefix = (typeof ErrorPrefix)[keyof typeof ErrorPrefix]
 

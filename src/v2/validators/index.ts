@@ -17,6 +17,7 @@ import { validateCasePackage } from './case-package'
 import { validateAdapterIntegration } from './adapter-integration'
 import { validateRuntimeReplay, validateDeterministicStream } from './runtime-replay'
 import { validateFrontendContract } from './frontend-contract'
+import { validateBusinessGates } from './business-gates'
 import type { ValidatorKind, ValidatorResult, ValidatorRunner } from './validator-types'
 
 export type { ValidatorKind, ValidatorIssue, ValidatorResult, ValidatorRunner } from './validator-types'
@@ -24,6 +25,7 @@ export { validateCasePackage } from './case-package'
 export { validateAdapterIntegration } from './adapter-integration'
 export { validateRuntimeReplay, validateDeterministicStream } from './runtime-replay'
 export { validateFrontendContract } from './frontend-contract'
+export { validateBusinessGates } from './business-gates'
 
 /**
  * 内置 Case 级校验器注册表。global 校验器（Knowledge Package）由 scripts/ 承载，
@@ -73,6 +75,7 @@ export const VALIDATOR_CATALOG: ReadonlyArray<{
   { kind: 'LEAK', label: 'Leak Validator', implementation: 'src/adapters/case-knowledge-adapter.ts + scripts/validate-leak-isolation.mjs', codes: 'CKA-LEAK-*' },
   { kind: 'RUNTIME_REPLAY', label: 'Runtime Replay Validator', implementation: 'src/v2/validators/runtime-replay.ts', codes: 'RT-*' },
   { kind: 'FRONTEND_CONTRACT', label: 'Frontend Contract Validator', implementation: 'src/v2/validators/frontend-contract.ts + scripts/validate-view-boundary.mjs', codes: 'VWB-*' },
+  { kind: 'BUSINESS_GATES', label: 'Business Gates Validator（阶段7）', implementation: 'src/v2/validators/business-gates.ts', codes: 'BGT-*' },
 ]
 
 /** 批量运行全部 Case 级校验器；返回逐 Case 逐校验器结果。 */
