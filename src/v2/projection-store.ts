@@ -258,6 +258,12 @@ export interface DiagnosisScanVM {
   active_query_object_id: string | null
   /** 整体焦点对象（activeQuery > Planner active > agent_focus）。 */
   focus_object_id: string | null
+  /**
+   * 故障入口业务对象（issue#9：诊断聚焦链路的起点）。
+   * 与 RuntimeSeed.public_input.entry_object_refs 同源（症状对象），属公开输入，
+   * 不是未诊断节点的真值泄露。
+   */
+  entry_object_refs: string[]
   /** 已排查对象及其判定（扫描/聚焦优先，随快照推进增长）。 */
   examined_objects: ExaminedObjectVM[]
   /** 排查路径（PLANNER seq 序，已排查/正在排查的目标资源；画布按此累积高亮，与右侧 PLANNER 一一对应）。 */
@@ -613,6 +619,8 @@ export class ProjectionStore {
   private staticBindings: CrossPlaneBinding[] | null = null
   /** 阶段3：InstanceTopology 快照（供动态 Binding 的对象资源类型解析）。 */
   private instanceTopology: InstanceTopologySnapshot | null = null
+  /** issue#9：入口业务对象（RuntimeSeed.public_input.entry_object_refs，公开输入，非真值）。 */
+  private entryObjectRefs: string[] | null = null
 
   /**
    * 绑定 Runtime 快照（只读消费，不改写 Runtime）。
@@ -621,6 +629,8 @@ export class ProjectionStore {
    * context.knowledgeNodes/knowledgeLinks：知识图谱参考（来自静态 model），供"图谱原始点 +
    * 关联知识点点亮"推导；未提供时图谱点亮为空但不抛错。
    * context.staticBindings / context.instanceTopology：阶段3 跨平面 Binding 数据。
+   * context.entryObjectRefs：故障入口业务对象（RuntimeSeed 公开输入，症状未归一化前即可用，
+   * 保证诊断态聚焦链路从启动即初始化到入口对象，不泄露未诊断节点）。
    */
   bind(
     snapshot: DiagnosisSessionSnapshot,
@@ -630,6 +640,7 @@ export class ProjectionStore {
       knowledgeLinks?: KnowledgeGraphLinkRef[]
       staticBindings?: CrossPlaneBinding[]
       instanceTopology?: InstanceTopologySnapshot
+      entryObjectRefs?: string[]
     },
   ): void {
     this.snapshot = snapshot
@@ -638,6 +649,7 @@ export class ProjectionStore {
     this.knowledgeLinks = context?.knowledgeLinks ?? null
     this.staticBindings = context?.staticBindings ?? null
     this.instanceTopology = context?.instanceTopology ?? null
+    this.entryObjectRefs = context?.entryObjectRefs ?? null
   }
 
   get userSelection(): UserSelection {
@@ -807,6 +819,8 @@ export class ProjectionStore {
     return {
       active_query_object_id: activeQuery,
       focus_object_id: focus,
+      // 症状归一化前回退 RuntimeSeed 公开入口对象（保证诊断启动即初始化聚焦链路）。
+      entry_object_refs: s.symptom?.object_refs ?? this.entryObjectRefs ?? [],
       examined_objects: examined,
       path_object_ids: scanPathObjectIds(s, allFacts),
       graph_entry_anchors,

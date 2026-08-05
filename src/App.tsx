@@ -383,6 +383,8 @@ export default function App() {
       knowledgeLinks: knowledgeLinkRefs,
       staticBindings: adapted.staticBindings,
       instanceTopology: adapted.instanceTopology,
+      // issue#9：入口业务对象来自 RuntimeSeed 公开输入（症状未归一化前即可初始化聚焦链路）。
+      entryObjectRefs: runtime?.compiled.runtimeSeed.public_input.entry_object_refs ?? undefined,
     })
     // 阶段5：binding/planner 只算一次，decision/viewProjection 复用，避免投影层重复派生。
     const bindings = store.activeBindings()

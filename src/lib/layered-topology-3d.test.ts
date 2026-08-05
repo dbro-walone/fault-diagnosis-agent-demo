@@ -21,6 +21,7 @@ import {
   type TopoLayerCode,
 } from './layered-topology'
 import { loadModelData } from './model-loader'
+import { createDiagnosisRuntime, loadAdaptedCase, ProjectionStore, replayCase } from '../v2'
 
 const model = buildLayeredModelData('layered_topology_demo_001')
 const staticModel = loadModelData()
@@ -245,5 +246,162 @@ describe('buildLayered3DGraph', () => {
     const g = buildLayered3DGraph(input({ selectedNodeId: 'ot-controller' }))
     expect(g.selectedIsKnowledge).toBe(true)
     expect(g.highlightedTopology.has('ctl-01a')).toBe(true)
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// issue#9 诊断聚焦链路视图 —— 诊断态只显示链路（拓扑）+ 命中子图（图谱）
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('issue#9 诊断聚焦链路视图 buildLayered3DGraph(diagnosisScan)', () => {
+  // 与 App 一致：从静态 model knowledge 平面取节点/连线参考，供 ProjectionStore 推导。
+  const kgNodeIdSet = new Set(
+    staticModel.nodes.filter((n) => n.plane === 'knowledge').map((n) => n.id),
+  )
+  const kgRefs = knowledgeNodes.map((n) => ({
+    id: n.id,
+    layer: n.group,
+    node_type:
+      typeof n.object.properties.knowledgeKind === 'string'
+        ? (n.object.properties.knowledgeKind as string)
+        : null,
+    code: typeof n.object.properties.code === 'string' ? (n.object.properties.code as string) : null,
+    fault_mode_code:
+      (n.object.properties.attributes as Record<string, unknown> | undefined)?.['fault_mode_code'] as
+        | string
+        | undefined ?? null,
+  }))
+  const kgLinkRefs = staticModel.links
+    .filter((l) => {
+      if (l.category === 'knowledge') return true
+      if (l.category === 'cross') {
+        return kgNodeIdSet.has(l.source as string) && kgNodeIdSet.has(l.target as string)
+      }
+      return false
+    })
+    .map((l) => ({ source: l.source as string, target: l.target as string, relation: l.relation }))
+
+  /** controller 终态诊断扫描（带 seed 入口对象，覆盖症状归一化前初始化）。 */
+  function controllerScan() {
+    const snap = replayCase('controller_warm_reset_001')
+    const store = new ProjectionStore()
+    store.bind(snap, {
+      observationsFacts: loadAdaptedCase('controller_warm_reset_001').facts,
+      knowledgeNodes: kgRefs,
+      knowledgeLinks: kgLinkRefs,
+      entryObjectRefs: ['db-business-01', 'lun-db01'],
+    })
+    return store.diagnosisScan()
+  }
+
+  /** 全部层展开 → 基图无聚合头，只有真实成员，便于断言"链路"与"隐藏"对照。 */
+  const allExpanded = {} as Record<TopoLayerCode, boolean>
+  for (const layer of TOPO_SUB_LAYERS) allExpanded[layer.code] = true
+  for (const d of ['S1', 'S2', 'S3'] as const) allExpanded[d] = true
+
+  function controllerModel() {
+    return buildLayeredModelData('controller_warm_reset_001')
+  }
+
+  function focusInput(partial: Partial<Parameters<typeof buildLayered3DGraph>[0]> = {}) {
+    return {
+      model: controllerModel(),
+      expandedLayers: allExpanded,
+      criticalObjectIds: new Set<string>(),
+      knowledgeNodes,
+      knowledgeLinks,
+      visibleKgLayers: undefined,
+      logicPath: [],
+      selectedNodeId: null,
+      aggregateContext: {},
+      ...partial,
+    }
+  }
+
+  it('非诊断态：focusMode=false，全拓扑+全图谱（浏览态冷冻不改变）', () => {
+    const g = buildLayered3DGraph(focusInput({ diagnosisScan: null }))
+    expect(g.focusMode).toBe(false)
+    // 全展开：全部真实成员 + 全部知识节点。
+    const topoCount = controllerModel().nodes.length
+    expect(g.nodes.filter((n) => n.plane === 'topology').length).toBe(topoCount)
+    expect(g.nodes.filter((n) => n.plane === 'knowledge').length).toBe(knowledgeNodes.length)
+    // 非链路节点（未排查）在浏览态可见。
+    expect(g.nodesById.has('disk-group-01')).toBe(true)
+  })
+
+  it('诊断态：拓扑只显示链路（入口∪已排查∪路径∪桥接），非链路拓扑节点完全隐藏', () => {
+    const scan = controllerScan()
+    const g = buildLayered3DGraph(focusInput({ diagnosisScan: scan }))
+    expect(g.focusMode).toBe(true)
+    const topoIds = g.nodes.filter((n) => n.plane === 'topology').map((n) => n.id)
+    // 入口业务对象在链路起点。
+    for (const id of scan.entry_object_refs) expect(topoIds).toContain(id)
+    // 每个已排查/路径对象都有可见锚点（成员自身或所在层聚合头）。
+    for (const oid of scan.path_object_ids) {
+      const anchor = g.anchorByObjectId.get(oid) ?? oid
+      expect(g.nodesById.has(anchor)).toBe(true)
+    }
+    for (const o of scan.examined_objects) {
+      const anchor = g.anchorByObjectId.get(o.object_id) ?? o.object_id
+      expect(g.nodesById.has(anchor)).toBe(true)
+    }
+    // 非链路拓扑节点（disk-group-01 未被排查）隐藏。
+    expect(topoIds).not.toContain('disk-group-01')
+  })
+
+  it('诊断态：图谱只显示命中子图（原始点∪关联点亮），非命中图谱节点隐藏', () => {
+    const scan = controllerScan()
+    const g = buildLayered3DGraph(focusInput({ diagnosisScan: scan }))
+    const kgIds = g.nodes.filter((n) => n.plane === 'knowledge').map((n) => n.id)
+    // 全部命中节点可见。
+    for (const id of [...scan.graph_entry_anchors, ...scan.graph_lit_knowledge_ids]) {
+      expect(kgIds).toContain(id)
+    }
+    // 非命中图谱节点（已排除候选的故障模式）隐藏。
+    expect(kgIds).not.toContain('fm-fc-link-flap')
+    expect(kgIds).not.toContain('fm-pool-bottleneck')
+    // 命中子图全部落在已知命中集内（不显示未命中节点）。
+    for (const id of kgIds) {
+      expect(scan.graph_lit_knowledge_ids).toContain(id)
+    }
+  })
+
+  it('诊断态：链路与命中子图连线无悬挂（两端都在可见节点内）', () => {
+    const scan = controllerScan()
+    const g = buildLayered3DGraph(focusInput({ diagnosisScan: scan }))
+    expect(g.links.length).toBeGreaterThan(0)
+    for (const link of g.links) {
+      expect(g.nodesById.has(link.source as string)).toBe(true)
+      expect(g.nodesById.has(link.target as string)).toBe(true)
+    }
+  })
+
+  it('诊断推进：链路只累积已排查目标，不泄露未排查节点（controller 取证期）', () => {
+    let rt = createDiagnosisRuntime('controller_warm_reset_001')
+    let guard = 0
+    while (
+      !rt.liveSnapshot.tasks.some(
+        (t) => t.task_id === 'task-query-controller-alarm' && t.status === 'RUNNING',
+      ) &&
+      !rt.complete &&
+      guard++ < 1000
+    ) {
+      rt = rt.advance()
+    }
+    const store = new ProjectionStore()
+    store.bind(rt.liveSnapshot, {
+      observationsFacts: loadAdaptedCase('controller_warm_reset_001').facts,
+      knowledgeNodes: kgRefs,
+      knowledgeLinks: kgLinkRefs,
+      entryObjectRefs: ['db-business-01', 'lun-db01'],
+    })
+    const scan = store.diagnosisScan()
+    const g = buildLayered3DGraph(focusInput({ diagnosisScan: scan }))
+    const topoIds = g.nodes.filter((n) => n.plane === 'topology').map((n) => n.id)
+    // 未排查也非桥接的拓扑节点（disk-group-01）不在链路上。
+    expect(topoIds).not.toContain('disk-group-01')
+    // 入口业务对象 + 已排查 controller 可见。
+    expect(topoIds).toContain('db-business-01')
+    expect(topoIds).toContain('controller-0a')
   })
 })

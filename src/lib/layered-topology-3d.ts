@@ -22,6 +22,7 @@ import {
   layerAggregateId,
   layerCodeOfAggregateId,
   topoLayerDef,
+  type LayeredActiveGraph,
   type LayeredModelData,
   type TopoDomainCode,
   type TopoLayerCode,
@@ -152,6 +153,110 @@ export function applyNodePosition(node: GraphNode, pos: Node3DPosition): void {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// issue#9 诊断聚焦链路 —— 画布需要的诊断扫描子集（结构类型，避免依赖 v2 模块）
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * 诊断态聚焦链路视图所需的诊断扫描数据子集（来自 ProjectionStore.diagnosisScan()）。
+ * 以结构类型承载，layered-topology-3d 不反向依赖 src/v2，避免循环导入。
+ *
+ * 诊断态（该值非 null）下画布只展示"诊断走过的链路 + 命中的图谱子图"：
+ * - 拓扑：入口业务对象 ∪ examined_objects ∪ path_object_ids ∪ 当前推进节点，
+ *   相邻锚点沿物理拓扑 BFS 桥接，非链路节点完全隐藏；
+ * - 图谱：只显示命中的知识节点（graph_entry_anchors ∪ graph_lit_knowledge_ids）及其关系边。
+ */
+export interface DiagnosisFocusScanRef {
+  entry_object_refs: string[]
+  examined_objects: Array<{ object_id: string }>
+  path_object_ids: string[]
+  active_query_object_id: string | null
+  focus_object_id: string | null
+  graph_entry_anchors: string[]
+  graph_lit_knowledge_ids: string[]
+}
+
+/** 沿物理拓扑邻接表 BFS 桥接 from→to，返回中间节点（含 to、不含 from）。不连通返回空。 */
+function bridgeMembers(adj: Map<string, string[]>, from: string, to: string): string[] {
+  if (from === to) return []
+  const parent = new Map<string, string>()
+  const queue = [from]
+  const seen = new Set([from])
+  let found = false
+  while (queue.length && !found) {
+    const cur = queue.shift()!
+    for (const next of adj.get(cur) ?? []) {
+      if (seen.has(next)) continue
+      seen.add(next)
+      parent.set(next, cur)
+      if (next === to) {
+        found = true
+        break
+      }
+      queue.push(next)
+    }
+  }
+  if (!found) return []
+  const members: string[] = []
+  let cur = to
+  while (cur !== from) {
+    const p = parent.get(cur)
+    if (!p) break
+    members.push(cur)
+    cur = p
+  }
+  return members
+}
+
+/**
+ * 诊断聚焦拓扑子图（issue#9 Q1-A）：
+ * 焦点对象 = 入口业务对象 ∪ path_object_ids ∪ examined_objects ∪ active/focus，映射到可见锚点，
+ * 相邻锚点沿物理拓扑（category==='topology'）BFS 桥接，得到"诊断链路"节点集。
+ * 其余拓扑节点（非链路、非必要桥接）由调用方隐藏。
+ */
+function computeFocusTopologyVisible(
+  graph: LayeredActiveGraph,
+  scan: DiagnosisFocusScanRef,
+): Set<string> {
+  // 焦点对象序：入口业务对象 → PLANNER 路径（seq 序）→ 已排查对象 → 当前推进。
+  const focusIds: string[] = []
+  const push = (id: string | null | undefined): void => {
+    if (id && !focusIds.includes(id)) focusIds.push(id)
+  }
+  for (const id of scan.entry_object_refs) push(id)
+  for (const id of scan.path_object_ids) push(id)
+  for (const o of scan.examined_objects) push(o.object_id)
+  push(scan.active_query_object_id)
+  push(scan.focus_object_id)
+
+  const anchorOf = (id: string): string => graph.anchorByObjectId.get(id) ?? id
+  const anchors = focusIds.map(anchorOf)
+  const visible = new Set<string>(anchors)
+
+  // 物理拓扑邻接表（锚点级，仅 topology 连线；聚合头代表其收起层成员）。
+  const adj = new Map<string, string[]>()
+  for (const l of graph.links) {
+    if (l.category !== 'topology') continue
+    const a = l.source as string
+    const b = l.target as string
+    if (!adj.has(a)) adj.set(a, [])
+    adj.get(a)!.push(b)
+    if (!adj.has(b)) adj.set(b, [])
+    adj.get(b)!.push(a)
+  }
+
+  // 相邻锚点间 BFS 桥接（物理路径中间节点进入链路，形成连续链路）。
+  for (let i = 0; i < anchors.length - 1; i++) {
+    for (const m of bridgeMembers(adj, anchors[i], anchors[i + 1])) visible.add(m)
+  }
+  return visible
+}
+
+/** 诊断聚焦图谱子图（issue#9 Q2-A）：只显示命中的知识节点（原始点 ∪ 关联点亮）。 */
+function computeFocusKnowledgeVisible(scan: DiagnosisFocusScanRef): Set<string> {
+  return new Set([...scan.graph_entry_anchors, ...scan.graph_lit_knowledge_ids])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // 虚拟连线（跨层 / 逻辑链）
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -225,6 +330,11 @@ export interface Layered3DGraphInput {
    * 跨层映射连线只由 ACTIVE Binding 生成；未传时回退通用 INSTANCE_OF 解析。
    */
   activeBindings?: CrossPlaneBinding[]
+  /**
+   * issue#9：诊断态聚焦链路视图。非 null 时只展示诊断链路（拓扑）+ 命中图谱子图，
+   * 其余节点完全隐藏；诊断结束/非诊断传 null 恢复全拓扑 + 全图谱（浏览态冷冻）。
+   */
+  diagnosisScan?: DiagnosisFocusScanRef | null
 }
 
 export interface Layered3DGraph extends ActiveGraph {
@@ -238,6 +348,8 @@ export interface Layered3DGraph extends ActiveGraph {
   highlightedKnowledge: Set<string>
   selectedIsTopology: boolean
   selectedIsKnowledge: boolean
+  /** issue#9：是否处于诊断聚焦链路态（diagnosisScan != null）。 */
+  focusMode: boolean
 }
 
 /**
@@ -247,20 +359,28 @@ export interface Layered3DGraph extends ActiveGraph {
  *   links = 拓扑物理连线（锚点级）+ 知识连线 + 跨层映射线 + F2 红逻辑链。
  */
 export function buildLayered3DGraph(input: Layered3DGraphInput): Layered3DGraph {
-  const { model, expandedLayers, criticalObjectIds, logicPath, selectedNodeId } = input
+  const { model, expandedLayers, criticalObjectIds, logicPath, selectedNodeId, diagnosisScan } = input
   const graph = buildLayeredActiveGraph(model, { expandedLayers, criticalObjectIds })
 
-  // 可见知识节点（按 ModelNavigator 图谱分层显隐过滤）。
+  // issue#9：诊断态聚焦链路 —— 拓扑只显示诊断链路，图谱只显示命中子图。
+  const focusMode = diagnosisScan != null
+  const focusTopology = focusMode ? computeFocusTopologyVisible(graph, diagnosisScan!) : null
+  const focusKnowledge = focusMode ? computeFocusKnowledgeVisible(diagnosisScan!) : null
+
+  // 可见知识节点（按 ModelNavigator 图谱分层显隐 + issue#9 命中子图过滤）。
   const kgNodes = input.knowledgeNodes.filter(
     (n) => (input.visibleKgLayers ?? {})[n.group] !== false,
   )
-  const kgNodeIds = new Set(kgNodes.map((n) => n.id))
+  const visibleKgNodes = focusKnowledge
+    ? kgNodes.filter((n) => focusKnowledge.has(n.id))
+    : kgNodes
+  const kgNodeIds = new Set(visibleKgNodes.map((n) => n.id))
   const kgLinks = input.knowledgeLinks.filter(
     (l) => kgNodeIds.has(l.source as string) && kgNodeIds.has(l.target as string),
   )
 
   // 跨层映射 + 选中高亮（阶段3：只消费 ACTIVE CrossPlaneBinding；未传时兼容回退）。
-  const crossLinks = buildCrossLayerLinks(model.nodes, kgNodes, input.activeBindings)
+  const crossLinks = buildCrossLayerLinks(model.nodes, visibleKgNodes, input.activeBindings)
   const selectedIsTopology =
     selectedNodeId != null && model.nodesById.has(selectedNodeId)
   const selectedIsKnowledge = selectedNodeId != null && kgNodeIds.has(selectedNodeId)
@@ -271,10 +391,15 @@ export function buildLayered3DGraph(input: Layered3DGraphInput): Layered3DGraph 
     ? topologyAssociationsForKnowledge(selectedNodeId!, crossLinks, kgLinks, 3)
     : new Set<string>()
 
+  // 可见拓扑节点（issue#9：诊断态只保留链路节点；浏览态保留聚合语义全部节点）。
+  const topoNodes = focusTopology
+    ? graph.nodes.filter((n) => focusTopology.has(n.id))
+    : graph.nodes
+
   // 节点坐标：拓扑节点按 S1→S3 域/子层定 Y/Z，成员按子层带均匀排布 X（issue#8 自动布局，
   // 拉均匀、不重叠、层级清晰）；DETACHED 关键对象（层收起但成员可见）右移避让聚合头；
   // 知识节点按图谱分层定 X。
-  for (const node of graph.nodes) {
+  for (const node of topoNodes) {
     const pos = topologyNodePosition(node)
     if (!isLayerAggregateId(node.id)) {
       const sub = node.group as TopoLayerCode
@@ -288,8 +413,8 @@ export function buildLayered3DGraph(input: Layered3DGraphInput): Layered3DGraph 
     }
     applyNodePosition(node, pos)
   }
-  for (const node of kgNodes) applyNodePosition(node, knowledgeNodePosition(node))
-  const nodes = [...graph.nodes, ...kgNodes]
+  for (const node of visibleKgNodes) applyNodePosition(node, knowledgeNodePosition(node))
+  const nodes = [...topoNodes, ...visibleKgNodes]
   const nodesById = new Map(nodes.map((node) => [node.id, node]))
 
   // 聚合摘要：聚合头节点 id → summary（带运行时上下文：候选/受影响/关键对象）。
@@ -320,12 +445,16 @@ export function buildLayered3DGraph(input: Layered3DGraphInput): Layered3DGraph 
     virtualLink(l.id, l.topologyId, l.knowledgeId, l.relation, 'cross', 'cross'),
   )
 
-  // 物理 + 知识 + 跨层 + 逻辑 连线。
+  // 物理 + 知识 + 跨层 + 逻辑 连线（两端都在可见节点内，无悬挂边）。
+  const visibleNodeIds = new Set(nodes.map((n) => n.id))
+  const topoLinks = graph.links.filter(
+    (l) => visibleNodeIds.has(l.source as string) && visibleNodeIds.has(l.target as string),
+  )
   const links: GraphLink[] = [
-    ...graph.links,
+    ...topoLinks,
     ...kgLinks,
     ...crossGraphLinks,
-    ...buildLogicLinks(logicPath, graph.anchorByObjectId, new Set(nodes.map((n) => n.id))),
+    ...buildLogicLinks(logicPath, graph.anchorByObjectId, visibleNodeIds),
   ]
 
   return {
@@ -339,5 +468,6 @@ export function buildLayered3DGraph(input: Layered3DGraphInput): Layered3DGraph 
     highlightedKnowledge,
     selectedIsTopology,
     selectedIsKnowledge,
+    focusMode,
   }
 }

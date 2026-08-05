@@ -250,7 +250,9 @@ export default function Layered3DCanvas(props: Layered3DCanvasProps) {
   onToggleLayerRef.current = onToggleLayer
   diagnosisScanRef.current = diagnosisScan ?? null
 
-  /** 3D 分层活动图：拓扑（S1→S3 分层）+ 图谱（分层 X 列）+ 跨层 + 红逻辑链。 */
+  /** 3D 分层活动图：拓扑（S1→S3 分层）+ 图谱（分层 X 列）+ 跨层 + 红逻辑链。
+   *  issue#9：诊断态（diagnosisScan != null）聚焦链路 —— 拓扑只显示诊断链路、
+   *  图谱只显示命中子图；非诊断恢复全拓扑+全图谱（浏览态冷冻）。 */
   const graph = useMemo(
     () =>
       buildLayered3DGraph({
@@ -264,6 +266,7 @@ export default function Layered3DCanvas(props: Layered3DCanvasProps) {
         selectedNodeId,
         aggregateContext,
         activeBindings,
+        diagnosisScan,
       }),
     [
       model,
@@ -276,6 +279,7 @@ export default function Layered3DCanvas(props: Layered3DCanvasProps) {
       selectedNodeId,
       aggregateContext,
       activeBindings,
+      diagnosisScan,
     ],
   )
 

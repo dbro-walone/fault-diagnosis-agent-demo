@@ -307,6 +307,30 @@ describe('issue#6 阶段C — 逐对象诊断循环 diagnosisScan()', () => {
     ])
   })
 
+  it('issue#9 终态：entry_object_refs 给出故障入口业务对象（症状对象同源）', () => {
+    const scan = bindScan('controller_warm_reset_001')
+    expect(scan.entry_object_refs).toEqual(['db-business-01', 'lun-db01'])
+    const noisy = bindScan('noisy_neighbor_io_contention_001')
+    expect(noisy.entry_object_refs.length).toBeGreaterThan(0)
+    const remote = bindScan('remote_replication_lag_001')
+    expect(remote.entry_object_refs).toContain('replication-session-rs01')
+  })
+
+  it('issue#9 症状未归一化前：entry_object_refs 回退 RuntimeSeed 公开入口对象（聚焦链路初始化）', () => {
+    // seq 1（DIAGNOSIS_SESSION_CREATED）症状尚未归一化。
+    const rt = createDiagnosisRuntime('controller_warm_reset_001').advance()
+    // 绑定 seed 公开入口对象 → 聚焦链路从启动即初始化到入口业务对象。
+    const seeded = new ProjectionStore()
+    seeded.bind(rt.snapshot, {
+      entryObjectRefs: rt.compiled.runtimeSeed.public_input.entry_object_refs,
+    })
+    expect(seeded.diagnosisScan().entry_object_refs).toEqual(['db-business-01', 'lun-db01'])
+    // 未绑 seed：症状未归一化前为空（不泄露）。
+    const plain = new ProjectionStore()
+    plain.bind(rt.snapshot, {})
+    expect(plain.diagnosisScan().entry_object_refs).toHaveLength(0)
+  })
+
   it('noisy 推进期：排查路径保持终态 seq 序、只含已排查目标、单调累积（case 无关）', () => {
     const final = bindScan('noisy_neighbor_io_contention_001').path_object_ids
     const finalIdx = new Map(final.map((id, i) => [id, i]))
