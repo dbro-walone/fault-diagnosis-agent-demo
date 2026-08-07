@@ -600,7 +600,7 @@ function PlannerTargetRow({ target, isFirst }: { target: PlannerTargetVM; isFirs
         )}
       >
         <div className="flex items-start gap-1.5">
-          <span className="mt-0.5 text-[9px] tabular text-[#475569]">{String(target.seq).padStart(2, '0')}</span>
+          <span data-testid="planner-target-seq" className="mt-0.5 text-[9px] tabular text-[#475569]">{String(target.seq).padStart(2, '0')}</span>
           <div className="min-w-0 flex-1">
             <div className="flex items-start justify-between gap-1.5">
               <div className="min-w-0">

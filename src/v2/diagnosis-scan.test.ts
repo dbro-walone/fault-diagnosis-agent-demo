@@ -106,6 +106,35 @@ describe('issue#6 阶段C — 逐对象诊断循环 diagnosisScan()', () => {
     }
   })
 
+  it('issue#10 案例库门控：诊断进行中（未终态）不点亮历史案例节点；终态才关联显示', () => {
+    // 推进到 controller 告警任务运行中（取证期，未终态）。
+    let rt = createDiagnosisRuntime('controller_warm_reset_001')
+    let guard = 0
+    while (
+      !rt.liveSnapshot.tasks.some(
+        (t) => t.task_id === 'task-query-controller-alarm' && t.status === 'RUNNING',
+      ) &&
+      !rt.complete &&
+      guard++ < 1000
+    ) {
+      rt = rt.advance()
+    }
+    expect(rt.liveSnapshot.session.terminal_status).toBeNull() // 确认未终态
+    const midStore = new ProjectionStore()
+    midStore.bind(rt.liveSnapshot, {
+      observationsFacts: loadAdaptedCase('controller_warm_reset_001').facts,
+      knowledgeNodes: loadModelKnowledgeRefs().nodes,
+      knowledgeLinks: loadModelKnowledgeRefs().links,
+    })
+    const mid = midStore.diagnosisScan()
+    // 诊断中：症状/场景等入口锚点照常点亮，但 HISTORICAL_CASE 案例节点不点亮（真值隔离 Gate5）。
+    expect(mid.graph_entry_anchors.length).toBeGreaterThan(0)
+    expect(mid.graph_lit_knowledge_ids).not.toContain('case-warm-reset-001')
+    // 终态：案例节点恢复关联显示。
+    const terminal = bindScan('controller_warm_reset_001')
+    expect(terminal.graph_lit_knowledge_ids).toContain('case-warm-reset-001')
+  })
+
   it('controller 取证期：activeQuery 随 RUNNING 任务移动，扫描对象标记 is_scanning', () => {
     let rt = createDiagnosisRuntime('controller_warm_reset_001')
     let guard = 0

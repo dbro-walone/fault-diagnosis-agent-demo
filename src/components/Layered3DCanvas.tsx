@@ -326,26 +326,45 @@ export default function Layered3DCanvas(props: Layered3DCanvasProps) {
 
   /** 连线端点的稳定无序 key（A↔B，跨 source/target 方向一致）。 */
   const linkKeyOf = (a: string, b: string): string => (a < b ? `${a}↔${b}` : `${b}↔${a}`)
+  /**
+   * 3d-force-graph 对 graphData 的 link source/target 做了节点对象化（graphData().links 里
+   * source/target 是 node 引用而非 id）。访问器里必须取回 id 再参与 linkKeyOf，否则 key 恒为
+   * `[object Object]↔…`，与 pathVisual.edgeKeys（id 键）永不匹配，排查路径边高亮/细线失效。
+   */
+  const idOf = (x: unknown): string => {
+    if (typeof x === 'object' && x !== null && 'id' in (x as Record<string, unknown>)) {
+      return (x as { id: string }).id
+    }
+    return x as string
+  }
   const linkEndpoints = (link: GraphLink): [string, string] => {
-    const a = link.source as string
-    const b = link.target as string
-    return [a, b]
+    return [idOf(link.source), idOf(link.target)]
   }
 
   /**
-   * 排查证据路径（本轮优化 #2/#4 + 对齐点①/②）：已排查（path_object_ids）拓扑节点按序累积，
-   * 相邻节点沿物理拓扑 BFS 桥接，形成"排查证据路径"：
-   * - walked：已走过目标锚点（PLANNER seq 序，与右侧 PLANNER 一一对应）→ 低亮 trail；
+   * 排查证据路径（本轮优化 #2/#4 + 对齐点①/②，issue#10 单点聚焦收严）：
+   * 已排查（path_object_ids）拓扑节点按序累积，相邻节点沿物理拓扑 BFS 桥接，形成"排查证据路径"：
+   * - walked：已走过目标锚点（PLANNER seq 序，与右侧 PLANNER 一一对应）→ 弱化灰 trail；
    * - members：walked ∪ 物理链桥接中间节点；
-   * - edgeKeys：已走过链路（含桥接段）的无序 key → 低亮一档；
+   * - edgeKeys：已走过链路（含桥接段）的无序 key → 弱化灰一档；
    * - activeEdgeKeys：当前推进节点（activeQuery/focus，尚未入 walked）到上一已走过锚点的
-   *   入边 → 全亮（路径推进观感）；当前节点本身用扫描视觉做最强高亮；
-   * - currentAnchor：当前推进节点锚点（用于标记"当前推进点"）。
+   *   入边 → 淡青（推进方向）；当前节点本身用扫描视觉做唯一活动高亮；
+   * - currentAnchor：当前推进节点锚点（无论是否已入 walked，均为"当前"——单点聚焦主体）。
    */
   const pathVisual = useMemo(() => {
+    // 当前推进节点（activeQuery > focus）锚点——"当前"是单点聚焦主体，不入"已走过"trail。
+    const currentRaw =
+      diagnosisScan?.active_query_object_id ?? diagnosisScan?.focus_object_id ?? null
+    const currentAnchor = currentRaw
+      ? (graph.anchorByObjectId.get(currentRaw) ?? currentRaw)
+      : null
+
+    // 已走过 trail：path_object_ids 含"当前正在验证"的目标（Planner active），需剔除以保证
+    // 当前节点是唯一活动点；其余按 PLANNER seq 序累积。
     const walked: string[] = []
     for (const oid of diagnosisScan?.path_object_ids ?? []) {
       const anchor = graph.anchorByObjectId.get(oid) ?? oid
+      if (anchor === currentAnchor) continue
       if (!walked.includes(anchor)) walked.push(anchor)
     }
     const walkedSet = new Set<string>(walked)
@@ -371,21 +390,14 @@ export default function Layered3DCanvas(props: Layered3DCanvasProps) {
       for (const e of r.edges) edgeKeys.add(e)
     }
 
-    // 对齐点①：当前推进节点（activeQuery/focus，尚未入 walked）的入边提前点亮。
-    let currentAnchor: string | null = null
-    const currentRaw =
-      diagnosisScan?.active_query_object_id ?? diagnosisScan?.focus_object_id ?? null
-    if (currentRaw) {
-      const ca = graph.anchorByObjectId.get(currentRaw) ?? currentRaw
-      if (!walkedSet.has(ca)) {
-        currentAnchor = ca
-        const from = walked[walked.length - 1]
-        if (from !== undefined) {
-          const r = bridgePath(adj, from, ca, linkKeyOf)
-          if (r) {
-            for (const m of r.members) members.add(m)
-            for (const e of r.edges) activeEdgeKeys.add(e)
-          }
+    // 当前推进节点 → 上一已走过锚点的入边点亮（推进方向，淡青）；当前节点本体用扫描视觉。
+    if (currentAnchor) {
+      const from = walked[walked.length - 1]
+      if (from !== undefined) {
+        const r = bridgePath(adj, from, currentAnchor, linkKeyOf)
+        if (r) {
+          for (const m of r.members) members.add(m)
+          for (const e of r.edges) activeEdgeKeys.add(e)
         }
       }
     }
@@ -530,6 +542,8 @@ export default function Layered3DCanvas(props: Layered3DCanvasProps) {
    * 节点颜色（docs/04 §8 优先级：ROOT_CAUSE > IMPACTED > AGENT_FOCUS > 选中/悬停 > 跨层关联 > 基础层色）。
    * issue#6 阶段C 追加：扫描态（查询中）最高优先；已判断对象按判定暗化；聚焦上下游一跳弱提示；
    * 下层图谱原始点金色、关联知识点 teal。
+   * issue#10 单点聚焦：诊断态只有"当前推进节点"一个活动高亮（SCAN_COLOR 青白）；
+   * 已走过节点弱化灰、判定/异常保留暗色小标记，均不与当前节点抢主体。
    */
   const nodeColorFor = (node: GraphNode): string => {
     const scan = diagnosisScan
@@ -540,12 +554,18 @@ export default function Layered3DCanvas(props: Layered3DCanvasProps) {
       if (highlightKnowledgeRef.current.has(node.id)) return '#2dd4bf'
       return node.color
     }
-    if (scan?.active_query_object_id === node.id) return SCAN_COLOR
-    if (rootCauseRef.current.has(node.id)) return STATUS_COLORS.fault
-    if (impactedRef.current.has(node.id)) return STATUS_COLORS.warning
-    if (agentFocusRef.current.has(node.id)) return STATUS_COLORS.active
-    // 已走过排查路径节点：稳定主题亮色（区别于扫描白/青；判定环保留形态语义）。
-    if (pathVisual.walked.has(node.id)) return PATH_COLORS.node
+    if (scan) {
+      // 诊断态单点聚焦：当前推进节点是唯一活动高亮（即使已入 walked 也优先）。
+      if (pathVisual.currentAnchor === node.id) return SCAN_COLOR
+      // 已走过排查路径节点：弱化灰（非活动背景形态，保留"已排查"累积信息）。
+      if (pathVisual.walked.has(node.id)) return PATH_COLORS.node
+    } else {
+      // 浏览态：root/impacted/agent_focus 语义保留（诊断中收敛为单点，不叠加多类高亮）。
+      if (rootCauseRef.current.has(node.id)) return STATUS_COLORS.fault
+      if (impactedRef.current.has(node.id)) return STATUS_COLORS.warning
+      if (agentFocusRef.current.has(node.id)) return STATUS_COLORS.active
+    }
+    // 判定/异常标记：暗色小标记（诊断中不与当前节点抢主体；浏览态保留形态语义）。
     const verdict = verdictByAnchorId.get(node.id)
     if (verdict) return VERDICT_DIM_COLOR[verdict]
     if (node.id === selectedRef.current || node.id === hoverRef.current) return brighten(node.color)
@@ -585,33 +605,32 @@ export default function Layered3DCanvas(props: Layered3DCanvasProps) {
       else if (scan?.graph_lit_knowledge_ids.includes(node.id)) group.add(highlightRingSprite(node))
       if (highlightKnowledgeRef.current.has(node.id)) group.add(highlightRingSprite(node))
     } else {
-      const isScanning = scan?.active_query_object_id === node.id
-      if (isScanning) {
+      const isCurrent = pathVisual.currentAnchor === node.id
+      if (isCurrent) {
+        // 当前推进节点：唯一活动高亮（雷达底座 + 扫掠；focus 非 activeQuery 亦用扫描视觉）。
         const visual = scanningVisual(node)
         scanningSweepsRef.current.set(node.id, visual.sweep)
         group.add(visual)
       }
-      if (rootCauseRef.current.has(node.id)) group.add(rootHaloSprite(node))
-      else if (impactedRef.current.has(node.id)) group.add(impactedRingSprite(node))
-      if (agentFocusRef.current.has(node.id) && !isScanning) group.add(haloSprite(node))
-      // 已走过路径的桥接中间节点（物理链上非目标）：加路径环，形成连续证据路径。
+      if (!scan) {
+        // 浏览态：root/impacted/agent_focus 光环语义保留；诊断中收敛为单点不叠加。
+        if (rootCauseRef.current.has(node.id)) group.add(rootHaloSprite(node))
+        else if (impactedRef.current.has(node.id)) group.add(impactedRingSprite(node))
+        if (agentFocusRef.current.has(node.id) && !isCurrent) group.add(haloSprite(node))
+      }
+      // 已走过路径的桥接中间节点（物理链上非目标）：弱化 trail 环，形成连续证据路径。
       if (
-        !isScanning &&
+        !isCurrent &&
         pathVisual.members.has(node.id) &&
         !pathVisual.walked.has(node.id)
       ) {
         group.add(pathRingSprite(node))
       }
       const verdict = verdictByAnchorId.get(node.id)
-      if (
-        verdict &&
-        !isScanning &&
-        !rootCauseRef.current.has(node.id) &&
-        !impactedRef.current.has(node.id)
-      ) {
+      if (verdict && !isCurrent) {
         group.add(verdictRingSprite(node, verdict as VerdictKey))
       }
-      if (focusNeighborAnchors.has(node.id) && !isScanning) group.add(neighborHintSprite(node))
+      if (focusNeighborAnchors.has(node.id) && !isCurrent) group.add(neighborHintSprite(node))
       if (highlightTopologyRef.current.has(node.id)) group.add(highlightRingSprite(node))
       // 指标不再常显为 3D 小标签（过小/视角遮挡看不清）——由节点悬浮 tooltip 呈现。
     }
@@ -631,11 +650,10 @@ export default function Layered3DCanvas(props: Layered3DCanvasProps) {
   const isCrossLinkActive = (link: GraphLink): boolean => {
     const sel = selectedRef.current
     if (!sel) return false
-    if (selectedIsTopologyRef.current) return link.source === sel || link.target === sel
+    const [srcId, tgtId] = linkEndpoints(link)
+    if (selectedIsTopologyRef.current) return srcId === sel || tgtId === sel
     if (selectedIsKnowledgeRef.current) {
-      return (
-        link.target === sel || highlightTopologyRef.current.has(link.source as string)
-      )
+      return tgtId === sel || highlightTopologyRef.current.has(srcId)
     }
     return false
   }
@@ -659,11 +677,11 @@ export default function Layered3DCanvas(props: Layered3DCanvasProps) {
     return 'rgba(45, 212, 191, 0.5)'
   }
 
-  /** 路径链路加粗（当前入边最粗，已走过次之），其余沿用 linkWidthFor。 */
+  /** 路径链路（issue#10 单点聚焦：当前入边略粗以显推进方向；已走过链路细线弱化，不抢主体）。 */
   const linkWidthAccessor = (link: GraphLink): number => {
     const key = linkKeyOf(...linkEndpoints(link))
-    if (pathVisual.activeEdgeKeys.has(key)) return 3
-    if (pathVisual.edgeKeys.has(key)) return 2.4
+    if (pathVisual.activeEdgeKeys.has(key)) return 2.4
+    if (pathVisual.edgeKeys.has(key)) return 1.2
     return linkWidthFor(link, false)
   }
 
@@ -864,9 +882,13 @@ export default function Layered3DCanvas(props: Layered3DCanvasProps) {
     const tick = (now: number) => {
       const delta = Math.min(0.05, (now - last) / 1000)
       last = now
-      const activeQuery = diagnosisScanRef.current?.active_query_object_id ?? null
+      // issue#10 单点聚焦：旋转"当前推进节点"（activeQuery > focus）的扫掠雷达。
+      const current =
+        diagnosisScanRef.current?.active_query_object_id ??
+        diagnosisScanRef.current?.focus_object_id ??
+        null
       for (const [id, sweep] of scanningSweepsRef.current) {
-        if (id !== activeQuery) continue
+        if (id !== current) continue
         const material = sweep.material as THREE.SpriteMaterial
         material.rotation = (material.rotation ?? 0) + delta * 2.2
       }

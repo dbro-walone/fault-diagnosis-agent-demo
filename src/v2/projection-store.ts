@@ -1817,13 +1817,17 @@ function deriveGraphLighting(
     }
   }
 
-  // 历史案例：由症状锚点直连的 HISTORICAL_CASE 节点（如 sym-latency-increase → case-warm-reset-001）。
-  const byId = new Map(kgNodes.map((n) => [n.id, n]))
-  for (const symId of symptomAnchors) {
-    for (const l of kgLinks) {
-      if (l.source !== symId) continue
-      const target = byId.get(l.target)
-      if (target && target.node_type === 'HISTORICAL_CASE') lit.add(target.id)
+  // 历史案例（issue#10 单点聚焦 + 真值隔离 Gate5）：诊断进行中（未终态）不点亮历史案例
+  // —— 案例库答案节点属于"诊断结束后才关联显示"的类别；终态（ROOT_CAUSE_CONFIRMED 等）后点亮。
+  const diagnosed = s.session.terminal_status != null
+  if (diagnosed) {
+    const byId = new Map(kgNodes.map((n) => [n.id, n]))
+    for (const symId of symptomAnchors) {
+      for (const l of kgLinks) {
+        if (l.source !== symId) continue
+        const target = byId.get(l.target)
+        if (target && target.node_type === 'HISTORICAL_CASE') lit.add(target.id)
+      }
     }
   }
 

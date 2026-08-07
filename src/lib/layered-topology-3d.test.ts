@@ -404,4 +404,48 @@ describe('issue#9 诊断聚焦链路视图 buildLayered3DGraph(diagnosisScan)', 
     expect(topoIds).toContain('db-business-01')
     expect(topoIds).toContain('controller-0a')
   })
+
+  it('issue#10 聚合展开复查：聚焦视图下展开层真实成员可见、聚合头隐藏（storage-pool/S3_4）', () => {
+    // 诊断推进到 storage-pool-01（S3_4 成员，非关键对象）查询态。
+    let rt = createDiagnosisRuntime('controller_warm_reset_001')
+    let guard = 0
+    while (
+      !rt.liveSnapshot.tasks.some((t) => t.status === 'RUNNING' && (t.target_object_refs ?? []).includes('storage-pool-01')) &&
+      !rt.complete &&
+      guard++ < 2000
+    ) {
+      rt = rt.advance()
+    }
+    const store = new ProjectionStore()
+    store.bind(rt.liveSnapshot, {
+      observationsFacts: loadAdaptedCase('controller_warm_reset_001').facts,
+      knowledgeNodes: kgRefs,
+      knowledgeLinks: kgLinkRefs,
+      entryObjectRefs: ['db-business-01', 'lun-db01'],
+    })
+    const scan = store.diagnosisScan()
+    expect(scan.focus_object_id ?? scan.active_query_object_id).toBe('storage-pool-01')
+
+    // 全收起：成员不可见（锚到 S3 域聚合头）。
+    const collapsed = buildLayered3DGraph(focusInput({ diagnosisScan: scan, expandedLayers: {} }))
+    expect(collapsed.nodesById.has('storage-pool-01')).toBe(false)
+    expect(collapsed.nodesById.has(layerAggregateId('S3'))).toBe(true)
+
+    // 仅展开 S3 域（第一步）：成员仍收起 → 锚到 S3_4 子层聚合头。
+    const domainOnly = buildLayered3DGraph(
+      focusInput({ diagnosisScan: scan, expandedLayers: { S3: true } }),
+    )
+    expect(domainOnly.nodesById.has('storage-pool-01')).toBe(false)
+    expect(domainOnly.nodesById.has(layerAggregateId('S3_4'))).toBe(true)
+
+    // 自动展开 S3 域 + S3_4 子层（issue#8 展开逻辑）：成员在聚焦视图可见、子层聚合头隐藏。
+    const expanded = buildLayered3DGraph(
+      focusInput({ diagnosisScan: scan, expandedLayers: { S3: true, S3_4: true } }),
+    )
+    expect(expanded.nodesById.has('storage-pool-01')).toBe(true)
+    expect(expanded.nodesById.has('lun-db01')).toBe(true)
+    expect(expanded.nodesById.has(layerAggregateId('S3_4'))).toBe(false)
+    // 非链路拓扑节点仍隐藏（聚焦视图不破坏）。
+    expect(expanded.nodesById.has('disk-group-01')).toBe(false)
+  })
 })
