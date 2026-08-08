@@ -384,11 +384,29 @@ export function generateEvents(adapted: AdaptedCase, failures: FailureInjection[
   const phaseCandidateEvidence = b.emit('DIAGNOSIS_PHASE_CHANGED', { phase: DiagnosisPhase.CANDIDATE_EVIDENCE },
     { producer: 'planner', causationId: phaseCandidateGen.event_id })
   const plan = adapted.plannerPlan
+
+  // Bug1+2 fix: 按 Planner target seq 排序任务，使画布扫描跟随 Planner 路径。
+  const sortedTasks = (() => {
+    if (!plan || !plan.targets.length) return adapted.tasks
+    const seqByResource = new Map<string, number>()
+    for (const t of plan.targets) seqByResource.set(t.target_resource, t.seq)
+    const indexed = adapted.tasks.map((t, i) => ({ t, i }))
+    indexed.sort((a, b) => {
+      const ra = a.t.target_object_refs?.[0] ?? ''
+      const rb = b.t.target_object_refs?.[0] ?? ''
+      const sa = seqByResource.get(ra) ?? 9999
+      const sb = seqByResource.get(rb) ?? 9999
+      if (sa !== sb) return sa - sb
+      return a.i - b.i
+    })
+    return indexed.map((x) => x.t)
+  })()
+
   const planCreated = b.emit('PLAN_CREATED', {
     plan_id: `plan-${adapted.caseId}-001`,
     phase: DiagnosisPhase.CANDIDATE_EVIDENCE,
-    primary_task_id: adapted.tasks[0]?.task_id ?? null,
-    task_refs: adapted.tasks.map((t) => t.task_id),
+    primary_task_id: sortedTasks[0]?.task_id ?? null,
+    task_refs: sortedTasks.map((t) => t.task_id),
     // issue#6 阶段A：初始轮次（round=1）的 Planner 目标列表 + 初始诊断范围。
     planner_targets: targetsForRound(plan, 1),
     planner_original_scope: plan?.original_scope ?? null,
@@ -403,7 +421,7 @@ export function generateEvents(adapted: AdaptedCase, failures: FailureInjection[
   let planEventId = planCreated.event_id // 当前生效计划事件（PLAN_CREATED 或最近 PLAN_REPLANNED）
   let lastFactDiscoveredEventId: string | null = null // 触发重规划的事实证据（最近一次 FACT_DISCOVERED）
   let lastTaskEventId = planCreated.event_id // 最近任务完成事件，供阶段切换因果回溯
-  for (const task of adapted.tasks) {
+  for (const task of sortedTasks) {
     // 重规划：输出 PLAN_REPLANNED（docs/08 §8）。
     // issue#6 阶段A：优先按 Planner 计划的 replan 锚点触发（trigger_task_id，数据驱动），
     // 携带”原范围→新范围、新增目标、暂停目标”差异；无 planner_plan 时回退

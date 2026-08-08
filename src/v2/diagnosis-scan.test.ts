@@ -70,7 +70,8 @@ describe('issue#6 阶段C — 逐对象诊断循环 diagnosisScan()', () => {
   it('controller 终态：根因/故障链异常、影响橙、排除与已验证对象正常', () => {
     const scan = bindScan('controller_warm_reset_001')
     expect(scan.active_query_object_id).toBeNull()
-    expect(scan.focus_object_id).toBe('controller-0a')
+    // Bug3 fix: 诊断终态后 focus 也为 null（画布停止扫描态）。
+    expect(scan.focus_object_id).toBeNull()
 
     const byObj = new Map(scan.examined_objects.map((o) => [o.object_id, o.verdict]))
     expect(byObj.get('controller-0a')).toBe('ABNORMAL') // 根因
@@ -286,8 +287,8 @@ describe('issue#6 阶段C — 逐对象诊断循环 diagnosisScan()', () => {
     expect(scan.path_object_ids[0]).toBe('lun-db01')
     // 已排查的 controller（告警事实已由终态任务覆盖）进入路径。
     expect(scan.path_object_ids).toContain('controller-0a')
-    // 尚未排查到的 fc-port / storage-pool 不进路径（不泄露未来）。
-    expect(scan.path_object_ids).not.toContain('fc-port-0a')
+    // fc-port 排在 KPI 之前（Bug1+2 fix：任务按 Planner seq 排序），此时已排查入路径。
+    // 尚未排查到的 storage-pool（round=2 replan 目标）不进路径（不泄露未来）。
     expect(scan.path_object_ids).not.toContain('storage-pool-01')
   })
 

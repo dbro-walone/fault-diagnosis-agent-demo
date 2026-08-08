@@ -220,6 +220,60 @@
       "created_sequence": 16
     },
     {
+      "fact_id": "fact-absence-ev-session-config-normal",
+      "fact_type": "ABSENCE",
+      "object_refs": [
+        "replication-session-rs01"
+      ],
+      "source": {
+        "execution_id": "exec-task-query-session-config",
+        "skill_id": "query_resource",
+        "source_refs": [
+          "task-query-session-config"
+        ]
+      },
+      "quality": {
+        "level": "HIGH",
+        "completeness": "COMPLETE",
+        "freshness": "REPLAY_DATA"
+      },
+      "payload": {
+        "absence": true,
+        "queried_source_ref": "task-query-session-config",
+        "summary": "会话未暂停、未限速且无配置变更",
+        "detail": "异步模式与目标RPO配置在故障前后保持一致",
+        "evidence_type": "resource_state"
+      },
+      "created_sequence": 21
+    },
+    {
+      "fact_id": "fact-absence-ev-port-up-no-alarm",
+      "fact_type": "ABSENCE",
+      "object_refs": [
+        "repl-port-a"
+      ],
+      "source": {
+        "execution_id": "exec-task-check-port-alarms",
+        "skill_id": "alarm_query",
+        "source_refs": [
+          "task-check-port-alarms"
+        ]
+      },
+      "quality": {
+        "level": "HIGH",
+        "completeness": "COMPLETE",
+        "freshness": "REPLAY_DATA"
+      },
+      "payload": {
+        "absence": true,
+        "queried_source_ref": "task-check-port-alarms",
+        "summary": "两端复制端口保持Up且无物理链路告警",
+        "detail": "端口Up不能证明WAN质量正常，但可削弱端口物理故障候选",
+        "evidence_type": "alarm_absence"
+      },
+      "created_sequence": 26
+    },
+    {
       "fact_id": "fact-kpi-wan-packet-loss",
       "fact_type": "KPI_WINDOW",
       "object_refs": [
@@ -296,7 +350,7 @@
           }
         ]
       },
-      "created_sequence": 21
+      "created_sequence": 31
     },
     {
       "fact_id": "fact-kpi-rs01-retransmits",
@@ -375,7 +429,38 @@
           }
         ]
       },
-      "created_sequence": 21
+      "created_sequence": 31
+    },
+    {
+      "fact_id": "fact-fp-wan-recovered-006",
+      "fact_type": "LOG_FINGERPRINT",
+      "object_refs": [
+        "wan-path-01"
+      ],
+      "occurred_at": "2026-08-01T16:09:55.000+08:00",
+      "observed_range": {
+        "start": "2026-08-01T16:09:55.000+08:00",
+        "end": "2026-08-01T16:10:05.000+08:00"
+      },
+      "source": {
+        "execution_id": "exec-task-query-network-logs",
+        "skill_id": "log_fingerprint_query",
+        "source_refs": [
+          "fp-wan-recovered-006"
+        ]
+      },
+      "payload": {
+        "name": "复制WAN链路恢复",
+        "template": "replication path recovered, path=<*>, loss_pct=<NUM>",
+        "fault_mode_codes": [
+          "REMOTE_REPLICATION_NETWORK_CONGESTION"
+        ],
+        "hit_count": 1,
+        "matched_log_ids": [
+          "rr-log-006"
+        ]
+      },
+      "created_sequence": 36
     },
     {
       "fact_id": "fact-kpi-pool-a-latency",
@@ -444,7 +529,7 @@
           }
         ]
       },
-      "created_sequence": 26
+      "created_sequence": 41
     },
     {
       "fact_id": "fact-kpi-lun-prod-latency",
@@ -513,7 +598,7 @@
           }
         ]
       },
-      "created_sequence": 26
+      "created_sequence": 41
     },
     {
       "fact_id": "fact-kpi-pool-b-write-latency",
@@ -581,91 +666,6 @@
             "quality": "good"
           }
         ]
-      },
-      "created_sequence": 31
-    },
-    {
-      "fact_id": "fact-absence-ev-session-config-normal",
-      "fact_type": "ABSENCE",
-      "object_refs": [
-        "replication-session-rs01"
-      ],
-      "source": {
-        "execution_id": "exec-task-query-session-config",
-        "skill_id": "query_resource",
-        "source_refs": [
-          "task-query-session-config"
-        ]
-      },
-      "quality": {
-        "level": "HIGH",
-        "completeness": "COMPLETE",
-        "freshness": "REPLAY_DATA"
-      },
-      "payload": {
-        "absence": true,
-        "queried_source_ref": "task-query-session-config",
-        "summary": "会话未暂停、未限速且无配置变更",
-        "detail": "异步模式与目标RPO配置在故障前后保持一致",
-        "evidence_type": "resource_state"
-      },
-      "created_sequence": 36
-    },
-    {
-      "fact_id": "fact-fp-wan-recovered-006",
-      "fact_type": "LOG_FINGERPRINT",
-      "object_refs": [
-        "wan-path-01"
-      ],
-      "occurred_at": "2026-08-01T16:09:55.000+08:00",
-      "observed_range": {
-        "start": "2026-08-01T16:09:55.000+08:00",
-        "end": "2026-08-01T16:10:05.000+08:00"
-      },
-      "source": {
-        "execution_id": "exec-task-query-network-logs",
-        "skill_id": "log_fingerprint_query",
-        "source_refs": [
-          "fp-wan-recovered-006"
-        ]
-      },
-      "payload": {
-        "name": "复制WAN链路恢复",
-        "template": "replication path recovered, path=<*>, loss_pct=<NUM>",
-        "fault_mode_codes": [
-          "REMOTE_REPLICATION_NETWORK_CONGESTION"
-        ],
-        "hit_count": 1,
-        "matched_log_ids": [
-          "rr-log-006"
-        ]
-      },
-      "created_sequence": 41
-    },
-    {
-      "fact_id": "fact-absence-ev-port-up-no-alarm",
-      "fact_type": "ABSENCE",
-      "object_refs": [
-        "repl-port-a"
-      ],
-      "source": {
-        "execution_id": "exec-task-check-port-alarms",
-        "skill_id": "alarm_query",
-        "source_refs": [
-          "task-check-port-alarms"
-        ]
-      },
-      "quality": {
-        "level": "HIGH",
-        "completeness": "COMPLETE",
-        "freshness": "REPLAY_DATA"
-      },
-      "payload": {
-        "absence": true,
-        "queried_source_ref": "task-check-port-alarms",
-        "summary": "两端复制端口保持Up且无物理链路告警",
-        "detail": "端口Up不能证明WAN质量正常，但可削弱端口物理故障候选",
-        "evidence_type": "alarm_absence"
       },
       "created_sequence": 46
     },
@@ -1346,12 +1346,12 @@
         "task_refs": [
           "task-map-repl-session",
           "task-query-session-kpi",
+          "task-query-session-config",
+          "task-check-port-alarms",
           "task-query-network-domain",
+          "task-query-network-logs",
           "task-query-source-domain",
           "task-query-target-domain",
-          "task-query-session-config",
-          "task-query-network-logs",
-          "task-check-port-alarms",
           "task-search-similar"
         ],
         "planner_targets": [
@@ -1843,6 +1843,279 @@
       "sequence": 18,
       "event_type": "TASK_STATUS_CHANGED",
       "producer": "planner",
+      "correlation_id": "exec-task-query-session-config",
+      "causation_id": "evt-0007",
+      "payload": {
+        "task": {
+          "task_id": "task-query-session-config",
+          "skill_code": "QUERY_RESOURCE",
+          "skill_id": "query_resource",
+          "action": "QUERY_RESOURCE",
+          "stage": "evidence_collection",
+          "display_name": "检查复制会话状态与配置",
+          "goal": "检查复制会话状态与配置",
+          "target_object_refs": [
+            "replication-session-rs01"
+          ],
+          "input": {
+            "object_ids": [
+              "replication-session-rs01"
+            ],
+            "fields": [
+              "mode",
+              "throttle",
+              "paused",
+              "config_changed_at"
+            ]
+          },
+          "priority": 95,
+          "execution_mode": "PARALLEL",
+          "ui_role": "BACKGROUND",
+          "status": "RUNNING",
+          "result_refs": [
+            "replication-session-rs01"
+          ],
+          "started_at": "2026-08-01T16:14:10.800+08:00",
+          "ended_at": "2026-08-01T16:14:11.250+08:00",
+          "error": null
+        },
+        "status": "RUNNING"
+      }
+    },
+    {
+      "event_id": "evt-0019",
+      "session_id": "session-remote_replication_lag_001",
+      "sequence": 19,
+      "event_type": "SKILL_STARTED",
+      "occurred_at": "2026-08-01T16:14:10.800+08:00",
+      "producer": "skill-executor",
+      "correlation_id": "exec-task-query-session-config",
+      "causation_id": "evt-0018",
+      "payload": {
+        "execution_id": "exec-task-query-session-config",
+        "task_id": "task-query-session-config",
+        "skill_id": "query_resource",
+        "ui_role": "BACKGROUND",
+        "goal": "检查复制会话状态与配置",
+        "action_text": "执行 query_resource：检查复制会话状态与配置",
+        "reason_text": "复制会话配置与策略是否异常",
+        "expected_result_text": "如命中则会话参数错误或策略冲突",
+        "target_object_refs": [
+          "replication-session-rs01"
+        ]
+      }
+    },
+    {
+      "event_id": "evt-0020",
+      "session_id": "session-remote_replication_lag_001",
+      "sequence": 20,
+      "event_type": "SKILL_COMPLETED",
+      "occurred_at": "2026-08-01T16:14:11.250+08:00",
+      "producer": "skill-executor",
+      "correlation_id": "exec-task-query-session-config",
+      "causation_id": "evt-0018",
+      "payload": {
+        "execution_id": "exec-task-query-session-config",
+        "result_summary": "检查复制会话状态与配置",
+        "ended_at": "2026-08-01T16:14:11.250+08:00"
+      }
+    },
+    {
+      "event_id": "evt-0021",
+      "session_id": "session-remote_replication_lag_001",
+      "sequence": 21,
+      "event_type": "FACT_DISCOVERED",
+      "producer": "fact-normalizer",
+      "correlation_id": "exec-task-query-session-config",
+      "causation_id": "evt-0020",
+      "payload": {
+        "fact_refs": [
+          "fact-absence-ev-session-config-normal"
+        ],
+        "facts": [
+          {
+            "fact_id": "fact-absence-ev-session-config-normal",
+            "fact_type": "ABSENCE",
+            "object_refs": [
+              "replication-session-rs01"
+            ],
+            "source": {
+              "execution_id": "exec-task-query-session-config",
+              "skill_id": "query_resource",
+              "source_refs": [
+                "task-query-session-config"
+              ]
+            },
+            "quality": {
+              "level": "HIGH",
+              "completeness": "COMPLETE",
+              "freshness": "REPLAY_DATA"
+            },
+            "payload": {
+              "absence": true,
+              "queried_source_ref": "task-query-session-config",
+              "summary": "会话未暂停、未限速且无配置变更",
+              "detail": "异步模式与目标RPO配置在故障前后保持一致",
+              "evidence_type": "resource_state"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "event_id": "evt-0022",
+      "session_id": "session-remote_replication_lag_001",
+      "sequence": 22,
+      "event_type": "TASK_STATUS_CHANGED",
+      "producer": "planner",
+      "correlation_id": "exec-task-query-session-config",
+      "causation_id": "evt-0021",
+      "payload": {
+        "task_id": "task-query-session-config",
+        "status": "SUCCEEDED"
+      }
+    },
+    {
+      "event_id": "evt-0023",
+      "session_id": "session-remote_replication_lag_001",
+      "sequence": 23,
+      "event_type": "TASK_STATUS_CHANGED",
+      "producer": "planner",
+      "correlation_id": "exec-task-check-port-alarms",
+      "causation_id": "evt-0007",
+      "payload": {
+        "task": {
+          "task_id": "task-check-port-alarms",
+          "skill_code": "QUERY_ALARM",
+          "skill_id": "alarm_query",
+          "action": "QUERY_ALARM",
+          "stage": "evidence_collection",
+          "display_name": "检查复制端口物理告警",
+          "goal": "检查复制端口物理告警",
+          "target_object_refs": [
+            "repl-port-a",
+            "repl-port-b"
+          ],
+          "input": {
+            "object_ids": [
+              "repl-port-a",
+              "repl-port-b"
+            ],
+            "start": "2026-08-01T16:00:00.000+08:00",
+            "end": "2026-08-01T16:15:00.000+08:00"
+          },
+          "priority": 93,
+          "execution_mode": "PARALLEL",
+          "ui_role": "BACKGROUND",
+          "status": "RUNNING",
+          "result_refs": [],
+          "started_at": "2026-08-01T16:14:11.600+08:00",
+          "ended_at": "2026-08-01T16:14:12.000+08:00",
+          "error": null
+        },
+        "status": "RUNNING"
+      }
+    },
+    {
+      "event_id": "evt-0024",
+      "session_id": "session-remote_replication_lag_001",
+      "sequence": 24,
+      "event_type": "SKILL_STARTED",
+      "occurred_at": "2026-08-01T16:14:11.600+08:00",
+      "producer": "skill-executor",
+      "correlation_id": "exec-task-check-port-alarms",
+      "causation_id": "evt-0023",
+      "payload": {
+        "execution_id": "exec-task-check-port-alarms",
+        "task_id": "task-check-port-alarms",
+        "skill_id": "alarm_query",
+        "ui_role": "BACKGROUND",
+        "goal": "检查复制端口物理告警",
+        "action_text": "执行 alarm_query：检查复制端口物理告警",
+        "reason_text": "复制端口是否存在错误计数或链路异常",
+        "expected_result_text": "如命中则端口错误计数增长且与 RPO 超标时间一致",
+        "target_object_refs": [
+          "repl-port-a",
+          "repl-port-b"
+        ]
+      }
+    },
+    {
+      "event_id": "evt-0025",
+      "session_id": "session-remote_replication_lag_001",
+      "sequence": 25,
+      "event_type": "SKILL_COMPLETED",
+      "occurred_at": "2026-08-01T16:14:12.000+08:00",
+      "producer": "skill-executor",
+      "correlation_id": "exec-task-check-port-alarms",
+      "causation_id": "evt-0023",
+      "payload": {
+        "execution_id": "exec-task-check-port-alarms",
+        "result_summary": "检查复制端口物理告警",
+        "ended_at": "2026-08-01T16:14:12.000+08:00"
+      }
+    },
+    {
+      "event_id": "evt-0026",
+      "session_id": "session-remote_replication_lag_001",
+      "sequence": 26,
+      "event_type": "FACT_DISCOVERED",
+      "producer": "fact-normalizer",
+      "correlation_id": "exec-task-check-port-alarms",
+      "causation_id": "evt-0025",
+      "payload": {
+        "fact_refs": [
+          "fact-absence-ev-port-up-no-alarm"
+        ],
+        "facts": [
+          {
+            "fact_id": "fact-absence-ev-port-up-no-alarm",
+            "fact_type": "ABSENCE",
+            "object_refs": [
+              "repl-port-a"
+            ],
+            "source": {
+              "execution_id": "exec-task-check-port-alarms",
+              "skill_id": "alarm_query",
+              "source_refs": [
+                "task-check-port-alarms"
+              ]
+            },
+            "quality": {
+              "level": "HIGH",
+              "completeness": "COMPLETE",
+              "freshness": "REPLAY_DATA"
+            },
+            "payload": {
+              "absence": true,
+              "queried_source_ref": "task-check-port-alarms",
+              "summary": "两端复制端口保持Up且无物理链路告警",
+              "detail": "端口Up不能证明WAN质量正常，但可削弱端口物理故障候选",
+              "evidence_type": "alarm_absence"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "event_id": "evt-0027",
+      "session_id": "session-remote_replication_lag_001",
+      "sequence": 27,
+      "event_type": "TASK_STATUS_CHANGED",
+      "producer": "planner",
+      "correlation_id": "exec-task-check-port-alarms",
+      "causation_id": "evt-0026",
+      "payload": {
+        "task_id": "task-check-port-alarms",
+        "status": "SUCCEEDED"
+      }
+    },
+    {
+      "event_id": "evt-0028",
+      "session_id": "session-remote_replication_lag_001",
+      "sequence": 28,
+      "event_type": "TASK_STATUS_CHANGED",
+      "producer": "planner",
       "correlation_id": "exec-task-query-network-domain",
       "causation_id": "evt-0007",
       "payload": {
@@ -1881,14 +2154,14 @@
       }
     },
     {
-      "event_id": "evt-0019",
+      "event_id": "evt-0029",
       "session_id": "session-remote_replication_lag_001",
-      "sequence": 19,
+      "sequence": 29,
       "event_type": "SKILL_STARTED",
       "occurred_at": "2026-08-01T16:14:10.720+08:00",
       "producer": "skill-executor",
       "correlation_id": "exec-task-query-network-domain",
-      "causation_id": "evt-0018",
+      "causation_id": "evt-0028",
       "payload": {
         "execution_id": "exec-task-query-network-domain",
         "task_id": "task-query-network-domain",
@@ -1905,14 +2178,14 @@
       }
     },
     {
-      "event_id": "evt-0020",
+      "event_id": "evt-0030",
       "session_id": "session-remote_replication_lag_001",
-      "sequence": 20,
+      "sequence": 30,
       "event_type": "SKILL_COMPLETED",
       "occurred_at": "2026-08-01T16:14:11.500+08:00",
       "producer": "skill-executor",
       "correlation_id": "exec-task-query-network-domain",
-      "causation_id": "evt-0018",
+      "causation_id": "evt-0028",
       "payload": {
         "execution_id": "exec-task-query-network-domain",
         "result_summary": "查询复制链路丢包与重传",
@@ -1920,13 +2193,13 @@
       }
     },
     {
-      "event_id": "evt-0021",
+      "event_id": "evt-0031",
       "session_id": "session-remote_replication_lag_001",
-      "sequence": 21,
+      "sequence": 31,
       "event_type": "FACT_DISCOVERED",
       "producer": "fact-normalizer",
       "correlation_id": "exec-task-query-network-domain",
-      "causation_id": "evt-0020",
+      "causation_id": "evt-0030",
       "payload": {
         "fact_refs": [
           "fact-kpi-wan-packet-loss",
@@ -2093,22 +2366,165 @@
       }
     },
     {
-      "event_id": "evt-0022",
+      "event_id": "evt-0032",
       "session_id": "session-remote_replication_lag_001",
-      "sequence": 22,
+      "sequence": 32,
       "event_type": "TASK_STATUS_CHANGED",
       "producer": "planner",
       "correlation_id": "exec-task-query-network-domain",
-      "causation_id": "evt-0021",
+      "causation_id": "evt-0031",
       "payload": {
         "task_id": "task-query-network-domain",
         "status": "SUCCEEDED"
       }
     },
     {
-      "event_id": "evt-0023",
+      "event_id": "evt-0033",
       "session_id": "session-remote_replication_lag_001",
-      "sequence": 23,
+      "sequence": 33,
+      "event_type": "TASK_STATUS_CHANGED",
+      "producer": "planner",
+      "correlation_id": "exec-task-query-network-logs",
+      "causation_id": "evt-0007",
+      "payload": {
+        "task": {
+          "task_id": "task-query-network-logs",
+          "skill_code": "MATCH_LOG_FINGERPRINT",
+          "skill_id": "log_fingerprint_query",
+          "action": "MATCH_LOG_FINGERPRINT",
+          "stage": "evidence_collection",
+          "display_name": "匹配链路拥塞、丢包与恢复日志",
+          "goal": "匹配链路拥塞、丢包与恢复日志",
+          "target_object_refs": [
+            "wan-path-01",
+            "replication-session-rs01"
+          ],
+          "input": {
+            "object_ids": [
+              "wan-path-01",
+              "replication-session-rs01"
+            ]
+          },
+          "priority": 94,
+          "execution_mode": "PARALLEL",
+          "ui_role": "BACKGROUND",
+          "status": "RUNNING",
+          "result_refs": [
+            "fp-wan-congestion-001",
+            "fp-wan-packet-loss-002",
+            "fp-repl-retransmit-003",
+            "fp-wan-recovered-006",
+            "fp-session-healthy-007"
+          ],
+          "started_at": "2026-08-01T16:14:11.550+08:00",
+          "ended_at": "2026-08-01T16:14:12.350+08:00",
+          "error": null
+        },
+        "status": "RUNNING"
+      }
+    },
+    {
+      "event_id": "evt-0034",
+      "session_id": "session-remote_replication_lag_001",
+      "sequence": 34,
+      "event_type": "SKILL_STARTED",
+      "occurred_at": "2026-08-01T16:14:11.550+08:00",
+      "producer": "skill-executor",
+      "correlation_id": "exec-task-query-network-logs",
+      "causation_id": "evt-0033",
+      "payload": {
+        "execution_id": "exec-task-query-network-logs",
+        "task_id": "task-query-network-logs",
+        "skill_id": "log_fingerprint_query",
+        "ui_role": "BACKGROUND",
+        "goal": "匹配链路拥塞、丢包与恢复日志",
+        "action_text": "执行 log_fingerprint_query：匹配链路拥塞、丢包与恢复日志",
+        "reason_text": "复制会话配置与策略是否异常",
+        "expected_result_text": "如命中则会话参数错误或策略冲突",
+        "target_object_refs": [
+          "wan-path-01",
+          "replication-session-rs01"
+        ]
+      }
+    },
+    {
+      "event_id": "evt-0035",
+      "session_id": "session-remote_replication_lag_001",
+      "sequence": 35,
+      "event_type": "SKILL_COMPLETED",
+      "occurred_at": "2026-08-01T16:14:12.350+08:00",
+      "producer": "skill-executor",
+      "correlation_id": "exec-task-query-network-logs",
+      "causation_id": "evt-0033",
+      "payload": {
+        "execution_id": "exec-task-query-network-logs",
+        "result_summary": "匹配链路拥塞、丢包与恢复日志",
+        "ended_at": "2026-08-01T16:14:12.350+08:00"
+      }
+    },
+    {
+      "event_id": "evt-0036",
+      "session_id": "session-remote_replication_lag_001",
+      "sequence": 36,
+      "event_type": "FACT_DISCOVERED",
+      "producer": "fact-normalizer",
+      "correlation_id": "exec-task-query-network-logs",
+      "causation_id": "evt-0035",
+      "payload": {
+        "fact_refs": [
+          "fact-fp-wan-recovered-006"
+        ],
+        "facts": [
+          {
+            "fact_id": "fact-fp-wan-recovered-006",
+            "fact_type": "LOG_FINGERPRINT",
+            "object_refs": [
+              "wan-path-01"
+            ],
+            "occurred_at": "2026-08-01T16:09:55.000+08:00",
+            "observed_range": {
+              "start": "2026-08-01T16:09:55.000+08:00",
+              "end": "2026-08-01T16:10:05.000+08:00"
+            },
+            "source": {
+              "execution_id": "exec-task-query-network-logs",
+              "skill_id": "log_fingerprint_query",
+              "source_refs": [
+                "fp-wan-recovered-006"
+              ]
+            },
+            "payload": {
+              "name": "复制WAN链路恢复",
+              "template": "replication path recovered, path=<*>, loss_pct=<NUM>",
+              "fault_mode_codes": [
+                "REMOTE_REPLICATION_NETWORK_CONGESTION"
+              ],
+              "hit_count": 1,
+              "matched_log_ids": [
+                "rr-log-006"
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "event_id": "evt-0037",
+      "session_id": "session-remote_replication_lag_001",
+      "sequence": 37,
+      "event_type": "TASK_STATUS_CHANGED",
+      "producer": "planner",
+      "correlation_id": "exec-task-query-network-logs",
+      "causation_id": "evt-0036",
+      "payload": {
+        "task_id": "task-query-network-logs",
+        "status": "SUCCEEDED"
+      }
+    },
+    {
+      "event_id": "evt-0038",
+      "session_id": "session-remote_replication_lag_001",
+      "sequence": 38,
       "event_type": "TASK_STATUS_CHANGED",
       "producer": "planner",
       "correlation_id": "exec-task-query-source-domain",
@@ -2148,14 +2564,14 @@
       }
     },
     {
-      "event_id": "evt-0024",
+      "event_id": "evt-0039",
       "session_id": "session-remote_replication_lag_001",
-      "sequence": 24,
+      "sequence": 39,
       "event_type": "SKILL_STARTED",
       "occurred_at": "2026-08-01T16:14:10.750+08:00",
       "producer": "skill-executor",
       "correlation_id": "exec-task-query-source-domain",
-      "causation_id": "evt-0023",
+      "causation_id": "evt-0038",
       "payload": {
         "execution_id": "exec-task-query-source-domain",
         "task_id": "task-query-source-domain",
@@ -2172,14 +2588,14 @@
       }
     },
     {
-      "event_id": "evt-0025",
+      "event_id": "evt-0040",
       "session_id": "session-remote_replication_lag_001",
-      "sequence": 25,
+      "sequence": 40,
       "event_type": "SKILL_COMPLETED",
       "occurred_at": "2026-08-01T16:14:11.300+08:00",
       "producer": "skill-executor",
       "correlation_id": "exec-task-query-source-domain",
-      "causation_id": "evt-0023",
+      "causation_id": "evt-0038",
       "payload": {
         "execution_id": "exec-task-query-source-domain",
         "result_summary": "检查源端后端与本地业务",
@@ -2187,13 +2603,13 @@
       }
     },
     {
-      "event_id": "evt-0026",
+      "event_id": "evt-0041",
       "session_id": "session-remote_replication_lag_001",
-      "sequence": 26,
+      "sequence": 41,
       "event_type": "FACT_DISCOVERED",
       "producer": "fact-normalizer",
       "correlation_id": "exec-task-query-source-domain",
-      "causation_id": "evt-0025",
+      "causation_id": "evt-0040",
       "payload": {
         "fact_refs": [
           "fact-kpi-pool-a-latency",
@@ -2340,22 +2756,22 @@
       }
     },
     {
-      "event_id": "evt-0027",
+      "event_id": "evt-0042",
       "session_id": "session-remote_replication_lag_001",
-      "sequence": 27,
+      "sequence": 42,
       "event_type": "TASK_STATUS_CHANGED",
       "producer": "planner",
       "correlation_id": "exec-task-query-source-domain",
-      "causation_id": "evt-0026",
+      "causation_id": "evt-0041",
       "payload": {
         "task_id": "task-query-source-domain",
         "status": "SUCCEEDED"
       }
     },
     {
-      "event_id": "evt-0028",
+      "event_id": "evt-0043",
       "session_id": "session-remote_replication_lag_001",
-      "sequence": 28,
+      "sequence": 43,
       "event_type": "TASK_STATUS_CHANGED",
       "producer": "planner",
       "correlation_id": "exec-task-query-target-domain",
@@ -2392,14 +2808,14 @@
       }
     },
     {
-      "event_id": "evt-0029",
+      "event_id": "evt-0044",
       "session_id": "session-remote_replication_lag_001",
-      "sequence": 29,
+      "sequence": 44,
       "event_type": "SKILL_STARTED",
       "occurred_at": "2026-08-01T16:14:10.780+08:00",
       "producer": "skill-executor",
       "correlation_id": "exec-task-query-target-domain",
-      "causation_id": "evt-0028",
+      "causation_id": "evt-0043",
       "payload": {
         "execution_id": "exec-task-query-target-domain",
         "task_id": "task-query-target-domain",
@@ -2415,14 +2831,14 @@
       }
     },
     {
-      "event_id": "evt-0030",
+      "event_id": "evt-0045",
       "session_id": "session-remote_replication_lag_001",
-      "sequence": 30,
+      "sequence": 45,
       "event_type": "SKILL_COMPLETED",
       "occurred_at": "2026-08-01T16:14:11.350+08:00",
       "producer": "skill-executor",
       "correlation_id": "exec-task-query-target-domain",
-      "causation_id": "evt-0028",
+      "causation_id": "evt-0043",
       "payload": {
         "execution_id": "exec-task-query-target-domain",
         "result_summary": "检查远端存储写入能力",
@@ -2430,13 +2846,13 @@
       }
     },
     {
-      "event_id": "evt-0031",
+      "event_id": "evt-0046",
       "session_id": "session-remote_replication_lag_001",
-      "sequence": 31,
+      "sequence": 46,
       "event_type": "FACT_DISCOVERED",
       "producer": "fact-normalizer",
       "correlation_id": "exec-task-query-target-domain",
-      "causation_id": "evt-0030",
+      "causation_id": "evt-0045",
       "payload": {
         "fact_refs": [
           "fact-kpi-pool-b-write-latency"
@@ -2514,431 +2930,15 @@
       }
     },
     {
-      "event_id": "evt-0032",
-      "session_id": "session-remote_replication_lag_001",
-      "sequence": 32,
-      "event_type": "TASK_STATUS_CHANGED",
-      "producer": "planner",
-      "correlation_id": "exec-task-query-target-domain",
-      "causation_id": "evt-0031",
-      "payload": {
-        "task_id": "task-query-target-domain",
-        "status": "SUCCEEDED"
-      }
-    },
-    {
-      "event_id": "evt-0033",
-      "session_id": "session-remote_replication_lag_001",
-      "sequence": 33,
-      "event_type": "TASK_STATUS_CHANGED",
-      "producer": "planner",
-      "correlation_id": "exec-task-query-session-config",
-      "causation_id": "evt-0007",
-      "payload": {
-        "task": {
-          "task_id": "task-query-session-config",
-          "skill_code": "QUERY_RESOURCE",
-          "skill_id": "query_resource",
-          "action": "QUERY_RESOURCE",
-          "stage": "evidence_collection",
-          "display_name": "检查复制会话状态与配置",
-          "goal": "检查复制会话状态与配置",
-          "target_object_refs": [
-            "replication-session-rs01"
-          ],
-          "input": {
-            "object_ids": [
-              "replication-session-rs01"
-            ],
-            "fields": [
-              "mode",
-              "throttle",
-              "paused",
-              "config_changed_at"
-            ]
-          },
-          "priority": 95,
-          "execution_mode": "PARALLEL",
-          "ui_role": "BACKGROUND",
-          "status": "RUNNING",
-          "result_refs": [
-            "replication-session-rs01"
-          ],
-          "started_at": "2026-08-01T16:14:10.800+08:00",
-          "ended_at": "2026-08-01T16:14:11.250+08:00",
-          "error": null
-        },
-        "status": "RUNNING"
-      }
-    },
-    {
-      "event_id": "evt-0034",
-      "session_id": "session-remote_replication_lag_001",
-      "sequence": 34,
-      "event_type": "SKILL_STARTED",
-      "occurred_at": "2026-08-01T16:14:10.800+08:00",
-      "producer": "skill-executor",
-      "correlation_id": "exec-task-query-session-config",
-      "causation_id": "evt-0033",
-      "payload": {
-        "execution_id": "exec-task-query-session-config",
-        "task_id": "task-query-session-config",
-        "skill_id": "query_resource",
-        "ui_role": "BACKGROUND",
-        "goal": "检查复制会话状态与配置",
-        "action_text": "执行 query_resource：检查复制会话状态与配置",
-        "reason_text": "复制会话配置与策略是否异常",
-        "expected_result_text": "如命中则会话参数错误或策略冲突",
-        "target_object_refs": [
-          "replication-session-rs01"
-        ]
-      }
-    },
-    {
-      "event_id": "evt-0035",
-      "session_id": "session-remote_replication_lag_001",
-      "sequence": 35,
-      "event_type": "SKILL_COMPLETED",
-      "occurred_at": "2026-08-01T16:14:11.250+08:00",
-      "producer": "skill-executor",
-      "correlation_id": "exec-task-query-session-config",
-      "causation_id": "evt-0033",
-      "payload": {
-        "execution_id": "exec-task-query-session-config",
-        "result_summary": "检查复制会话状态与配置",
-        "ended_at": "2026-08-01T16:14:11.250+08:00"
-      }
-    },
-    {
-      "event_id": "evt-0036",
-      "session_id": "session-remote_replication_lag_001",
-      "sequence": 36,
-      "event_type": "FACT_DISCOVERED",
-      "producer": "fact-normalizer",
-      "correlation_id": "exec-task-query-session-config",
-      "causation_id": "evt-0035",
-      "payload": {
-        "fact_refs": [
-          "fact-absence-ev-session-config-normal"
-        ],
-        "facts": [
-          {
-            "fact_id": "fact-absence-ev-session-config-normal",
-            "fact_type": "ABSENCE",
-            "object_refs": [
-              "replication-session-rs01"
-            ],
-            "source": {
-              "execution_id": "exec-task-query-session-config",
-              "skill_id": "query_resource",
-              "source_refs": [
-                "task-query-session-config"
-              ]
-            },
-            "quality": {
-              "level": "HIGH",
-              "completeness": "COMPLETE",
-              "freshness": "REPLAY_DATA"
-            },
-            "payload": {
-              "absence": true,
-              "queried_source_ref": "task-query-session-config",
-              "summary": "会话未暂停、未限速且无配置变更",
-              "detail": "异步模式与目标RPO配置在故障前后保持一致",
-              "evidence_type": "resource_state"
-            }
-          }
-        ]
-      }
-    },
-    {
-      "event_id": "evt-0037",
-      "session_id": "session-remote_replication_lag_001",
-      "sequence": 37,
-      "event_type": "TASK_STATUS_CHANGED",
-      "producer": "planner",
-      "correlation_id": "exec-task-query-session-config",
-      "causation_id": "evt-0036",
-      "payload": {
-        "task_id": "task-query-session-config",
-        "status": "SUCCEEDED"
-      }
-    },
-    {
-      "event_id": "evt-0038",
-      "session_id": "session-remote_replication_lag_001",
-      "sequence": 38,
-      "event_type": "TASK_STATUS_CHANGED",
-      "producer": "planner",
-      "correlation_id": "exec-task-query-network-logs",
-      "causation_id": "evt-0007",
-      "payload": {
-        "task": {
-          "task_id": "task-query-network-logs",
-          "skill_code": "MATCH_LOG_FINGERPRINT",
-          "skill_id": "log_fingerprint_query",
-          "action": "MATCH_LOG_FINGERPRINT",
-          "stage": "evidence_collection",
-          "display_name": "匹配链路拥塞、丢包与恢复日志",
-          "goal": "匹配链路拥塞、丢包与恢复日志",
-          "target_object_refs": [
-            "wan-path-01",
-            "replication-session-rs01"
-          ],
-          "input": {
-            "object_ids": [
-              "wan-path-01",
-              "replication-session-rs01"
-            ]
-          },
-          "priority": 94,
-          "execution_mode": "PARALLEL",
-          "ui_role": "BACKGROUND",
-          "status": "RUNNING",
-          "result_refs": [
-            "fp-wan-congestion-001",
-            "fp-wan-packet-loss-002",
-            "fp-repl-retransmit-003",
-            "fp-wan-recovered-006",
-            "fp-session-healthy-007"
-          ],
-          "started_at": "2026-08-01T16:14:11.550+08:00",
-          "ended_at": "2026-08-01T16:14:12.350+08:00",
-          "error": null
-        },
-        "status": "RUNNING"
-      }
-    },
-    {
-      "event_id": "evt-0039",
-      "session_id": "session-remote_replication_lag_001",
-      "sequence": 39,
-      "event_type": "SKILL_STARTED",
-      "occurred_at": "2026-08-01T16:14:11.550+08:00",
-      "producer": "skill-executor",
-      "correlation_id": "exec-task-query-network-logs",
-      "causation_id": "evt-0038",
-      "payload": {
-        "execution_id": "exec-task-query-network-logs",
-        "task_id": "task-query-network-logs",
-        "skill_id": "log_fingerprint_query",
-        "ui_role": "BACKGROUND",
-        "goal": "匹配链路拥塞、丢包与恢复日志",
-        "action_text": "执行 log_fingerprint_query：匹配链路拥塞、丢包与恢复日志",
-        "reason_text": "复制会话配置与策略是否异常",
-        "expected_result_text": "如命中则会话参数错误或策略冲突",
-        "target_object_refs": [
-          "wan-path-01",
-          "replication-session-rs01"
-        ]
-      }
-    },
-    {
-      "event_id": "evt-0040",
-      "session_id": "session-remote_replication_lag_001",
-      "sequence": 40,
-      "event_type": "SKILL_COMPLETED",
-      "occurred_at": "2026-08-01T16:14:12.350+08:00",
-      "producer": "skill-executor",
-      "correlation_id": "exec-task-query-network-logs",
-      "causation_id": "evt-0038",
-      "payload": {
-        "execution_id": "exec-task-query-network-logs",
-        "result_summary": "匹配链路拥塞、丢包与恢复日志",
-        "ended_at": "2026-08-01T16:14:12.350+08:00"
-      }
-    },
-    {
-      "event_id": "evt-0041",
-      "session_id": "session-remote_replication_lag_001",
-      "sequence": 41,
-      "event_type": "FACT_DISCOVERED",
-      "producer": "fact-normalizer",
-      "correlation_id": "exec-task-query-network-logs",
-      "causation_id": "evt-0040",
-      "payload": {
-        "fact_refs": [
-          "fact-fp-wan-recovered-006"
-        ],
-        "facts": [
-          {
-            "fact_id": "fact-fp-wan-recovered-006",
-            "fact_type": "LOG_FINGERPRINT",
-            "object_refs": [
-              "wan-path-01"
-            ],
-            "occurred_at": "2026-08-01T16:09:55.000+08:00",
-            "observed_range": {
-              "start": "2026-08-01T16:09:55.000+08:00",
-              "end": "2026-08-01T16:10:05.000+08:00"
-            },
-            "source": {
-              "execution_id": "exec-task-query-network-logs",
-              "skill_id": "log_fingerprint_query",
-              "source_refs": [
-                "fp-wan-recovered-006"
-              ]
-            },
-            "payload": {
-              "name": "复制WAN链路恢复",
-              "template": "replication path recovered, path=<*>, loss_pct=<NUM>",
-              "fault_mode_codes": [
-                "REMOTE_REPLICATION_NETWORK_CONGESTION"
-              ],
-              "hit_count": 1,
-              "matched_log_ids": [
-                "rr-log-006"
-              ]
-            }
-          }
-        ]
-      }
-    },
-    {
-      "event_id": "evt-0042",
-      "session_id": "session-remote_replication_lag_001",
-      "sequence": 42,
-      "event_type": "TASK_STATUS_CHANGED",
-      "producer": "planner",
-      "correlation_id": "exec-task-query-network-logs",
-      "causation_id": "evt-0041",
-      "payload": {
-        "task_id": "task-query-network-logs",
-        "status": "SUCCEEDED"
-      }
-    },
-    {
-      "event_id": "evt-0043",
-      "session_id": "session-remote_replication_lag_001",
-      "sequence": 43,
-      "event_type": "TASK_STATUS_CHANGED",
-      "producer": "planner",
-      "correlation_id": "exec-task-check-port-alarms",
-      "causation_id": "evt-0007",
-      "payload": {
-        "task": {
-          "task_id": "task-check-port-alarms",
-          "skill_code": "QUERY_ALARM",
-          "skill_id": "alarm_query",
-          "action": "QUERY_ALARM",
-          "stage": "evidence_collection",
-          "display_name": "检查复制端口物理告警",
-          "goal": "检查复制端口物理告警",
-          "target_object_refs": [
-            "repl-port-a",
-            "repl-port-b"
-          ],
-          "input": {
-            "object_ids": [
-              "repl-port-a",
-              "repl-port-b"
-            ],
-            "start": "2026-08-01T16:00:00.000+08:00",
-            "end": "2026-08-01T16:15:00.000+08:00"
-          },
-          "priority": 93,
-          "execution_mode": "PARALLEL",
-          "ui_role": "BACKGROUND",
-          "status": "RUNNING",
-          "result_refs": [],
-          "started_at": "2026-08-01T16:14:11.600+08:00",
-          "ended_at": "2026-08-01T16:14:12.000+08:00",
-          "error": null
-        },
-        "status": "RUNNING"
-      }
-    },
-    {
-      "event_id": "evt-0044",
-      "session_id": "session-remote_replication_lag_001",
-      "sequence": 44,
-      "event_type": "SKILL_STARTED",
-      "occurred_at": "2026-08-01T16:14:11.600+08:00",
-      "producer": "skill-executor",
-      "correlation_id": "exec-task-check-port-alarms",
-      "causation_id": "evt-0043",
-      "payload": {
-        "execution_id": "exec-task-check-port-alarms",
-        "task_id": "task-check-port-alarms",
-        "skill_id": "alarm_query",
-        "ui_role": "BACKGROUND",
-        "goal": "检查复制端口物理告警",
-        "action_text": "执行 alarm_query：检查复制端口物理告警",
-        "reason_text": "复制端口是否存在错误计数或链路异常",
-        "expected_result_text": "如命中则端口错误计数增长且与 RPO 超标时间一致",
-        "target_object_refs": [
-          "repl-port-a",
-          "repl-port-b"
-        ]
-      }
-    },
-    {
-      "event_id": "evt-0045",
-      "session_id": "session-remote_replication_lag_001",
-      "sequence": 45,
-      "event_type": "SKILL_COMPLETED",
-      "occurred_at": "2026-08-01T16:14:12.000+08:00",
-      "producer": "skill-executor",
-      "correlation_id": "exec-task-check-port-alarms",
-      "causation_id": "evt-0043",
-      "payload": {
-        "execution_id": "exec-task-check-port-alarms",
-        "result_summary": "检查复制端口物理告警",
-        "ended_at": "2026-08-01T16:14:12.000+08:00"
-      }
-    },
-    {
-      "event_id": "evt-0046",
-      "session_id": "session-remote_replication_lag_001",
-      "sequence": 46,
-      "event_type": "FACT_DISCOVERED",
-      "producer": "fact-normalizer",
-      "correlation_id": "exec-task-check-port-alarms",
-      "causation_id": "evt-0045",
-      "payload": {
-        "fact_refs": [
-          "fact-absence-ev-port-up-no-alarm"
-        ],
-        "facts": [
-          {
-            "fact_id": "fact-absence-ev-port-up-no-alarm",
-            "fact_type": "ABSENCE",
-            "object_refs": [
-              "repl-port-a"
-            ],
-            "source": {
-              "execution_id": "exec-task-check-port-alarms",
-              "skill_id": "alarm_query",
-              "source_refs": [
-                "task-check-port-alarms"
-              ]
-            },
-            "quality": {
-              "level": "HIGH",
-              "completeness": "COMPLETE",
-              "freshness": "REPLAY_DATA"
-            },
-            "payload": {
-              "absence": true,
-              "queried_source_ref": "task-check-port-alarms",
-              "summary": "两端复制端口保持Up且无物理链路告警",
-              "detail": "端口Up不能证明WAN质量正常，但可削弱端口物理故障候选",
-              "evidence_type": "alarm_absence"
-            }
-          }
-        ]
-      }
-    },
-    {
       "event_id": "evt-0047",
       "session_id": "session-remote_replication_lag_001",
       "sequence": 47,
       "event_type": "TASK_STATUS_CHANGED",
       "producer": "planner",
-      "correlation_id": "exec-task-check-port-alarms",
+      "correlation_id": "exec-task-query-target-domain",
       "causation_id": "evt-0046",
       "payload": {
-        "task_id": "task-check-port-alarms",
+        "task_id": "task-query-target-domain",
         "status": "SUCCEEDED"
       }
     },
@@ -3163,7 +3163,7 @@
       "event_type": "EVIDENCE_CREATED",
       "producer": "reasoning",
       "correlation_id": null,
-      "causation_id": "evt-0021",
+      "causation_id": "evt-0031",
       "payload": {
         "evidence_ref": "ev-packet-loss-high",
         "evidence": {
@@ -3196,7 +3196,7 @@
       "event_type": "EVIDENCE_CREATED",
       "producer": "reasoning",
       "correlation_id": null,
-      "causation_id": "evt-0021",
+      "causation_id": "evt-0031",
       "payload": {
         "evidence_ref": "ev-retransmits-high",
         "evidence": {
@@ -3262,7 +3262,7 @@
       "event_type": "EVIDENCE_CREATED",
       "producer": "reasoning",
       "correlation_id": null,
-      "causation_id": "evt-0041",
+      "causation_id": "evt-0036",
       "payload": {
         "evidence_ref": "ev-network-recovery",
         "evidence": {
@@ -3295,7 +3295,7 @@
       "event_type": "EVIDENCE_CREATED",
       "producer": "reasoning",
       "correlation_id": null,
-      "causation_id": "evt-0026",
+      "causation_id": "evt-0041",
       "payload": {
         "evidence_ref": "ev-source-pool-normal",
         "evidence": {
@@ -3328,7 +3328,7 @@
       "event_type": "EVIDENCE_CREATED",
       "producer": "reasoning",
       "correlation_id": null,
-      "causation_id": "evt-0031",
+      "causation_id": "evt-0046",
       "payload": {
         "evidence_ref": "ev-target-pool-normal",
         "evidence": {
@@ -3361,7 +3361,7 @@
       "event_type": "EVIDENCE_CREATED",
       "producer": "reasoning",
       "correlation_id": null,
-      "causation_id": "evt-0036",
+      "causation_id": "evt-0021",
       "payload": {
         "evidence_ref": "ev-session-config-normal",
         "evidence": {
@@ -3394,7 +3394,7 @@
       "event_type": "EVIDENCE_CREATED",
       "producer": "reasoning",
       "correlation_id": null,
-      "causation_id": "evt-0046",
+      "causation_id": "evt-0026",
       "payload": {
         "evidence_ref": "ev-port-up-no-alarm",
         "evidence": {
@@ -3427,7 +3427,7 @@
       "event_type": "EVIDENCE_CREATED",
       "producer": "reasoning",
       "correlation_id": null,
-      "causation_id": "evt-0026",
+      "causation_id": "evt-0041",
       "payload": {
         "evidence_ref": "ev-local-business-normal",
         "evidence": {

@@ -789,8 +789,10 @@ export class ProjectionStore {
    */
   diagnosisScan(): DiagnosisScanVM {
     const s = this.require()
-    const activeQuery = activeQueryObjectIdOf(s)
-    const focus = focusObjectId(s)
+    // Bug3 fix: 诊断终态后不再有扫描/聚焦态（画布停止青白扫描动画）。
+    const isTerminal = s.session.terminal_status != null
+    const activeQuery = isTerminal ? null : activeQueryObjectIdOf(s)
+    const focus = isTerminal ? null : focusObjectId(s)
     const allFacts = allObservationFacts(this.snapshot!, this.observationsFacts)
 
     const examined: ExaminedObjectVM[] = scanExaminedObjectIds(s).map((objectId) => ({
@@ -1790,6 +1792,8 @@ function deriveGraphLighting(
 
   const graphEntryAnchors = [...symptomAnchors, ...scenarioAnchors, ...faultModeAnchors]
 
+  const byId = new Map(kgNodes.map((n) => [n.id, n]))
+
   // 关联知识点：从故障模式锚点沿图谱出边 BFS（≤3 跳），点亮机制/证据规则。
   const lit = new Set(graphEntryAnchors)
   // 机理：EXPLAINS_MODE 反向（机理 → 故障模式）点亮解释当前模式的机理
@@ -1803,6 +1807,7 @@ function deriveGraphLighting(
     arr.push(l.target)
     adj.set(l.source, arr)
   }
+  const isTerminalLighting = s.session.terminal_status != null
   const queue = [...faultModeAnchors]
   const depthByNode = new Map<string, number>(queue.map((id) => [id, 0]))
   while (queue.length) {
@@ -1811,6 +1816,11 @@ function deriveGraphLighting(
     if (depth >= 3) continue
     for (const next of adj.get(id) ?? []) {
       if (lit.has(next)) continue
+      // Bug4 fix: 非终态时 BFS 不扩展到 HISTORICAL_CASE 节点（避免诊断过程中泄露案例答案）
+      if (!isTerminalLighting) {
+        const nextNode = byId.get(next)
+        if (nextNode?.node_type === 'HISTORICAL_CASE') continue
+      }
       lit.add(next)
       depthByNode.set(next, depth + 1)
       queue.push(next)
@@ -1819,7 +1829,7 @@ function deriveGraphLighting(
 
   // 历史案例（issue#10 单点聚焦 + 真值隔离 Gate5）：诊断进行中（未终态）不点亮历史案例
   // —— 案例库答案节点属于"诊断结束后才关联显示"的类别；终态（ROOT_CAUSE_CONFIRMED 等）后点亮。
-  const diagnosed = s.session.terminal_status != null
+  const diagnosed = isTerminalLighting
   if (diagnosed) {
     const byId = new Map(kgNodes.map((n) => [n.id, n]))
     for (const symId of symptomAnchors) {

@@ -80,125 +80,7 @@
           }
         ]
       },
-      "created_sequence": 15
-    },
-    {
-      "fact_id": "fact-alm-raid-degrade-8801",
-      "fact_type": "ALARM",
-      "object_refs": [
-        "disk-enclosure-02"
-      ],
-      "occurred_at": "2026-08-01T09:45:03.500+08:00",
-      "source": {
-        "execution_id": "exec-task-query-disk-alarm",
-        "skill_id": "alarm_query",
-        "source_refs": [
-          "alm-raid-degrade-8801"
-        ]
-      },
-      "payload": {
-        "alarm_code": "RAID_GROUP_DEGRADED",
-        "name": "RAID组降级",
-        "severity": "CRITICAL",
-        "occurred_at": "2026-08-01T09:45:03.500+08:00",
-        "cleared_at": null,
-        "status": "active",
-        "raw_fields": {
-          "raid_group": "rg-arch-01",
-          "degraded_disk": "disk-02a"
-        }
-      },
-      "created_sequence": 20
-    },
-    {
-      "fact_id": "fact-alm-disk-02a-fault",
-      "fact_type": "ALARM",
-      "object_refs": [
-        "disk-02a"
-      ],
-      "occurred_at": "2026-08-01T09:45:03.600+08:00",
-      "source": {
-        "execution_id": "exec-task-query-disk-alarm",
-        "skill_id": "alarm_query",
-        "source_refs": [
-          "alm-disk-02a-fault"
-        ]
-      },
-      "payload": {
-        "alarm_code": "DISK_FAULT",
-        "name": "磁盘故障",
-        "severity": "MAJOR",
-        "occurred_at": "2026-08-01T09:45:03.600+08:00",
-        "cleared_at": null,
-        "status": "active",
-        "raw_fields": {
-          "error_type": "sector_reallocated",
-          "sector_count": 47
-        }
-      },
-      "created_sequence": 20
-    },
-    {
-      "fact_id": "fact-fp-sector-fault",
-      "fact_type": "LOG_FINGERPRINT",
-      "object_refs": [
-        "disk-02a"
-      ],
-      "occurred_at": "2026-08-01T09:44:55.000+08:00",
-      "observed_range": {
-        "start": "2026-08-01T09:44:55.000+08:00",
-        "end": "2026-08-01T09:45:00.000+08:00"
-      },
-      "source": {
-        "execution_id": "exec-task-match-sector-fp",
-        "skill_id": "log_fingerprint_query",
-        "source_refs": [
-          "fp-sector-fault"
-        ]
-      },
-      "payload": {
-        "name": "扇区坏道指纹",
-        "template": "sector reallocation",
-        "fault_mode_codes": [
-          "DISK_RAID_DEGRADE"
-        ],
-        "hit_count": 47,
-        "matched_log_ids": [
-          "log-disk-02a-sector"
-        ]
-      },
-      "created_sequence": 25
-    },
-    {
-      "fact_id": "fact-fp-raid-rebuild",
-      "fact_type": "LOG_FINGERPRINT",
-      "object_refs": [
-        "disk-enclosure-02"
-      ],
-      "occurred_at": "2026-08-01T09:45:04.000+08:00",
-      "observed_range": {
-        "start": "2026-08-01T09:45:04.000+08:00",
-        "end": "2026-08-01T09:45:30.000+08:00"
-      },
-      "source": {
-        "execution_id": "exec-task-match-sector-fp",
-        "skill_id": "log_fingerprint_query",
-        "source_refs": [
-          "fp-raid-rebuild"
-        ]
-      },
-      "payload": {
-        "name": "RAID 重建指纹",
-        "template": "degraded, rebuild",
-        "fault_mode_codes": [
-          "DISK_RAID_DEGRADE"
-        ],
-        "hit_count": 1,
-        "matched_log_ids": [
-          "log-raid-rebuild"
-        ]
-      },
-      "created_sequence": 25
+      "created_sequence": 11
     },
     {
       "fact_id": "fact-kpi-host-02-cpu",
@@ -253,7 +135,7 @@
           }
         ]
       },
-      "created_sequence": 30
+      "created_sequence": 16
     },
     {
       "fact_id": "fact-kpi-disk-02a-read-err",
@@ -312,7 +194,125 @@
           }
         ]
       },
-      "created_sequence": 30
+      "created_sequence": 16
+    },
+    {
+      "fact_id": "fact-alm-raid-degrade-8801",
+      "fact_type": "ALARM",
+      "object_refs": [
+        "disk-enclosure-02"
+      ],
+      "occurred_at": "2026-08-01T09:45:03.500+08:00",
+      "source": {
+        "execution_id": "exec-task-query-disk-alarm",
+        "skill_id": "alarm_query",
+        "source_refs": [
+          "alm-raid-degrade-8801"
+        ]
+      },
+      "payload": {
+        "alarm_code": "RAID_GROUP_DEGRADED",
+        "name": "RAID组降级",
+        "severity": "CRITICAL",
+        "occurred_at": "2026-08-01T09:45:03.500+08:00",
+        "cleared_at": null,
+        "status": "active",
+        "raw_fields": {
+          "raid_group": "rg-arch-01",
+          "degraded_disk": "disk-02a"
+        }
+      },
+      "created_sequence": 21
+    },
+    {
+      "fact_id": "fact-alm-disk-02a-fault",
+      "fact_type": "ALARM",
+      "object_refs": [
+        "disk-02a"
+      ],
+      "occurred_at": "2026-08-01T09:45:03.600+08:00",
+      "source": {
+        "execution_id": "exec-task-query-disk-alarm",
+        "skill_id": "alarm_query",
+        "source_refs": [
+          "alm-disk-02a-fault"
+        ]
+      },
+      "payload": {
+        "alarm_code": "DISK_FAULT",
+        "name": "磁盘故障",
+        "severity": "MAJOR",
+        "occurred_at": "2026-08-01T09:45:03.600+08:00",
+        "cleared_at": null,
+        "status": "active",
+        "raw_fields": {
+          "error_type": "sector_reallocated",
+          "sector_count": 47
+        }
+      },
+      "created_sequence": 21
+    },
+    {
+      "fact_id": "fact-fp-sector-fault",
+      "fact_type": "LOG_FINGERPRINT",
+      "object_refs": [
+        "disk-02a"
+      ],
+      "occurred_at": "2026-08-01T09:44:55.000+08:00",
+      "observed_range": {
+        "start": "2026-08-01T09:44:55.000+08:00",
+        "end": "2026-08-01T09:45:00.000+08:00"
+      },
+      "source": {
+        "execution_id": "exec-task-match-sector-fp",
+        "skill_id": "log_fingerprint_query",
+        "source_refs": [
+          "fp-sector-fault"
+        ]
+      },
+      "payload": {
+        "name": "扇区坏道指纹",
+        "template": "sector reallocation",
+        "fault_mode_codes": [
+          "DISK_RAID_DEGRADE"
+        ],
+        "hit_count": 47,
+        "matched_log_ids": [
+          "log-disk-02a-sector"
+        ]
+      },
+      "created_sequence": 26
+    },
+    {
+      "fact_id": "fact-fp-raid-rebuild",
+      "fact_type": "LOG_FINGERPRINT",
+      "object_refs": [
+        "disk-enclosure-02"
+      ],
+      "occurred_at": "2026-08-01T09:45:04.000+08:00",
+      "observed_range": {
+        "start": "2026-08-01T09:45:04.000+08:00",
+        "end": "2026-08-01T09:45:30.000+08:00"
+      },
+      "source": {
+        "execution_id": "exec-task-match-sector-fp",
+        "skill_id": "log_fingerprint_query",
+        "source_refs": [
+          "fp-raid-rebuild"
+        ]
+      },
+      "payload": {
+        "name": "RAID 重建指纹",
+        "template": "degraded, rebuild",
+        "fault_mode_codes": [
+          "DISK_RAID_DEGRADE"
+        ],
+        "hit_count": 1,
+        "matched_log_ids": [
+          "log-raid-rebuild"
+        ]
+      },
+      "created_sequence": 26
     },
     {
       "fact_id": "fact-case-20260511-021",
@@ -842,13 +842,13 @@
       "payload": {
         "plan_id": "plan-disk_raid_degrade_001-001",
         "phase": "CANDIDATE_EVIDENCE",
-        "primary_task_id": "task-map-arch",
+        "primary_task_id": "task-verify-lun-kpi",
         "task_refs": [
-          "task-map-arch",
           "task-verify-lun-kpi",
+          "task-check-competitors",
           "task-query-disk-alarm",
           "task-match-sector-fp",
-          "task-check-competitors",
+          "task-map-arch",
           "task-search-similar"
         ],
         "planner_targets": [
@@ -902,96 +902,6 @@
       "sequence": 8,
       "event_type": "TASK_STATUS_CHANGED",
       "producer": "planner",
-      "correlation_id": "exec-task-map-arch",
-      "causation_id": "evt-0007",
-      "payload": {
-        "task": {
-          "task_id": "task-map-arch",
-          "skill_code": "BUSINESS_MAPPING",
-          "skill_id": "business_mapping",
-          "action": "BUSINESS_MAPPING",
-          "stage": "scope_localization",
-          "display_name": "映射归档业务与LUN",
-          "goal": "映射归档业务与LUN",
-          "target_object_refs": [
-            "business-arch"
-          ],
-          "input": {
-            "object_ids": [
-              "business-arch"
-            ]
-          },
-          "priority": 100,
-          "execution_mode": "PARALLEL",
-          "ui_role": "PRIMARY",
-          "status": "RUNNING",
-          "result_refs": [
-            "e-host-02-arch-lun"
-          ],
-          "started_at": "2026-08-01T09:45:10.000+08:00",
-          "ended_at": "2026-08-01T09:45:10.350+08:00",
-          "error": null
-        },
-        "status": "RUNNING"
-      }
-    },
-    {
-      "event_id": "evt-0009",
-      "session_id": "session-disk_raid_degrade_001",
-      "sequence": 9,
-      "event_type": "SKILL_STARTED",
-      "occurred_at": "2026-08-01T09:45:10.000+08:00",
-      "producer": "skill-executor",
-      "correlation_id": "exec-task-map-arch",
-      "causation_id": "evt-0008",
-      "payload": {
-        "execution_id": "exec-task-map-arch",
-        "task_id": "task-map-arch",
-        "skill_id": "business_mapping",
-        "ui_role": "PRIMARY",
-        "goal": "映射归档业务与LUN",
-        "action_text": "执行 business_mapping：映射归档业务与LUN",
-        "reason_text": "LUN 自身是否出现 IO 争用或时延异常",
-        "expected_result_text": "如命中则 LUN IO/时延异常；否则为底层故障影响",
-        "target_object_refs": [
-          "business-arch"
-        ]
-      }
-    },
-    {
-      "event_id": "evt-0010",
-      "session_id": "session-disk_raid_degrade_001",
-      "sequence": 10,
-      "event_type": "SKILL_COMPLETED",
-      "occurred_at": "2026-08-01T09:45:10.350+08:00",
-      "producer": "skill-executor",
-      "correlation_id": "exec-task-map-arch",
-      "causation_id": "evt-0008",
-      "payload": {
-        "execution_id": "exec-task-map-arch",
-        "result_summary": "映射归档业务与LUN",
-        "ended_at": "2026-08-01T09:45:10.350+08:00"
-      }
-    },
-    {
-      "event_id": "evt-0011",
-      "session_id": "session-disk_raid_degrade_001",
-      "sequence": 11,
-      "event_type": "TASK_STATUS_CHANGED",
-      "producer": "planner",
-      "correlation_id": "exec-task-map-arch",
-      "causation_id": "evt-0010",
-      "payload": {
-        "task_id": "task-map-arch",
-        "status": "SUCCEEDED"
-      }
-    },
-    {
-      "event_id": "evt-0012",
-      "session_id": "session-disk_raid_degrade_001",
-      "sequence": 12,
-      "event_type": "TASK_STATUS_CHANGED",
-      "producer": "planner",
       "correlation_id": "exec-task-verify-lun-kpi",
       "causation_id": "evt-0007",
       "payload": {
@@ -1026,14 +936,14 @@
       }
     },
     {
-      "event_id": "evt-0013",
+      "event_id": "evt-0009",
       "session_id": "session-disk_raid_degrade_001",
-      "sequence": 13,
+      "sequence": 9,
       "event_type": "SKILL_STARTED",
       "occurred_at": "2026-08-01T09:45:10.400+08:00",
       "producer": "skill-executor",
       "correlation_id": "exec-task-verify-lun-kpi",
-      "causation_id": "evt-0012",
+      "causation_id": "evt-0008",
       "payload": {
         "execution_id": "exec-task-verify-lun-kpi",
         "task_id": "task-verify-lun-kpi",
@@ -1049,14 +959,14 @@
       }
     },
     {
-      "event_id": "evt-0014",
+      "event_id": "evt-0010",
       "session_id": "session-disk_raid_degrade_001",
-      "sequence": 14,
+      "sequence": 10,
       "event_type": "SKILL_COMPLETED",
       "occurred_at": "2026-08-01T09:45:11.200+08:00",
       "producer": "skill-executor",
       "correlation_id": "exec-task-verify-lun-kpi",
-      "causation_id": "evt-0012",
+      "causation_id": "evt-0008",
       "payload": {
         "execution_id": "exec-task-verify-lun-kpi",
         "result_summary": "验证归档LUN时延与IO",
@@ -1064,13 +974,13 @@
       }
     },
     {
-      "event_id": "evt-0015",
+      "event_id": "evt-0011",
       "session_id": "session-disk_raid_degrade_001",
-      "sequence": 15,
+      "sequence": 11,
       "event_type": "FACT_DISCOVERED",
       "producer": "fact-normalizer",
       "correlation_id": "exec-task-verify-lun-kpi",
-      "causation_id": "evt-0014",
+      "causation_id": "evt-0010",
       "payload": {
         "fact_refs": [
           "fact-kpi-lun-arch02-latency"
@@ -1138,358 +1048,22 @@
       }
     },
     {
-      "event_id": "evt-0016",
+      "event_id": "evt-0012",
       "session_id": "session-disk_raid_degrade_001",
-      "sequence": 16,
+      "sequence": 12,
       "event_type": "TASK_STATUS_CHANGED",
       "producer": "planner",
       "correlation_id": "exec-task-verify-lun-kpi",
-      "causation_id": "evt-0015",
+      "causation_id": "evt-0011",
       "payload": {
         "task_id": "task-verify-lun-kpi",
         "status": "SUCCEEDED"
       }
     },
     {
-      "event_id": "evt-0017",
+      "event_id": "evt-0013",
       "session_id": "session-disk_raid_degrade_001",
-      "sequence": 17,
-      "event_type": "TASK_STATUS_CHANGED",
-      "producer": "planner",
-      "correlation_id": "exec-task-query-disk-alarm",
-      "causation_id": "evt-0007",
-      "payload": {
-        "task": {
-          "task_id": "task-query-disk-alarm",
-          "skill_code": "QUERY_ALARM",
-          "skill_id": "alarm_query",
-          "action": "QUERY_ALARM",
-          "stage": "evidence_collection",
-          "display_name": "查询磁盘与RAID告警",
-          "goal": "查询磁盘与RAID告警",
-          "target_object_refs": [
-            "disk-02a",
-            "disk-enclosure-02"
-          ],
-          "input": {
-            "object_ids": [
-              "disk-02a",
-              "disk-enclosure-02"
-            ]
-          },
-          "priority": 98,
-          "execution_mode": "PARALLEL",
-          "ui_role": "BACKGROUND",
-          "status": "RUNNING",
-          "result_refs": [
-            "alm-raid-degrade-8801",
-            "alm-disk-02a-fault"
-          ],
-          "started_at": "2026-08-01T09:45:11.500+08:00",
-          "ended_at": "2026-08-01T09:45:12.000+08:00",
-          "error": null
-        },
-        "status": "RUNNING"
-      }
-    },
-    {
-      "event_id": "evt-0018",
-      "session_id": "session-disk_raid_degrade_001",
-      "sequence": 18,
-      "event_type": "SKILL_STARTED",
-      "occurred_at": "2026-08-01T09:45:11.500+08:00",
-      "producer": "skill-executor",
-      "correlation_id": "exec-task-query-disk-alarm",
-      "causation_id": "evt-0017",
-      "payload": {
-        "execution_id": "exec-task-query-disk-alarm",
-        "task_id": "task-query-disk-alarm",
-        "skill_id": "alarm_query",
-        "ui_role": "BACKGROUND",
-        "goal": "查询磁盘与RAID告警",
-        "action_text": "执行 alarm_query：查询磁盘与RAID告警",
-        "reason_text": "磁盘是否故障导致 RAID 组降级",
-        "expected_result_text": "如命中则磁盘状态异常且 RAID 降级告警一致",
-        "target_object_refs": [
-          "disk-02a",
-          "disk-enclosure-02"
-        ]
-      }
-    },
-    {
-      "event_id": "evt-0019",
-      "session_id": "session-disk_raid_degrade_001",
-      "sequence": 19,
-      "event_type": "SKILL_COMPLETED",
-      "occurred_at": "2026-08-01T09:45:12.000+08:00",
-      "producer": "skill-executor",
-      "correlation_id": "exec-task-query-disk-alarm",
-      "causation_id": "evt-0017",
-      "payload": {
-        "execution_id": "exec-task-query-disk-alarm",
-        "result_summary": "查询磁盘与RAID告警",
-        "ended_at": "2026-08-01T09:45:12.000+08:00"
-      }
-    },
-    {
-      "event_id": "evt-0020",
-      "session_id": "session-disk_raid_degrade_001",
-      "sequence": 20,
-      "event_type": "FACT_DISCOVERED",
-      "producer": "fact-normalizer",
-      "correlation_id": "exec-task-query-disk-alarm",
-      "causation_id": "evt-0019",
-      "payload": {
-        "fact_refs": [
-          "fact-alm-raid-degrade-8801",
-          "fact-alm-disk-02a-fault"
-        ],
-        "facts": [
-          {
-            "fact_id": "fact-alm-raid-degrade-8801",
-            "fact_type": "ALARM",
-            "object_refs": [
-              "disk-enclosure-02"
-            ],
-            "occurred_at": "2026-08-01T09:45:03.500+08:00",
-            "source": {
-              "execution_id": "exec-task-query-disk-alarm",
-              "skill_id": "alarm_query",
-              "source_refs": [
-                "alm-raid-degrade-8801"
-              ]
-            },
-            "payload": {
-              "alarm_code": "RAID_GROUP_DEGRADED",
-              "name": "RAID组降级",
-              "severity": "CRITICAL",
-              "occurred_at": "2026-08-01T09:45:03.500+08:00",
-              "cleared_at": null,
-              "status": "active",
-              "raw_fields": {
-                "raid_group": "rg-arch-01",
-                "degraded_disk": "disk-02a"
-              }
-            }
-          },
-          {
-            "fact_id": "fact-alm-disk-02a-fault",
-            "fact_type": "ALARM",
-            "object_refs": [
-              "disk-02a"
-            ],
-            "occurred_at": "2026-08-01T09:45:03.600+08:00",
-            "source": {
-              "execution_id": "exec-task-query-disk-alarm",
-              "skill_id": "alarm_query",
-              "source_refs": [
-                "alm-disk-02a-fault"
-              ]
-            },
-            "payload": {
-              "alarm_code": "DISK_FAULT",
-              "name": "磁盘故障",
-              "severity": "MAJOR",
-              "occurred_at": "2026-08-01T09:45:03.600+08:00",
-              "cleared_at": null,
-              "status": "active",
-              "raw_fields": {
-                "error_type": "sector_reallocated",
-                "sector_count": 47
-              }
-            }
-          }
-        ]
-      }
-    },
-    {
-      "event_id": "evt-0021",
-      "session_id": "session-disk_raid_degrade_001",
-      "sequence": 21,
-      "event_type": "TASK_STATUS_CHANGED",
-      "producer": "planner",
-      "correlation_id": "exec-task-query-disk-alarm",
-      "causation_id": "evt-0020",
-      "payload": {
-        "task_id": "task-query-disk-alarm",
-        "status": "SUCCEEDED"
-      }
-    },
-    {
-      "event_id": "evt-0022",
-      "session_id": "session-disk_raid_degrade_001",
-      "sequence": 22,
-      "event_type": "TASK_STATUS_CHANGED",
-      "producer": "planner",
-      "correlation_id": "exec-task-match-sector-fp",
-      "causation_id": "evt-0007",
-      "payload": {
-        "task": {
-          "task_id": "task-match-sector-fp",
-          "skill_code": "MATCH_LOG_FINGERPRINT",
-          "skill_id": "log_fingerprint_query",
-          "action": "MATCH_LOG_FINGERPRINT",
-          "stage": "evidence_collection",
-          "display_name": "匹配扇区坏道与重建指纹",
-          "goal": "匹配扇区坏道与重建指纹",
-          "target_object_refs": [
-            "disk-02a",
-            "disk-enclosure-02"
-          ],
-          "input": {
-            "object_ids": [
-              "disk-02a",
-              "disk-enclosure-02"
-            ]
-          },
-          "priority": 97,
-          "execution_mode": "PARALLEL",
-          "ui_role": "BACKGROUND",
-          "status": "RUNNING",
-          "result_refs": [
-            "fp-sector-fault",
-            "fp-raid-rebuild"
-          ],
-          "started_at": "2026-08-01T09:45:12.100+08:00",
-          "ended_at": "2026-08-01T09:45:12.700+08:00",
-          "error": null
-        },
-        "status": "RUNNING"
-      }
-    },
-    {
-      "event_id": "evt-0023",
-      "session_id": "session-disk_raid_degrade_001",
-      "sequence": 23,
-      "event_type": "SKILL_STARTED",
-      "occurred_at": "2026-08-01T09:45:12.100+08:00",
-      "producer": "skill-executor",
-      "correlation_id": "exec-task-match-sector-fp",
-      "causation_id": "evt-0022",
-      "payload": {
-        "execution_id": "exec-task-match-sector-fp",
-        "task_id": "task-match-sector-fp",
-        "skill_id": "log_fingerprint_query",
-        "ui_role": "BACKGROUND",
-        "goal": "匹配扇区坏道与重建指纹",
-        "action_text": "执行 log_fingerprint_query：匹配扇区坏道与重建指纹",
-        "reason_text": "磁盘是否故障导致 RAID 组降级",
-        "expected_result_text": "如命中则磁盘状态异常且 RAID 降级告警一致",
-        "target_object_refs": [
-          "disk-02a",
-          "disk-enclosure-02"
-        ]
-      }
-    },
-    {
-      "event_id": "evt-0024",
-      "session_id": "session-disk_raid_degrade_001",
-      "sequence": 24,
-      "event_type": "SKILL_COMPLETED",
-      "occurred_at": "2026-08-01T09:45:12.700+08:00",
-      "producer": "skill-executor",
-      "correlation_id": "exec-task-match-sector-fp",
-      "causation_id": "evt-0022",
-      "payload": {
-        "execution_id": "exec-task-match-sector-fp",
-        "result_summary": "匹配扇区坏道与重建指纹",
-        "ended_at": "2026-08-01T09:45:12.700+08:00"
-      }
-    },
-    {
-      "event_id": "evt-0025",
-      "session_id": "session-disk_raid_degrade_001",
-      "sequence": 25,
-      "event_type": "FACT_DISCOVERED",
-      "producer": "fact-normalizer",
-      "correlation_id": "exec-task-match-sector-fp",
-      "causation_id": "evt-0024",
-      "payload": {
-        "fact_refs": [
-          "fact-fp-sector-fault",
-          "fact-fp-raid-rebuild"
-        ],
-        "facts": [
-          {
-            "fact_id": "fact-fp-sector-fault",
-            "fact_type": "LOG_FINGERPRINT",
-            "object_refs": [
-              "disk-02a"
-            ],
-            "occurred_at": "2026-08-01T09:44:55.000+08:00",
-            "observed_range": {
-              "start": "2026-08-01T09:44:55.000+08:00",
-              "end": "2026-08-01T09:45:00.000+08:00"
-            },
-            "source": {
-              "execution_id": "exec-task-match-sector-fp",
-              "skill_id": "log_fingerprint_query",
-              "source_refs": [
-                "fp-sector-fault"
-              ]
-            },
-            "payload": {
-              "name": "扇区坏道指纹",
-              "template": "sector reallocation",
-              "fault_mode_codes": [
-                "DISK_RAID_DEGRADE"
-              ],
-              "hit_count": 47,
-              "matched_log_ids": [
-                "log-disk-02a-sector"
-              ]
-            }
-          },
-          {
-            "fact_id": "fact-fp-raid-rebuild",
-            "fact_type": "LOG_FINGERPRINT",
-            "object_refs": [
-              "disk-enclosure-02"
-            ],
-            "occurred_at": "2026-08-01T09:45:04.000+08:00",
-            "observed_range": {
-              "start": "2026-08-01T09:45:04.000+08:00",
-              "end": "2026-08-01T09:45:30.000+08:00"
-            },
-            "source": {
-              "execution_id": "exec-task-match-sector-fp",
-              "skill_id": "log_fingerprint_query",
-              "source_refs": [
-                "fp-raid-rebuild"
-              ]
-            },
-            "payload": {
-              "name": "RAID 重建指纹",
-              "template": "degraded, rebuild",
-              "fault_mode_codes": [
-                "DISK_RAID_DEGRADE"
-              ],
-              "hit_count": 1,
-              "matched_log_ids": [
-                "log-raid-rebuild"
-              ]
-            }
-          }
-        ]
-      }
-    },
-    {
-      "event_id": "evt-0026",
-      "session_id": "session-disk_raid_degrade_001",
-      "sequence": 26,
-      "event_type": "TASK_STATUS_CHANGED",
-      "producer": "planner",
-      "correlation_id": "exec-task-match-sector-fp",
-      "causation_id": "evt-0025",
-      "payload": {
-        "task_id": "task-match-sector-fp",
-        "status": "SUCCEEDED"
-      }
-    },
-    {
-      "event_id": "evt-0027",
-      "session_id": "session-disk_raid_degrade_001",
-      "sequence": 27,
+      "sequence": 13,
       "event_type": "TASK_STATUS_CHANGED",
       "producer": "planner",
       "correlation_id": "exec-task-check-competitors",
@@ -1529,14 +1103,14 @@
       }
     },
     {
-      "event_id": "evt-0028",
+      "event_id": "evt-0014",
       "session_id": "session-disk_raid_degrade_001",
-      "sequence": 28,
+      "sequence": 14,
       "event_type": "SKILL_STARTED",
       "occurred_at": "2026-08-01T09:45:12.800+08:00",
       "producer": "skill-executor",
       "correlation_id": "exec-task-check-competitors",
-      "causation_id": "evt-0027",
+      "causation_id": "evt-0013",
       "payload": {
         "execution_id": "exec-task-check-competitors",
         "task_id": "task-check-competitors",
@@ -1553,14 +1127,14 @@
       }
     },
     {
-      "event_id": "evt-0029",
+      "event_id": "evt-0015",
       "session_id": "session-disk_raid_degrade_001",
-      "sequence": 29,
+      "sequence": 15,
       "event_type": "SKILL_COMPLETED",
       "occurred_at": "2026-08-01T09:45:13.400+08:00",
       "producer": "skill-executor",
       "correlation_id": "exec-task-check-competitors",
-      "causation_id": "evt-0027",
+      "causation_id": "evt-0013",
       "payload": {
         "execution_id": "exec-task-check-competitors",
         "result_summary": "检查主机与IO竞争候选",
@@ -1568,13 +1142,13 @@
       }
     },
     {
-      "event_id": "evt-0030",
+      "event_id": "evt-0016",
       "session_id": "session-disk_raid_degrade_001",
-      "sequence": 30,
+      "sequence": 16,
       "event_type": "FACT_DISCOVERED",
       "producer": "fact-normalizer",
       "correlation_id": "exec-task-check-competitors",
-      "causation_id": "evt-0029",
+      "causation_id": "evt-0015",
       "payload": {
         "fact_refs": [
           "fact-kpi-host-02-cpu",
@@ -1697,15 +1271,441 @@
       }
     },
     {
+      "event_id": "evt-0017",
+      "session_id": "session-disk_raid_degrade_001",
+      "sequence": 17,
+      "event_type": "TASK_STATUS_CHANGED",
+      "producer": "planner",
+      "correlation_id": "exec-task-check-competitors",
+      "causation_id": "evt-0016",
+      "payload": {
+        "task_id": "task-check-competitors",
+        "status": "SUCCEEDED"
+      }
+    },
+    {
+      "event_id": "evt-0018",
+      "session_id": "session-disk_raid_degrade_001",
+      "sequence": 18,
+      "event_type": "TASK_STATUS_CHANGED",
+      "producer": "planner",
+      "correlation_id": "exec-task-query-disk-alarm",
+      "causation_id": "evt-0007",
+      "payload": {
+        "task": {
+          "task_id": "task-query-disk-alarm",
+          "skill_code": "QUERY_ALARM",
+          "skill_id": "alarm_query",
+          "action": "QUERY_ALARM",
+          "stage": "evidence_collection",
+          "display_name": "查询磁盘与RAID告警",
+          "goal": "查询磁盘与RAID告警",
+          "target_object_refs": [
+            "disk-02a",
+            "disk-enclosure-02"
+          ],
+          "input": {
+            "object_ids": [
+              "disk-02a",
+              "disk-enclosure-02"
+            ]
+          },
+          "priority": 98,
+          "execution_mode": "PARALLEL",
+          "ui_role": "BACKGROUND",
+          "status": "RUNNING",
+          "result_refs": [
+            "alm-raid-degrade-8801",
+            "alm-disk-02a-fault"
+          ],
+          "started_at": "2026-08-01T09:45:11.500+08:00",
+          "ended_at": "2026-08-01T09:45:12.000+08:00",
+          "error": null
+        },
+        "status": "RUNNING"
+      }
+    },
+    {
+      "event_id": "evt-0019",
+      "session_id": "session-disk_raid_degrade_001",
+      "sequence": 19,
+      "event_type": "SKILL_STARTED",
+      "occurred_at": "2026-08-01T09:45:11.500+08:00",
+      "producer": "skill-executor",
+      "correlation_id": "exec-task-query-disk-alarm",
+      "causation_id": "evt-0018",
+      "payload": {
+        "execution_id": "exec-task-query-disk-alarm",
+        "task_id": "task-query-disk-alarm",
+        "skill_id": "alarm_query",
+        "ui_role": "BACKGROUND",
+        "goal": "查询磁盘与RAID告警",
+        "action_text": "执行 alarm_query：查询磁盘与RAID告警",
+        "reason_text": "磁盘是否故障导致 RAID 组降级",
+        "expected_result_text": "如命中则磁盘状态异常且 RAID 降级告警一致",
+        "target_object_refs": [
+          "disk-02a",
+          "disk-enclosure-02"
+        ]
+      }
+    },
+    {
+      "event_id": "evt-0020",
+      "session_id": "session-disk_raid_degrade_001",
+      "sequence": 20,
+      "event_type": "SKILL_COMPLETED",
+      "occurred_at": "2026-08-01T09:45:12.000+08:00",
+      "producer": "skill-executor",
+      "correlation_id": "exec-task-query-disk-alarm",
+      "causation_id": "evt-0018",
+      "payload": {
+        "execution_id": "exec-task-query-disk-alarm",
+        "result_summary": "查询磁盘与RAID告警",
+        "ended_at": "2026-08-01T09:45:12.000+08:00"
+      }
+    },
+    {
+      "event_id": "evt-0021",
+      "session_id": "session-disk_raid_degrade_001",
+      "sequence": 21,
+      "event_type": "FACT_DISCOVERED",
+      "producer": "fact-normalizer",
+      "correlation_id": "exec-task-query-disk-alarm",
+      "causation_id": "evt-0020",
+      "payload": {
+        "fact_refs": [
+          "fact-alm-raid-degrade-8801",
+          "fact-alm-disk-02a-fault"
+        ],
+        "facts": [
+          {
+            "fact_id": "fact-alm-raid-degrade-8801",
+            "fact_type": "ALARM",
+            "object_refs": [
+              "disk-enclosure-02"
+            ],
+            "occurred_at": "2026-08-01T09:45:03.500+08:00",
+            "source": {
+              "execution_id": "exec-task-query-disk-alarm",
+              "skill_id": "alarm_query",
+              "source_refs": [
+                "alm-raid-degrade-8801"
+              ]
+            },
+            "payload": {
+              "alarm_code": "RAID_GROUP_DEGRADED",
+              "name": "RAID组降级",
+              "severity": "CRITICAL",
+              "occurred_at": "2026-08-01T09:45:03.500+08:00",
+              "cleared_at": null,
+              "status": "active",
+              "raw_fields": {
+                "raid_group": "rg-arch-01",
+                "degraded_disk": "disk-02a"
+              }
+            }
+          },
+          {
+            "fact_id": "fact-alm-disk-02a-fault",
+            "fact_type": "ALARM",
+            "object_refs": [
+              "disk-02a"
+            ],
+            "occurred_at": "2026-08-01T09:45:03.600+08:00",
+            "source": {
+              "execution_id": "exec-task-query-disk-alarm",
+              "skill_id": "alarm_query",
+              "source_refs": [
+                "alm-disk-02a-fault"
+              ]
+            },
+            "payload": {
+              "alarm_code": "DISK_FAULT",
+              "name": "磁盘故障",
+              "severity": "MAJOR",
+              "occurred_at": "2026-08-01T09:45:03.600+08:00",
+              "cleared_at": null,
+              "status": "active",
+              "raw_fields": {
+                "error_type": "sector_reallocated",
+                "sector_count": 47
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "event_id": "evt-0022",
+      "session_id": "session-disk_raid_degrade_001",
+      "sequence": 22,
+      "event_type": "TASK_STATUS_CHANGED",
+      "producer": "planner",
+      "correlation_id": "exec-task-query-disk-alarm",
+      "causation_id": "evt-0021",
+      "payload": {
+        "task_id": "task-query-disk-alarm",
+        "status": "SUCCEEDED"
+      }
+    },
+    {
+      "event_id": "evt-0023",
+      "session_id": "session-disk_raid_degrade_001",
+      "sequence": 23,
+      "event_type": "TASK_STATUS_CHANGED",
+      "producer": "planner",
+      "correlation_id": "exec-task-match-sector-fp",
+      "causation_id": "evt-0007",
+      "payload": {
+        "task": {
+          "task_id": "task-match-sector-fp",
+          "skill_code": "MATCH_LOG_FINGERPRINT",
+          "skill_id": "log_fingerprint_query",
+          "action": "MATCH_LOG_FINGERPRINT",
+          "stage": "evidence_collection",
+          "display_name": "匹配扇区坏道与重建指纹",
+          "goal": "匹配扇区坏道与重建指纹",
+          "target_object_refs": [
+            "disk-02a",
+            "disk-enclosure-02"
+          ],
+          "input": {
+            "object_ids": [
+              "disk-02a",
+              "disk-enclosure-02"
+            ]
+          },
+          "priority": 97,
+          "execution_mode": "PARALLEL",
+          "ui_role": "BACKGROUND",
+          "status": "RUNNING",
+          "result_refs": [
+            "fp-sector-fault",
+            "fp-raid-rebuild"
+          ],
+          "started_at": "2026-08-01T09:45:12.100+08:00",
+          "ended_at": "2026-08-01T09:45:12.700+08:00",
+          "error": null
+        },
+        "status": "RUNNING"
+      }
+    },
+    {
+      "event_id": "evt-0024",
+      "session_id": "session-disk_raid_degrade_001",
+      "sequence": 24,
+      "event_type": "SKILL_STARTED",
+      "occurred_at": "2026-08-01T09:45:12.100+08:00",
+      "producer": "skill-executor",
+      "correlation_id": "exec-task-match-sector-fp",
+      "causation_id": "evt-0023",
+      "payload": {
+        "execution_id": "exec-task-match-sector-fp",
+        "task_id": "task-match-sector-fp",
+        "skill_id": "log_fingerprint_query",
+        "ui_role": "BACKGROUND",
+        "goal": "匹配扇区坏道与重建指纹",
+        "action_text": "执行 log_fingerprint_query：匹配扇区坏道与重建指纹",
+        "reason_text": "磁盘是否故障导致 RAID 组降级",
+        "expected_result_text": "如命中则磁盘状态异常且 RAID 降级告警一致",
+        "target_object_refs": [
+          "disk-02a",
+          "disk-enclosure-02"
+        ]
+      }
+    },
+    {
+      "event_id": "evt-0025",
+      "session_id": "session-disk_raid_degrade_001",
+      "sequence": 25,
+      "event_type": "SKILL_COMPLETED",
+      "occurred_at": "2026-08-01T09:45:12.700+08:00",
+      "producer": "skill-executor",
+      "correlation_id": "exec-task-match-sector-fp",
+      "causation_id": "evt-0023",
+      "payload": {
+        "execution_id": "exec-task-match-sector-fp",
+        "result_summary": "匹配扇区坏道与重建指纹",
+        "ended_at": "2026-08-01T09:45:12.700+08:00"
+      }
+    },
+    {
+      "event_id": "evt-0026",
+      "session_id": "session-disk_raid_degrade_001",
+      "sequence": 26,
+      "event_type": "FACT_DISCOVERED",
+      "producer": "fact-normalizer",
+      "correlation_id": "exec-task-match-sector-fp",
+      "causation_id": "evt-0025",
+      "payload": {
+        "fact_refs": [
+          "fact-fp-sector-fault",
+          "fact-fp-raid-rebuild"
+        ],
+        "facts": [
+          {
+            "fact_id": "fact-fp-sector-fault",
+            "fact_type": "LOG_FINGERPRINT",
+            "object_refs": [
+              "disk-02a"
+            ],
+            "occurred_at": "2026-08-01T09:44:55.000+08:00",
+            "observed_range": {
+              "start": "2026-08-01T09:44:55.000+08:00",
+              "end": "2026-08-01T09:45:00.000+08:00"
+            },
+            "source": {
+              "execution_id": "exec-task-match-sector-fp",
+              "skill_id": "log_fingerprint_query",
+              "source_refs": [
+                "fp-sector-fault"
+              ]
+            },
+            "payload": {
+              "name": "扇区坏道指纹",
+              "template": "sector reallocation",
+              "fault_mode_codes": [
+                "DISK_RAID_DEGRADE"
+              ],
+              "hit_count": 47,
+              "matched_log_ids": [
+                "log-disk-02a-sector"
+              ]
+            }
+          },
+          {
+            "fact_id": "fact-fp-raid-rebuild",
+            "fact_type": "LOG_FINGERPRINT",
+            "object_refs": [
+              "disk-enclosure-02"
+            ],
+            "occurred_at": "2026-08-01T09:45:04.000+08:00",
+            "observed_range": {
+              "start": "2026-08-01T09:45:04.000+08:00",
+              "end": "2026-08-01T09:45:30.000+08:00"
+            },
+            "source": {
+              "execution_id": "exec-task-match-sector-fp",
+              "skill_id": "log_fingerprint_query",
+              "source_refs": [
+                "fp-raid-rebuild"
+              ]
+            },
+            "payload": {
+              "name": "RAID 重建指纹",
+              "template": "degraded, rebuild",
+              "fault_mode_codes": [
+                "DISK_RAID_DEGRADE"
+              ],
+              "hit_count": 1,
+              "matched_log_ids": [
+                "log-raid-rebuild"
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "event_id": "evt-0027",
+      "session_id": "session-disk_raid_degrade_001",
+      "sequence": 27,
+      "event_type": "TASK_STATUS_CHANGED",
+      "producer": "planner",
+      "correlation_id": "exec-task-match-sector-fp",
+      "causation_id": "evt-0026",
+      "payload": {
+        "task_id": "task-match-sector-fp",
+        "status": "SUCCEEDED"
+      }
+    },
+    {
+      "event_id": "evt-0028",
+      "session_id": "session-disk_raid_degrade_001",
+      "sequence": 28,
+      "event_type": "TASK_STATUS_CHANGED",
+      "producer": "planner",
+      "correlation_id": "exec-task-map-arch",
+      "causation_id": "evt-0007",
+      "payload": {
+        "task": {
+          "task_id": "task-map-arch",
+          "skill_code": "BUSINESS_MAPPING",
+          "skill_id": "business_mapping",
+          "action": "BUSINESS_MAPPING",
+          "stage": "scope_localization",
+          "display_name": "映射归档业务与LUN",
+          "goal": "映射归档业务与LUN",
+          "target_object_refs": [
+            "business-arch"
+          ],
+          "input": {
+            "object_ids": [
+              "business-arch"
+            ]
+          },
+          "priority": 100,
+          "execution_mode": "PARALLEL",
+          "ui_role": "PRIMARY",
+          "status": "RUNNING",
+          "result_refs": [
+            "e-host-02-arch-lun"
+          ],
+          "started_at": "2026-08-01T09:45:10.000+08:00",
+          "ended_at": "2026-08-01T09:45:10.350+08:00",
+          "error": null
+        },
+        "status": "RUNNING"
+      }
+    },
+    {
+      "event_id": "evt-0029",
+      "session_id": "session-disk_raid_degrade_001",
+      "sequence": 29,
+      "event_type": "SKILL_STARTED",
+      "occurred_at": "2026-08-01T09:45:10.000+08:00",
+      "producer": "skill-executor",
+      "correlation_id": "exec-task-map-arch",
+      "causation_id": "evt-0028",
+      "payload": {
+        "execution_id": "exec-task-map-arch",
+        "task_id": "task-map-arch",
+        "skill_id": "business_mapping",
+        "ui_role": "PRIMARY",
+        "goal": "映射归档业务与LUN",
+        "action_text": "执行 business_mapping：映射归档业务与LUN",
+        "reason_text": "LUN 自身是否出现 IO 争用或时延异常",
+        "expected_result_text": "如命中则 LUN IO/时延异常；否则为底层故障影响",
+        "target_object_refs": [
+          "business-arch"
+        ]
+      }
+    },
+    {
+      "event_id": "evt-0030",
+      "session_id": "session-disk_raid_degrade_001",
+      "sequence": 30,
+      "event_type": "SKILL_COMPLETED",
+      "occurred_at": "2026-08-01T09:45:10.350+08:00",
+      "producer": "skill-executor",
+      "correlation_id": "exec-task-map-arch",
+      "causation_id": "evt-0028",
+      "payload": {
+        "execution_id": "exec-task-map-arch",
+        "result_summary": "映射归档业务与LUN",
+        "ended_at": "2026-08-01T09:45:10.350+08:00"
+      }
+    },
+    {
       "event_id": "evt-0031",
       "session_id": "session-disk_raid_degrade_001",
       "sequence": 31,
       "event_type": "TASK_STATUS_CHANGED",
       "producer": "planner",
-      "correlation_id": "exec-task-check-competitors",
+      "correlation_id": "exec-task-map-arch",
       "causation_id": "evt-0030",
       "payload": {
-        "task_id": "task-check-competitors",
+        "task_id": "task-map-arch",
         "status": "SUCCEEDED"
       }
     },
@@ -1859,7 +1859,7 @@
       "event_type": "EVIDENCE_CREATED",
       "producer": "reasoning",
       "correlation_id": null,
-      "causation_id": "evt-0020",
+      "causation_id": "evt-0021",
       "payload": {
         "evidence_ref": "ev-raid-degrade-alarm",
         "evidence": {
@@ -1892,7 +1892,7 @@
       "event_type": "EVIDENCE_CREATED",
       "producer": "reasoning",
       "correlation_id": null,
-      "causation_id": "evt-0020",
+      "causation_id": "evt-0021",
       "payload": {
         "evidence_ref": "ev-disk-fault-alarm",
         "evidence": {
@@ -1925,7 +1925,7 @@
       "event_type": "EVIDENCE_CREATED",
       "producer": "reasoning",
       "correlation_id": null,
-      "causation_id": "evt-0025",
+      "causation_id": "evt-0026",
       "payload": {
         "evidence_ref": "ev-sector-fp",
         "evidence": {
@@ -1958,7 +1958,7 @@
       "event_type": "EVIDENCE_CREATED",
       "producer": "reasoning",
       "correlation_id": null,
-      "causation_id": "evt-0025",
+      "causation_id": "evt-0026",
       "payload": {
         "evidence_ref": "ev-rebuild-fp",
         "evidence": {
@@ -1991,7 +1991,7 @@
       "event_type": "EVIDENCE_CREATED",
       "producer": "reasoning",
       "correlation_id": null,
-      "causation_id": "evt-0015",
+      "causation_id": "evt-0011",
       "payload": {
         "evidence_ref": "ev-arch-latency",
         "evidence": {
@@ -2024,7 +2024,7 @@
       "event_type": "EVIDENCE_CREATED",
       "producer": "reasoning",
       "correlation_id": null,
-      "causation_id": "evt-0030",
+      "causation_id": "evt-0016",
       "payload": {
         "evidence_ref": "ev-host-normal",
         "evidence": {
@@ -2057,7 +2057,7 @@
       "event_type": "EVIDENCE_CREATED",
       "producer": "reasoning",
       "correlation_id": null,
-      "causation_id": "evt-0015",
+      "causation_id": "evt-0011",
       "payload": {
         "evidence_ref": "ev-arch-latency-contend",
         "evidence": {
@@ -2090,7 +2090,7 @@
       "event_type": "EVIDENCE_CREATED",
       "producer": "reasoning",
       "correlation_id": null,
-      "causation_id": "evt-0030",
+      "causation_id": "evt-0016",
       "payload": {
         "evidence_ref": "ev-disk-err-read",
         "evidence": {
