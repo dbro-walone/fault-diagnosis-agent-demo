@@ -253,3 +253,21 @@ export {
   type ValidatorResult,
   type ValidatorRunner,
 } from './validators'
+
+// P0 —— Presentation Projection 协议层（Issue #12：诊断过程展示优化）
+export {
+  CameraPhase,
+  FollowMode,
+  type PresentationSubject,
+  type NodeSubject,
+  type PathSubject,
+  type RelationGroupSubject,
+  type TerminalSubject,
+  type TerminalType,
+  type DiagnosisPresentationVM,
+} from './presentation-types'
+export {
+  presentationProjection,
+  computeFocusSignature,
+  mapEventToPhase,
+} from './presentation-projection'
