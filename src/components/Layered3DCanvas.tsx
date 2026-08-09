@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'react'
+import { useCallback, useEffect, useMemo, useRef } from 'react'
 import * as THREE from 'three'
 import { ScanSearch } from 'lucide-react'
 
@@ -46,16 +46,19 @@ import {
   VERDICT_COLORS,
   PATH_COLORS,
   pathRingSprite,
+  getVerdictRingTexture,
   type NodeLabelContext,
   type VerdictKey,
   type MetricChip,
 } from '@/lib/three-visuals'
 import { LINK_COLORS, STATUS_COLORS, cn } from '@/lib/utils'
-import type {
-  CrossPlaneBinding,
-  DiagnosisScanVM,
-  ExaminedVerdict,
-  PresentationSubject,
+import {
+  CameraPhase,
+  type CrossPlaneBinding,
+  type DiagnosisPresentationVM,
+  type DiagnosisScanVM,
+  type ExaminedVerdict,
+  type PresentationSubject,
 } from '../v2'
 
 // ---------------------------------------------------------------------------
@@ -104,6 +107,42 @@ const SCAN_COLOR = '#22d3ee'
 
 /** P1：节点点击不被视为用户接管的判定窗口（pointerdown → click 同一手势内）。 */
 const NODE_CLICK_GUARD_MS = 300
+
+// ---------------------------------------------------------------------------
+// P2 —— 阶段驱动视觉常量/辅助
+// ---------------------------------------------------------------------------
+
+/** ROUTE 阶段：下一调查路径预览节点高亮色（黄）。 */
+const ROUTE_HIGHLIGHT_COLOR = '#facc15'
+
+/** 稳定的空 id 集（非 ROUTE 阶段 routeHighlightIds 复用，避免每次渲染新建引用）。 */
+const EMPTY_ID_SET: Set<string> = new Set()
+
+/** P2: 近距离目标小幅平移判定 —— 目标相机位置与当前相机位置的世界距离 <50 → 短动画。 */
+function shouldMicroMove(
+  current: { x: number; y: number; z: number },
+  target: { x: number; y: number; z: number },
+): boolean {
+  const dx = target.x - current.x
+  const dy = target.y - current.y
+  const dz = target.z - current.z
+  return Math.sqrt(dx * dx + dy * dy + dz * dz) < 50
+}
+
+/** P2: ROUTE 下一路径预览黄色环（形态 + 颜色，不只靠颜色；复用判定环纹理生成）。 */
+function routeRingSprite(node: GraphNode): THREE.Sprite {
+  const sprite = new THREE.Sprite(
+    new THREE.SpriteMaterial({
+      map: getVerdictRingTexture(ROUTE_HIGHLIGHT_COLOR),
+      transparent: true,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+    }),
+  )
+  const scale = 15 + node.val * 4
+  sprite.scale.set(scale, scale, 1)
+  return sprite
+}
 
 /**
  * BFS 沿物理拓扑邻接表桥接 from→to，返回路径中间节点 + 链路无序 key（含 to，不含 from）。
@@ -199,6 +238,12 @@ export interface Layered3DCanvasProps {
   followAgent?: boolean
   /** P1: 用户接管相机（画布拖拽/滚轮）通知 App（设为 MANUAL，停止跟随）。 */
   onUserInteract?: () => void
+  /** P2: 当前镜头阶段（驱动 FOCUS 淡化 / CONTEXT 拉远 / ROUTE 高亮）。 */
+  cameraPhase?: CameraPhase
+  /** P2: 播放速度（2x/4x 时压缩或跳过 CONTEXT/ROUTE 低价值阶段视觉）。 */
+  playbackSpeed?: number
+  /** P2: PresentationVM 完整数据（route_object_ids / context_object_ids 驱动阶段视觉）。 */
+  presentation?: DiagnosisPresentationVM | null
 }
 
 // ---------------------------------------------------------------------------
@@ -230,6 +275,9 @@ export default function Layered3DCanvas(props: Layered3DCanvasProps) {
     focusSignature,
     followAgent,
     onUserInteract,
+    cameraPhase,
+    playbackSpeed,
+    presentation,
   } = props
 
   const containerRef = useRef<HTMLDivElement>(null)
@@ -242,6 +290,9 @@ export default function Layered3DCanvas(props: Layered3DCanvasProps) {
   const autoExpandedLayerRef = useRef<TopoLayerCode | null>(null)
   /** P1：程序化相机运动标记（区分 cameraPosition 程序化飞行 vs 用户 OrbitControls 输入）。 */
   const programmaticMoveRef = useRef(false)
+  /** P2：程序化飞行令牌 —— 每次飞行递增（flyCameraTo 统一管理），防止旧动画/旧阶段
+   *  效果覆盖新主体；'start' 处理器只消费最新飞行的程序化标志。 */
+  const animationTokenRef = useRef(0)
   /** P1：已飞到的 focus_signature（同主体不重复 Travel；用户接管时清空以便返回重飞）。 */
   const flewSignatureRef = useRef<string | null>(null)
   /** P1：用户接管回调 / LUI 避让宽度最新值 ref（相机飞行 effect 闭包只读 ref，避免过期捕获）。 */
@@ -278,6 +329,26 @@ export default function Layered3DCanvas(props: Layered3DCanvasProps) {
   diagnosisScanRef.current = diagnosisScan ?? null
   onUserInteractRef.current = onUserInteract
   rightInsetRef.current = rightInset
+
+  /**
+   * P2：统一程序化飞行入口 —— 递增动画令牌 + 置程序化运动标志。所有阶段驱动的
+   * 相机移动（lens 预设 / focus flight / CONTEXT 拉远）都经此，保证：
+   * - 新飞行总是覆盖旧飞行（令牌递增，旧效果不残留标志）；
+   * - OrbitControls 'start' 处理器能区分"程序化飞行中" vs "用户接管"。
+   */
+  const flyCameraTo = useCallback(
+    (
+      graphInstance: any,
+      pos: { x: number; y: number; z: number },
+      lookAt: { x: number; y: number; z: number },
+      duration: number,
+    ): void => {
+      animationTokenRef.current += 1
+      programmaticMoveRef.current = true
+      graphInstance.cameraPosition(pos, lookAt, duration)
+    },
+    [],
+  )
 
   /** 3D 分层活动图：拓扑（S1→S3 分层）+ 图谱（分层 X 列）+ 跨层 + 红逻辑链。
    *  issue#9：诊断态（diagnosisScan != null）聚焦链路 —— 拓扑只显示诊断链路、
@@ -432,6 +503,45 @@ export default function Layered3DCanvas(props: Layered3DCanvasProps) {
     }
     return { walked: walkedSet, members, edgeKeys, activeEdgeKeys, currentAnchor }
   }, [diagnosisScan, graph])
+
+  /**
+   * P2：FOCUS/INSPECT 淡化集 —— 非主体（subject 成员 ∪ context_object_ids）且非诊断
+   * 上下文（图谱命中/扫描锚点）的节点在 nodeColorFor 兜底降透明度。null 表示不淡化
+   * （非 FOCUS/INSPECT 阶段或浏览态）。语义高亮（扫描/路径/判定/选中）优先于淡化。
+   */
+  const p2DimmedIds = useMemo(() => {
+    if (cameraPhase !== CameraPhase.FOCUS && cameraPhase !== CameraPhase.INSPECT) return null
+    if (!presentationSubject) return null
+    const keep = new Set<string>()
+    const subject = presentationSubject
+    if (subject.kind === 'node') {
+      keep.add(subject.primary_id)
+    } else if (subject.kind === 'path') {
+      for (const id of subject.node_ids) keep.add(id)
+    } else if (subject.kind === 'relation_group') {
+      for (const id of subject.member_ids) keep.add(id)
+    } else {
+      for (const id of subject.node_ids) keep.add(id)
+    }
+    for (const id of presentation?.context_object_ids ?? []) keep.add(id)
+    // 诊断取证上下文（图谱命中/扫描锚点）保持可见。
+    if (diagnosisScan) {
+      for (const id of diagnosisScan.graph_entry_anchors) keep.add(id)
+      for (const id of diagnosisScan.graph_lit_knowledge_ids) keep.add(id)
+    }
+    return keep
+  }, [cameraPhase, presentationSubject, presentation, diagnosisScan])
+
+  /**
+   * P2：ROUTE 阶段下一调查路径预览节点（黄色高亮）。2x/4x 倍速跳过低价值视觉
+   * （倍速策略合并 Context+Route）；非 ROUTE 阶段复用稳定空集避免无谓重渲染。
+   */
+  const routeHighlightIds = useMemo(() => {
+    if (cameraPhase !== CameraPhase.ROUTE || !presentation || (playbackSpeed ?? 1) >= 2) {
+      return EMPTY_ID_SET
+    }
+    return new Set(presentation.route_object_ids)
+  }, [cameraPhase, presentation, playbackSpeed])
 
   /** 已排查节点 → 指标（名称+数值+分级着色，最多 3 个；聚合锚点多对象合并）。
    *  不常显 sprite（3D 里过小看不清），改为节点悬浮 tooltip 呈现（hoverMetrics）。 */
@@ -594,12 +704,16 @@ export default function Layered3DCanvas(props: Layered3DCanvasProps) {
       if (impactedRef.current.has(node.id)) return STATUS_COLORS.warning
       if (agentFocusRef.current.has(node.id)) return STATUS_COLORS.active
     }
+    // P2：ROUTE 阶段下一路径预览节点黄色高亮（低于当前推进节点/已走过路径优先级）。
+    if (routeHighlightIds.has(node.id)) return ROUTE_HIGHLIGHT_COLOR
     // 判定/异常标记：暗色小标记（诊断中不与当前节点抢主体；浏览态保留形态语义）。
     const verdict = verdictByAnchorId.get(node.id)
     if (verdict) return VERDICT_DIM_COLOR[verdict]
     if (node.id === selectedRef.current || node.id === hoverRef.current) return brighten(node.color)
     if (focusNeighborAnchors.has(node.id)) return 'rgba(103, 232, 249, 0.65)'
     if (highlightTopologyRef.current.has(node.id)) return '#2dd4bf'
+    // P2：FOCUS/INSPECT —— 非主体非上下文的中性节点淡化（语义高亮优先，仅兜底）。
+    if (p2DimmedIds && !p2DimmedIds.has(node.id)) return 'rgba(100, 116, 139, 0.35)'
     return node.color
   }
 
@@ -654,6 +768,10 @@ export default function Layered3DCanvas(props: Layered3DCanvasProps) {
         !pathVisual.walked.has(node.id)
       ) {
         group.add(pathRingSprite(node))
+      }
+      // P2：ROUTE 阶段下一路径预览黄色环（形态 + 颜色组合，不只靠颜色）。
+      if (!isCurrent && routeHighlightIds.has(node.id)) {
+        group.add(routeRingSprite(node))
       }
       const verdict = verdictByAnchorId.get(node.id)
       if (verdict && !isCurrent) {
@@ -884,8 +1002,8 @@ export default function Layered3DCanvas(props: Layered3DCanvasProps) {
     const graphInstance = graphRef.current
     if (!graphInstance) return
     const preset = presetForLens(activeLens)
-    graphInstance.cameraPosition(preset.position, preset.lookAt, 900)
-  }, [activeLens])
+    flyCameraTo(graphInstance, preset.position, preset.lookAt, 900)
+  }, [activeLens, flyCameraTo])
 
   // --- appearance refresh on selection / runtime highlight / scan changes ----
 
@@ -901,6 +1019,10 @@ export default function Layered3DCanvas(props: Layered3DCanvasProps) {
     focusNeighborAnchors,
     pathVisual,
     chipsByAnchorId,
+    // P2：阶段驱动视觉（FOCUS 淡化 / ROUTE 黄色高亮）随镜头阶段刷新。
+    cameraPhase,
+    p2DimmedIds,
+    routeHighlightIds,
   ])
 
   // --- issue#7 C3 / issue#8 需求2③：诊断聚焦目标真实节点 —— 自动展开其聚合层 ----
@@ -995,8 +1117,17 @@ export default function Layered3DCanvas(props: Layered3DCanvasProps) {
     const lookAt = { x: tx, y: ty, z: tz }
 
     flewSignatureRef.current = signature
-    programmaticMoveRef.current = true
-    graphInstance.cameraPosition(cameraPos, lookAt, 900)
+    // P2：近距离目标小幅平移（世界距离 < DIST 阈值 → 短促动画，不做大幅拉远）。
+    // 目标已接近时，200-350ms 短促平移比 900ms 完整飞行观感更顺滑。
+    const cam = graphInstance.camera()
+    const cur = cam?.position ?? { x: 0, y: 0, z: 0 }
+    const dur = shouldMicroMove(cur, cameraPos) ? 250 : 900
+    flyCameraTo(graphInstance, cameraPos, lookAt, dur)
+    // P2：飞行动画完成后（约 2× 动画时长后）清除程序化标志，避免用户第一次
+    // 拖拽/滚轮被误吞为"程序化移动"而不触发接管。设置到 ref 由 cleanup 清理。
+    window.setTimeout(() => {
+      programmaticMoveRef.current = false
+    }, dur + 250)
   }, [
     focusSignature,
     followAgent,
@@ -1006,6 +1137,39 @@ export default function Layered3DCanvas(props: Layered3DCanvasProps) {
     model,
     graph,
   ])
+
+  // --- P2: CONTEXT 阶段相机拉远 —— 恢复关键邻居可见度 ---------------------------------
+  // 仅当进入 CONTEXT 且处于跟随态时，对"新签名"执行一次短促拉远（从 FOCUS 的近视角回到
+  // 带邻居的广视角）。用 ref 记录已拉远的签名，同一签名只拉远一次；不写 Runtime，无死循环。
+  const contextZoomedRef = useRef<string | null>(null)
+
+  useEffect(() => {
+    const graphInstance = graphRef.current
+    if (!graphInstance || !followAgent || cameraPhase !== CameraPhase.CONTEXT) return
+    if (!presentationSubject) return
+    const sig = focusSignature ?? ''
+    if (contextZoomedRef.current === sig) return // 已对这一签名拉远过
+    const targetId = presentationSubject.primary_id
+    const node = model.nodesById.get(targetId)
+    if (!node) return
+    const tx = node.fx ?? node.x
+    const ty = node.fy ?? node.y
+    const tz = node.fz ?? node.z
+    if (!Number.isFinite(tx) || !Number.isFinite(ty) || !Number.isFinite(tz)) return
+    contextZoomedRef.current = sig
+    const safeOffsetX = (rightInsetRef.current ?? 0) / 2
+    // 拉远到能看到一跳邻居的广视角（比 Focus 的 z+180 更远）。
+    flyCameraTo(
+      graphInstance,
+      { x: tx + safeOffsetX, y: ty, z: tz + 300 },
+      { x: tx, y: ty, z: tz },
+      600,
+    )
+    window.setTimeout(() => {
+      programmaticMoveRef.current = false
+    }, 850)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cameraPhase, focusSignature, followAgent, presentationSubject, model])
 
   // --- issue#6 阶段C：扫描雷达扫掠 RAF 动画（仅旋转当前扫描对象的扫掠精灵） ---
 

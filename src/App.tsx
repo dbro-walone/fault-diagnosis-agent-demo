@@ -16,6 +16,7 @@ import { loadModelData } from '@/lib/model-loader'
 import { routeToCase } from '@/lib/v2-case-router'
 import { LensId } from '../schemas'
 import {
+  CameraPhase,
   listCases,
   createDiagnosisRuntime,
   loadAdaptedCase,
@@ -31,6 +32,29 @@ import {
 } from './v2'
 
 const EVENT_CADENCE_MS = 700
+
+// P2：镜头阶段最短停留时间（ms），高速播放时压缩。展示协调器：解决诊断时钟
+// （固定 700ms）与镜头时钟（Travel 900ms 动画）冲突 —— 相机先到，事件后走。
+// ORIENT/RESULT/COMPLETE 需要读时间 → 停留更长；TRAVEL 本身有 900ms 飞行补差即可；
+// CONTEXT/ROUTE 为低价值过渡阶段，停留短。
+function phaseMinStay(phase: CameraPhase, speed: number): number {
+  const base: Record<CameraPhase, number> = {
+    ORIENT: 1500,
+    TRAVEL: 1000, // 必须 ≥ 相机飞行动画(900ms)，保证"相机先到、事件后走"
+    FOCUS: 500,
+    INSPECT: 800,
+    RESULT: 1000, // 结果需要读时间
+    CONTEXT: 700, // ≥ CONTEXT 拉远动画(600ms)
+    ROUTE: 700,
+    COMPLETE: 2000,
+  }
+  const ms = base[phase] ?? EVENT_CADENCE_MS
+  // 0.5x 慢放：×2；2x: ×0.5；4x: ×0.25（配合画布跳过低价值 Context/Route 视觉）。
+  if (speed <= 0.5) return ms * 2
+  if (speed >= 4) return Math.round(ms * 0.25)
+  if (speed >= 2) return Math.round(ms * 0.5)
+  return ms
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // App
@@ -210,18 +234,30 @@ export default function App() {
     return ids
   }, [snapshot?.candidates])
 
+  // P1：PresentationVM（P0 协议层：一屏一主体 + focus_signature → 驱动相机语义跟随）。
+  // 纯函数投影，只读 snapshot；focus_signature 不变则同主体不重复 Travel。
+  // P2：声明提前到自动播放 effect 之前，供 phase-aware delay 引用。
+  const presentationVM = useMemo(() => {
+    if (!snapshot) return null
+    const adapted = loadAdaptedCase(runtime?.caseId ?? '')
+    return presentationProjection(snapshot, adapted)
+  }, [snapshot, runtime])
+
   // LIVE auto-advance. advance() appends the next authored Runtime Event — the
   // sole diagnosis-state write.
+  // P2: phase-aware delay — 关键阶段(RESULT/COMPLETE/ORIENT)给更多时间，高速时压缩。
   useEffect(() => {
     if (!isPlaying || !runtime || runtime.complete) {
       if (runtime?.complete) setIsPlaying(false)
       return
     }
+    const phase = presentationVM?.phase ?? CameraPhase.ORIENT
+    const delay = Math.max(phaseMinStay(phase, playbackSpeed), 200)
     const timer = window.setTimeout(() => {
       setRuntime((current) => (current ? current.advance() : current))
-    }, EVENT_CADENCE_MS / playbackSpeed)
+    }, delay)
     return () => window.clearTimeout(timer)
-  }, [runtime, isPlaying, playbackSpeed])
+  }, [runtime, isPlaying, playbackSpeed, presentationVM?.phase])
 
   const startSession = (caseId: string, note: string | null) => {
     try {
@@ -411,14 +447,6 @@ export default function App() {
     }
   }, [snapshot, runtime, knowledgeRefs, knowledgeLinkRefs])
 
-  // P1：PresentationVM（P0 协议层：一屏一主体 + focus_signature → 驱动相机语义跟随）。
-  // 纯函数投影，只读 snapshot；focus_signature 不变则同主体不重复 Travel。
-  const presentationVM = useMemo(() => {
-    if (!snapshot) return null
-    const adapted = loadAdaptedCase(runtime?.caseId ?? '')
-    return presentationProjection(snapshot, adapted)
-  }, [snapshot, runtime])
-
   // 阶段3：画布跨平面光柱只消费 ACTIVE CrossPlaneBinding。
   // 诊断会话中取投影 Store 汇出（静态 + 动态 ACTIVE）；浏览态取当前分层 Case 静态 Binding。
   const canvasActiveBindings = useMemo(() => {
@@ -464,6 +492,11 @@ export default function App() {
         focusSignature={presentationVM?.focus_signature ?? null}
         followAgent={followAgent}
         onUserInteract={() => setFollowAgent(false)}
+        // P2：完整镜头阶段驱动 —— 相机阶段视觉（FOCUS 淡化 / CONTEXT 拉远 / ROUTE 高亮）
+        // + 播放速度倍速压缩低价值阶段视觉。
+        cameraPhase={presentationVM?.phase}
+        playbackSpeed={playbackSpeed}
+        presentation={presentationVM}
       />
 
       {/* F0：诊断会话默认收起 Object Explorer；退出/手动展开后恢复 */}
@@ -547,6 +580,9 @@ export default function App() {
           onToggleLeftPanel={() =>
             dispatchView({ type: 'SET_NAVIGATOR_COLLAPSED', collapsed: !leftPanelCollapsed })
           }
+          // P2：镜头阶段 + 完整 PresentationVM 驱动三档 LUI（Compact/Expanded）。
+          cameraPhase={presentationVM?.phase}
+          presentation={presentationVM}
         />
       )}
 

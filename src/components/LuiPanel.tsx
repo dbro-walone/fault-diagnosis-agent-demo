@@ -59,9 +59,25 @@ import {
   type PlannerTargetsVM,
   type ProjectionStore,
   type TimelineEventVM,
+  type DiagnosisPresentationVM,
 } from '../v2'
 
 type DisplayMode = 'LIVE' | 'PAUSED' | 'REPLAY'
+
+/** P2：镜头阶段 → LUI 中文标签（按需生长：Compact vs Expanded）。 */
+const PHASE_LABELS: Record<string, string> = {
+  ORIENT: '全局定向',
+  TRAVEL: '飞向目标',
+  FOCUS: '聚焦对象',
+  INSPECT: '取证中',
+  RESULT: '分析结果',
+  CONTEXT: '上下文回溯',
+  ROUTE: '路径预览',
+  COMPLETE: '诊断完成',
+}
+
+/** P2：这些阶段要求 LUI 精简展示（按需生长），其余阶段展开全量。 */
+const COMPACT_PHASES = new Set(['ORIENT', 'TRAVEL', 'FOCUS', 'INSPECT'])
 
 export interface LuiPanelProps {
   knowledge: KnowledgeSnapshotVM
@@ -98,6 +114,10 @@ export interface LuiPanelProps {
   wide: boolean
   leftPanelCollapsed: boolean
   onToggleLeftPanel: () => void
+  /** P2：当前镜头阶段——驱动阶段标签 + 按需生长。 */
+  cameraPhase?: string | null
+  /** P2：PresentationVM 完整数据（供 LUI 精简/展开决策与阶段详情）。 */
+  presentation?: DiagnosisPresentationVM | null
 }
 
 export default function LuiPanel(props: LuiPanelProps) {
@@ -115,6 +135,13 @@ export default function LuiPanel(props: LuiPanelProps) {
     props.onSelectFact(id)
     setFactModalId(id)
   }
+
+  // P2：按需生长 —— COMPACT 阶段（ORIENT/TRAVEL/FOCUS/INSPECT）自动折叠深层内容，
+  // 只保留"诊断态势"（一屏一主体原则：正在定位/聚焦/取证时不过度刷屏）。
+  // 用户在任意阶段可手动展开/收起（手动展开优先于阶段自动折叠）。
+  const phaseCompact = !!props.cameraPhase && COMPACT_PHASES.has(props.cameraPhase)
+  const [forceExpanded, setForceExpanded] = useState(false)
+  const showFull = !phaseCompact || forceExpanded
 
   return (
     <aside
@@ -150,6 +177,19 @@ export default function LuiPanel(props: LuiPanelProps) {
       )}
 
       <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto p-2.5">
+        {/* P2：按需生长——COMPACT 阶段顶部条（带手动展开/收起按钮）。 */}
+        {phaseCompact && (
+          <button
+            type="button"
+            onClick={() => setForceExpanded((v) => !v)}
+            className="flex w-full items-center justify-between rounded-md border border-white/8 bg-white/5 px-2 py-1.5 text-[10px] text-[#cbd5e1] hover:bg-white/10"
+          >
+            <span>{forceExpanded ? '已展开全部详情' : '单主体聚焦中 · 深层详情已折叠'}</span>
+            <span className="font-semibold text-status-active">
+              {forceExpanded ? '收起 ▲' : '展开详情 ▼'}
+            </span>
+          </button>
+        )}
         {/* Layer 2 — 诊断态势 */}
         <DiagnosisSituation
           knowledge={knowledge}
@@ -158,15 +198,20 @@ export default function LuiPanel(props: LuiPanelProps) {
           onReturnAgentView={props.onReturnAgentView}
         />
 
-        {/* 阶段5：当前决策 —— LUI 三问之"下一步为什么这样做"（docs/19 §14.3） */}
-        <CurrentDecisionView decision={props.decision} />
+        {/* P2：非 COMPACT（或用户手动展开）时显示深层内容 */}
+        {showFull && (
+          <>
+            {/* 阶段5：当前决策 —— LUI 三问之"下一步为什么这样做"（docs/19 §14.3） */}
+            <CurrentDecisionView decision={props.decision} />
 
-        {/* issue#6 阶段A + issue#7 C1/C2：Planner 目标区（排查路径主线 + 目标资源/故障模式/
-            验证问题/期望发现/实际发现 + 重规划差异） */}
-        <PlannerTargetsView planner={props.planner} />
+            {/* issue#6 阶段A + issue#7 C1/C2：Planner 目标区（排查路径主线 + 目标资源/故障模式/
+                验证问题/期望发现/实际发现 + 重规划差异） */}
+            <PlannerTargetsView planner={props.planner} />
 
-        {/* issue#6 阶段B：对象观测三标签（当前焦点对象 告警｜性能｜日志 查询状态与结果） */}
-        <ObjectObservationView vm={observation} />
+            {/* issue#6 阶段B：对象观测三标签（当前焦点对象 告警｜性能｜日志 查询状态与结果） */}
+            <ObjectObservationView vm={observation} />
+          </>
+        )}
 
         {/* Layer 3 — 候选根因 */}
         <CandidateList
@@ -215,6 +260,12 @@ function SessionStatusBar(props: LuiPanelProps & { timelineOpen: boolean; onTogg
           <Activity className="h-3 w-3" />
           {mode === 'LIVE' ? '实时' : mode === 'REPLAY' ? '回放' : '已暂停'}
         </span>
+        {/* P2：按需生长 —— 当前镜头阶段标签（全局定向/飞向目标/聚焦对象/取证中/分析结果/上下文回溯/路径预览/诊断完成） */}
+        {props.cameraPhase && PHASE_LABELS[props.cameraPhase] && (
+          <span className="rounded bg-status-active/15 px-2 py-1 text-[10px] font-semibold text-status-active">
+            {PHASE_LABELS[props.cameraPhase]}
+          </span>
+        )}
         <span className="rounded bg-white/5 px-2 py-1 text-[10px] text-[#cbd5e1]">
           {knowledge.phase_label || '待启动'}
         </span>
