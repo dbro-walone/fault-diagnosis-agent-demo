@@ -197,21 +197,44 @@ export function mapEventToPhase(eventType: RuntimeEvent['event_type'], snapshot:
 /**
  * 当前镜头语义主体推导。优先级：
  * 1. 终态：session.terminal_status 非 null 即终态（conclusion 要到 DIAGNOSIS_COMPLETED
- *    才写入，故以 terminal_status 为准；链从终态事件 payload 或 agent_focus 派生）；
+ *    才写入，故以 terminal_status 为准；链从终态事件 payload 或 agent_focus 派生）。
+ *    按终态类型差异化：ROOT_CAUSE_CONFIRMED / INSUFFICIENT_EVIDENCE → TerminalSubject；
+ *    PROBABLE_CAUSES → RelationGroupSubject（fit 全部候选对象，供候选组构图）；
  * 2. 路径：Planner 有 active 目标且 topo_path.length > 1 → PathSubject；
  * 3. 节点：focusObjectId（active 目标 > agent_focus > 当前活动目标）→ NodeSubject；
  * 4. 无 → null。
  */
-function deriveSubject(snapshot: DiagnosisSessionSnapshot, adapted: AdaptedCase): PresentationSubject | null {
-  // 1. 终态。
+export function deriveSubject(snapshot: DiagnosisSessionSnapshot, adapted: AdaptedCase): PresentationSubject | null {
+  // 1. 终态：按终态类型差异化。
   const terminal = terminalChainInfo(snapshot)
-  if (terminal?.primary_id) {
-    return {
-      kind: 'terminal',
-      node_ids: dedupe([...terminal.root_chain, ...terminal.impact_chain]),
-      primary_id: terminal.primary_id,
-      label: displayName(adapted, terminal.primary_id),
-      terminal_type: terminal.terminal_type,
+  if (terminal) {
+    // PROBABLE_CAUSES：候选关系组 —— 一屏 fit 全部候选对象（primary 取已确认焦点，
+    // 否则取最高支持分候选，供相机构图偏向主节点）。
+    if (terminal.terminal_type === 'PROBABLE_CAUSES') {
+      const memberIds = candidateObjectIds(snapshot)
+      if (memberIds.length > 1) {
+        const primaryId =
+          terminal.primary_id && memberIds.includes(terminal.primary_id)
+            ? terminal.primary_id
+            : memberIds[0]
+        return {
+          kind: 'relation_group',
+          member_ids: memberIds,
+          primary_id: primaryId,
+          relation: 'shared_resource',
+          label: displayName(adapted, primaryId),
+        }
+      }
+    }
+    // ROOT_CAUSE_CONFIRMED / INSUFFICIENT_EVIDENCE（及无候选的 PROBABLE）：TerminalSubject。
+    if (terminal.primary_id) {
+      return {
+        kind: 'terminal',
+        node_ids: dedupe([...terminal.root_chain, ...terminal.impact_chain]),
+        primary_id: terminal.primary_id,
+        label: displayName(adapted, terminal.primary_id),
+        terminal_type: terminal.terminal_type,
+      }
     }
   }
 
@@ -297,6 +320,16 @@ function activePlannerTargetOf(s: DiagnosisSessionSnapshot): PlannerTarget | nul
     [...s.planner_targets]
       .sort((a, b) => a.seq - b.seq)
       .find((t) => objs.has(t.target_resource)) ?? null
+  )
+}
+
+/** 候选对象 ids（按支持分降序去重）——PROBABLE_CAUSES 关系组主体成员。 */
+function candidateObjectIds(snapshot: DiagnosisSessionSnapshot): string[] {
+  return dedupe(
+    [...snapshot.candidates]
+      .sort((a, b) => b.diagnosis_support_score - a.diagnosis_support_score)
+      .map((c) => c.object_id)
+      .filter((x): x is string => typeof x === 'string' && x.length > 0),
   )
 }
 

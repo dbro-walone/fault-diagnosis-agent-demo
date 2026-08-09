@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { ScanSearch } from 'lucide-react'
 
@@ -145,6 +145,68 @@ function routeRingSprite(node: GraphNode): THREE.Sprite {
 }
 
 /**
+ * P3：多主体相机构图 —— 一屏一主体按语义主体类型取相机目标（LUI 避让 offset 已含）：
+ * - node：现有 z+180 单节点构图（P1 保持）；
+ * - path：路径包围盒 —— 全部 node_ids 可见节点坐标，中心 + max(diag*0.8, 180)；
+ * - relation_group：成员包围球 —— primary 坐标权重 ×2（偏向主节点）；shared_resource
+ *   共享资源垂直展开 → 镜头略上抬，peer 平视；
+ * - terminal：根因链 + 影响链共同 fit，镜头更远（diag*1.0）让全链可见。
+ * 任一主体无可解析坐标时返回 null（调用方跳过飞行，防 NaN/undefined 空白画面）。
+ */
+function subjectCameraTarget(
+  subject: PresentationSubject,
+  model: LayeredModelData,
+  safeOffsetX: number,
+): { cameraPos: { x: number; y: number; z: number }; lookAt: { x: number; y: number; z: number } } | null {
+  if (subject.kind === 'node') {
+    const n = model.nodesById.get(subject.primary_id)
+    if (!n) return null
+    const tx = n.fx ?? n.x
+    const ty = n.fy ?? n.y
+    const tz = n.fz ?? n.z
+    if (!Number.isFinite(tx) || !Number.isFinite(ty) || !Number.isFinite(tz)) return null
+    return {
+      cameraPos: { x: tx + safeOffsetX, y: ty, z: tz + 180 },
+      lookAt: { x: tx, y: ty, z: tz },
+    }
+  }
+
+  // path / relation_group / terminal：包围盒构图。
+  const ids = subject.kind === 'relation_group' ? subject.member_ids : subject.node_ids
+  const weightOf = (id: string): number =>
+    subject.kind === 'relation_group' && id === subject.primary_id ? 2 : 1
+  const coords = ids
+    .map((id) => model.nodesById.get(id))
+    .filter((n): n is GraphNode => !!n)
+    .map((n) => ({ x: n.fx ?? n.x, y: n.fy ?? n.y, z: n.fz ?? n.z, w: weightOf(n.id) }))
+    .filter((c) => Number.isFinite(c.x) && Number.isFinite(c.y) && Number.isFinite(c.z))
+  if (coords.length === 0) return null
+
+  const totalW = coords.reduce((s, c) => s + c.w, 0)
+  const cx = coords.reduce((s, c) => s + c.x * c.w, 0) / totalW
+  const cy = coords.reduce((s, c) => s + c.y * c.w, 0) / totalW
+  const cz = coords.reduce((s, c) => s + c.z * c.w, 0) / totalW
+  const minX = coords.reduce((s, c) => Math.min(s, c.x), coords[0].x)
+  const maxX = coords.reduce((s, c) => Math.max(s, c.x), coords[0].x)
+  const minY = coords.reduce((s, c) => Math.min(s, c.y), coords[0].y)
+  const maxY = coords.reduce((s, c) => Math.max(s, c.y), coords[0].y)
+  const minZ = coords.reduce((s, c) => Math.min(s, c.z), coords[0].z)
+  const maxZ = coords.reduce((s, c) => Math.max(s, c.z), coords[0].z)
+  const diag = Math.sqrt((maxX - minX) ** 2 + (maxY - minY) ** 2 + (maxZ - minZ) ** 2)
+  // 终态：全链可见，镜头更远（diag*1.0）；path/relation_group：0.8 倍对角线（下限 180）。
+  const zScale = subject.kind === 'terminal' ? 1.0 : 0.8
+  // relation_group：shared_resource 共享资源垂直展开 → 镜头略上抬（斜俯视），peer 平视。
+  const yBias =
+    subject.kind === 'relation_group' && subject.relation === 'shared_resource'
+      ? (maxY - minY) * 0.5
+      : 0
+  return {
+    cameraPos: { x: cx + safeOffsetX, y: cy + yBias, z: cz + Math.max(diag * zScale, 180) },
+    lookAt: { x: cx, y: cy, z: cz },
+  }
+}
+
+/**
  * BFS 沿物理拓扑邻接表桥接 from→to，返回路径中间节点 + 链路无序 key（含 to，不含 from）。
  * 找不到连通路径返回 null。供排查证据路径（已走过 trail / 当前入边）复用。
  */
@@ -282,6 +344,8 @@ export default function Layered3DCanvas(props: Layered3DCanvasProps) {
 
   const containerRef = useRef<HTMLDivElement>(null)
   const graphRef = useRef<any>(null)
+  /** P4.6：调试面板开关（默认隐藏，按 D 切换）。 */
+  const [debugPanel, setDebugPanel] = useState(false)
   /** issue#6 阶段C：当前扫描态扫掠精灵（nodeId → sweep），RAF 循环旋转。 */
   const scanningSweepsRef = useRef<Map<string, THREE.Sprite>>(new Map())
   /** issue#6 阶段C：最新诊断循环 view-model（RAF 循环只读，避免闭包捕获旧值）。 */
@@ -332,9 +396,13 @@ export default function Layered3DCanvas(props: Layered3DCanvasProps) {
 
   /**
    * P2：统一程序化飞行入口 —— 递增动画令牌 + 置程序化运动标志。所有阶段驱动的
-   * 相机移动（lens 预设 / focus flight / CONTEXT 拉远）都经此，保证：
+   * 相机移动（lens 预设 / focus flight / CONTEXT 拉远 / ROUTE 重规划拉远）都经此，保证：
    * - 新飞行总是覆盖旧飞行（令牌递增，旧效果不残留标志）；
    * - OrbitControls 'start' 处理器能区分"程序化飞行中" vs "用户接管"。
+   * P4.1：程序化标志清理移到 token 校验定时器 —— 动画完成后检查令牌，只有仍是最新
+   * 飞行的定时器才清除标志；旧飞行的清零定时器（token 不匹配）直接跳过，不再在
+   * 新飞行尚未完成时误吞用户接管信号。
+   * P4.5：prefers-reduced-motion 时动画时长为 0（直接跳转，不播动画）。
    */
   const flyCameraTo = useCallback(
     (
@@ -343,9 +411,19 @@ export default function Layered3DCanvas(props: Layered3DCanvasProps) {
       lookAt: { x: number; y: number; z: number },
       duration: number,
     ): void => {
-      animationTokenRef.current += 1
+      const token = ++animationTokenRef.current
       programmaticMoveRef.current = true
-      graphInstance.cameraPosition(pos, lookAt, duration)
+      const reducedMotion =
+        (typeof window !== 'undefined' &&
+          window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches) ||
+        false
+      const actualDuration = reducedMotion ? 0 : duration
+      graphInstance.cameraPosition(pos, lookAt, actualDuration)
+      window.setTimeout(() => {
+        if (animationTokenRef.current === token) {
+          programmaticMoveRef.current = false
+        }
+      }, actualDuration + 200)
     },
     [],
   )
@@ -1105,16 +1183,13 @@ export default function Layered3DCanvas(props: Layered3DCanvasProps) {
       }
     }
 
-    // 目标坐标：固定轴优先、兜底自由轴（防御 NaN/undefined 空白画面）。
-    const tx = node.fx ?? node.x
-    const ty = node.fy ?? node.y
-    const tz = node.fz ?? node.z
-    if (!Number.isFinite(tx) || !Number.isFinite(ty) || !Number.isFinite(tz)) return
-
     // 右侧 LUI 避让：相机右移 safeOffsetX，使目标在去掉 LUI 的可视区居中。
     const safeOffsetX = (rightInsetRef.current ?? 0) / 2
-    const cameraPos = { x: tx + safeOffsetX, y: ty, z: tz + 180 }
-    const lookAt = { x: tx, y: ty, z: tz }
+    // P3：多主体构图 —— path 包围盒 / relation_group 成员包围球(primary 权重×2) /
+    // terminal 根因+影响链 fit / node 固定 z+180。
+    const target = subjectCameraTarget(presentationSubject, model, safeOffsetX)
+    if (!target) return
+    const { cameraPos, lookAt } = target
 
     flewSignatureRef.current = signature
     // P2：近距离目标小幅平移（世界距离 < DIST 阈值 → 短促动画，不做大幅拉远）。
@@ -1123,11 +1198,8 @@ export default function Layered3DCanvas(props: Layered3DCanvasProps) {
     const cur = cam?.position ?? { x: 0, y: 0, z: 0 }
     const dur = shouldMicroMove(cur, cameraPos) ? 250 : 900
     flyCameraTo(graphInstance, cameraPos, lookAt, dur)
-    // P2：飞行动画完成后（约 2× 动画时长后）清除程序化标志，避免用户第一次
-    // 拖拽/滚轮被误吞为"程序化移动"而不触发接管。设置到 ref 由 cleanup 清理。
-    window.setTimeout(() => {
-      programmaticMoveRef.current = false
-    }, dur + 250)
+    // 程序化标志清理统一由 flyCameraTo 的 token 定时器负责（P4.1），此处不再无条件清除，
+    // 避免旧飞行的清零定时器在后续飞行（如 CONTEXT 拉远）尚未完成时误吞用户接管信号。
   }, [
     focusSignature,
     followAgent,
@@ -1138,25 +1210,27 @@ export default function Layered3DCanvas(props: Layered3DCanvasProps) {
     graph,
   ])
 
-  // --- P2: CONTEXT 阶段相机拉远 —— 恢复关键邻居可见度 ---------------------------------
-  // 仅当进入 CONTEXT 且处于跟随态时，对"新签名"执行一次短促拉远（从 FOCUS 的近视角回到
-  // 带邻居的广视角）。用 ref 记录已拉远的签名，同一签名只拉远一次；不写 Runtime，无死循环。
+  // --- P2/P3.4: CONTEXT 拉远 + ROUTE 重规划拉远 —— 恢复关键邻居可见度 ------------------
+  // CONTEXT：仅当进入 CONTEXT 且处于跟随态时，对"新签名"执行一次短促拉远（从 FOCUS 的
+  // 近视角回到带邻居的广视角）。用 ref 记录已拉远的签名，同一签名只拉远一次；不写 Runtime。
+  // P4.2：2x/4x 倍速跳过低价值 CONTEXT 拉远视觉（倍速策略合并 Context+Route）。
+  // P3.4：phase 从非-ROUTE 跳到 ROUTE 且候选有显著变化（candidate_deltas 非空）时，
+  // 复用同一拉远逻辑先做一次 ORIENT/CONTEXT 拉远，再沿路径路由。
   const contextZoomedRef = useRef<string | null>(null)
+  const routeZoomRef = useRef<string | null>(null)
+  const prevPhaseRef = useRef<CameraPhase | null>(cameraPhase ?? null)
 
-  useEffect(() => {
+  /** P2/P3.4 共用：对当前主体 primary 节点做一次 CONTEXT 拉远（返回是否实际飞行）。 */
+  const zoomOutToContext = useCallback((): boolean => {
     const graphInstance = graphRef.current
-    if (!graphInstance || !followAgent || cameraPhase !== CameraPhase.CONTEXT) return
-    if (!presentationSubject) return
-    const sig = focusSignature ?? ''
-    if (contextZoomedRef.current === sig) return // 已对这一签名拉远过
+    if (!graphInstance || !presentationSubject) return false
     const targetId = presentationSubject.primary_id
     const node = model.nodesById.get(targetId)
-    if (!node) return
+    if (!node) return false
     const tx = node.fx ?? node.x
     const ty = node.fy ?? node.y
     const tz = node.fz ?? node.z
-    if (!Number.isFinite(tx) || !Number.isFinite(ty) || !Number.isFinite(tz)) return
-    contextZoomedRef.current = sig
+    if (!Number.isFinite(tx) || !Number.isFinite(ty) || !Number.isFinite(tz)) return false
     const safeOffsetX = (rightInsetRef.current ?? 0) / 2
     // 拉远到能看到一跳邻居的广视角（比 Focus 的 z+180 更远）。
     flyCameraTo(
@@ -1165,11 +1239,41 @@ export default function Layered3DCanvas(props: Layered3DCanvasProps) {
       { x: tx, y: ty, z: tz },
       600,
     )
-    window.setTimeout(() => {
-      programmaticMoveRef.current = false
-    }, 850)
+    return true
+  }, [presentationSubject, model, flyCameraTo])
+
+  useEffect(() => {
+    if (!followAgent || cameraPhase !== CameraPhase.CONTEXT) return
+    if ((playbackSpeed ?? 1) >= 2) return // P4.2：2x/4x 跳过 CONTEXT 拉远
+    if (!presentationSubject) return
+    const sig = focusSignature ?? ''
+    if (contextZoomedRef.current === sig) return // 已对这一签名拉远过
+    if (zoomOutToContext()) contextZoomedRef.current = sig
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cameraPhase, focusSignature, followAgent, presentationSubject, model])
+  }, [cameraPhase, focusSignature, followAgent, presentationSubject, playbackSpeed, zoomOutToContext])
+
+  // P3.4：重规划 → ROUTE 且候选有显著变化时，先做一次 CONTEXT 拉远再路由。
+  useEffect(() => {
+    const current = cameraPhase ?? null
+    const prev = prevPhaseRef.current
+    prevPhaseRef.current = current
+    if (prev === current) return
+    if (current !== CameraPhase.ROUTE) return
+    if (!followAgent) return
+    const hasDelta = (presentation?.candidate_deltas?.length ?? 0) > 0
+    if (!hasDelta) return
+    const sig = focusSignature ?? ''
+    if (routeZoomRef.current === sig) return
+    if (zoomOutToContext()) routeZoomRef.current = sig
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cameraPhase, focusSignature, followAgent, presentation, zoomOutToContext])
+
+  // P4.3：离开 CONTEXT 阶段重置 contextZoomedRef；离开 ROUTE 重置 routeZoomRef
+  // （重新进入该阶段时允许对新签名/新候选再次拉远）。
+  useEffect(() => {
+    if (cameraPhase !== CameraPhase.CONTEXT) contextZoomedRef.current = null
+    if (cameraPhase !== CameraPhase.ROUTE) routeZoomRef.current = null
+  }, [cameraPhase])
 
   // --- issue#6 阶段C：扫描雷达扫掠 RAF 动画（仅旋转当前扫描对象的扫掠精灵） ---
 

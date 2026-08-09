@@ -4,6 +4,7 @@ import { createDiagnosisRuntime } from './diagnosis-runtime'
 import { createEmptySnapshot } from './event-reducer'
 import {
   computeFocusSignature,
+  deriveSubject,
   mapEventToPhase,
   presentationProjection,
 } from './presentation-projection'
@@ -13,6 +14,7 @@ import {
   type PresentationSubject,
 } from './presentation-types'
 import {
+  CandidateStatus,
   TaskStatus,
   TerminalStatus,
   type DiagnosisSessionSnapshot,
@@ -224,6 +226,78 @@ describe('Presentation Projection', () => {
     ]
     const sigs = subjects.map((s) => computeFocusSignature(s))
     expect(new Set(sigs).size).toBe(sigs.length)
+  })
+
+  it('computeFocusSignature：kind、terminal_type、relation 均参与签名，避免语义碰撞', () => {
+    const node = computeFocusSignature({ kind: 'node', primary_id: 'a', label: '', resource_type: 'X' })
+    const path = computeFocusSignature({ kind: 'path', node_ids: ['a'], primary_id: 'a', label: '' })
+    expect(path).not.toBe(node)
+
+    const confirmed = computeFocusSignature({
+      kind: 'terminal', node_ids: ['a'], primary_id: 'a', label: '', terminal_type: 'ROOT_CAUSE_CONFIRMED',
+    })
+    const insufficient = computeFocusSignature({
+      kind: 'terminal', node_ids: ['a'], primary_id: 'a', label: '', terminal_type: 'INSUFFICIENT_EVIDENCE',
+    })
+    expect(confirmed).not.toBe(insufficient)
+
+    const peers = computeFocusSignature({
+      kind: 'relation_group', member_ids: ['a', 'b'], primary_id: 'a', relation: 'peer', label: '',
+    })
+    const shared = computeFocusSignature({
+      kind: 'relation_group', member_ids: ['a', 'b'], primary_id: 'a', relation: 'shared_resource', label: '',
+    })
+    expect(peers).not.toBe(shared)
+  })
+
+  it('deriveSubject：Planner active target 的多节点 topo_path 派生 PathSubject', () => {
+    const adapted = loadAdaptedCase('remote_replication_lag_001')
+    const target = adapted.plannerPlan?.targets.find((item) => item.topo_path.length > 1)
+    expect(target).toBeDefined()
+    const snapshot = createEmptySnapshot('session-path', 'remote_replication_lag_001')
+    snapshot.planner_targets = [{ ...target!, topo_path: target!.topo_path.slice() }]
+    snapshot.tasks = [{
+      task_id: 'task-path',
+      display_name: '验证路径',
+      status: TaskStatus.RUNNING,
+      target_object_refs: [target!.target_resource],
+    }]
+
+    const subject = deriveSubject(snapshot, adapted)
+    expect(subject?.kind).toBe('path')
+    if (subject?.kind === 'path') expect(subject.node_ids).toEqual(target!.topo_path)
+  })
+
+  it('deriveSubject：终态按 ROOT_CAUSE_CONFIRMED / PROBABLE_CAUSES 差异化派生主体', () => {
+    const adapted = loadAdaptedCase('remote_replication_lag_001')
+    const resourceIds = adapted.instanceTopology.resources.slice(0, 2).map((resource) => resource.resource_id)
+    expect(resourceIds).toHaveLength(2)
+
+    const confirmed = createEmptySnapshot('session-confirmed', 'remote_replication_lag_001')
+    confirmed.session.terminal_status = TerminalStatus.ROOT_CAUSE_CONFIRMED
+    confirmed.session.agent_focus = {
+      source_type: 'root_cause', source_id: 'candidate-a', object_refs: [resourceIds[0]], path_refs: [],
+    }
+    const confirmedSubject = deriveSubject(confirmed, adapted)
+    expect(confirmedSubject?.kind).toBe('terminal')
+    if (confirmedSubject?.kind === 'terminal') {
+      expect(confirmedSubject.terminal_type).toBe('ROOT_CAUSE_CONFIRMED')
+    }
+
+    const probable = createEmptySnapshot('session-probable', 'remote_replication_lag_001')
+    probable.session.terminal_status = TerminalStatus.PROBABLE_CAUSES
+    probable.candidates = resourceIds.map((objectId, index) => ({
+      candidate_id: `candidate-${index}`,
+      object_id: objectId,
+      fault_mode_code: `FAULT_${index}`,
+      diagnosis_support_score: 90 - index,
+      status: CandidateStatus.ACTIVE,
+    }))
+    const probableSubject = deriveSubject(probable, adapted)
+    expect(probableSubject?.kind).toBe('relation_group')
+    if (probableSubject?.kind === 'relation_group') {
+      expect(probableSubject.member_ids).toEqual(resourceIds)
+    }
   })
 
   it('mapEventToPhase：27 种事件逐事件独立期望映射（穷尽表）', () => {

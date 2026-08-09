@@ -14,7 +14,7 @@
  * 诊断支持分不带百分号；详情只覆盖调查工作区，不打断顶部 Agent 行动。
  */
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   Activity,
   AlertTriangle,
@@ -139,8 +139,11 @@ export default function LuiPanel(props: LuiPanelProps) {
   // P2：按需生长 —— COMPACT 阶段（ORIENT/TRAVEL/FOCUS/INSPECT）自动折叠深层内容，
   // 只保留"诊断态势"（一屏一主体原则：正在定位/聚焦/取证时不过度刷屏）。
   // 用户在任意阶段可手动展开/收起（手动展开优先于阶段自动折叠）。
-  const phaseCompact = !!props.cameraPhase && COMPACT_PHASES.has(props.cameraPhase)
   const [forceExpanded, setForceExpanded] = useState(false)
+  const phaseCompact = !!props.cameraPhase && COMPACT_PHASES.has(props.cameraPhase)
+  useEffect(() => {
+    if (!phaseCompact) setForceExpanded(false)
+  }, [phaseCompact])
   const showFull = !phaseCompact || forceExpanded
 
   return (
@@ -221,6 +224,33 @@ export default function LuiPanel(props: LuiPanelProps) {
           concluded={!!snapshot.session.terminal_status}
         />
 
+        {props.cameraPhase === 'COMPLETE' && props.presentation?.terminal_summary && (
+          <div
+            className={cn(
+              'rounded-md border px-2.5 py-2 text-[10px]',
+              props.presentation.terminal_summary.terminal_type === 'ROOT_CAUSE_CONFIRMED'
+                ? 'border-status-active/25 bg-status-active/[0.07] text-[#cbd5e1]'
+                : 'border-status-warning/25 bg-status-warning/[0.06] text-status-warning',
+            )}
+          >
+            {props.presentation.terminal_summary.terminal_type === 'ROOT_CAUSE_CONFIRMED' ? (
+              <div className="space-y-2">
+                <div className="flex items-center gap-1.5">
+                  <ShieldCheck className="h-3.5 w-3.5 shrink-0 text-status-active" />
+                  <span className="font-semibold text-status-active">根因已确认</span>
+                  <span>{props.presentation.terminal_summary.root_cause_label ?? '未知根因'}</span>
+                </div>
+                <TerminalNodeList label="完整因果链" nodeIds={props.presentation.terminal_summary.chain_node_ids} />
+                <TerminalNodeList label="影响链节点" nodeIds={props.presentation.terminal_summary.impact_node_ids} />
+              </div>
+            ) : props.presentation.terminal_summary.terminal_type === 'PROBABLE_CAUSES' ? (
+              <p>已按诊断支持分列出最可能原因，请结合候选排名继续判断。</p>
+            ) : (
+              <p>当前证据不足以确认根因，仍存在关键证据缺口。</p>
+            )}
+          </div>
+        )}
+
         {props.routeNote && (
           <div className="flex items-start gap-1.5 rounded-md border border-status-warning/20 bg-status-warning/[0.06] px-2 py-1.5 text-[9px] text-status-warning">
             <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0" />
@@ -238,6 +268,21 @@ export default function LuiPanel(props: LuiPanelProps) {
         />
       )}
     </aside>
+  )
+}
+
+function TerminalNodeList({ label, nodeIds }: { label: string; nodeIds: string[] }) {
+  return (
+    <div className="flex items-start gap-2">
+      <span className="shrink-0 text-[#64748b]">{label}</span>
+      <div className="flex flex-wrap gap-1">
+        {nodeIds.length > 0 ? nodeIds.map((id) => (
+          <span key={id} className="rounded bg-white/[0.06] px-1.5 py-0.5 text-[#94a3b8]">
+            {id}
+          </span>
+        )) : <span className="text-[#64748b]">暂无</span>}
+      </div>
+    </div>
   )
 }
 
