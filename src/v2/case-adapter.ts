@@ -986,7 +986,7 @@ export function loadAdaptedCase(caseId: string): AdaptedCase {
     selection_reason: undefined,
     priority: 100 - i,
     execution_mode: 'PARALLEL',
-    ui_role: i === 0 ? 'PRIMARY' : 'BACKGROUND',
+    ui_role: 'PRIMARY' as const,
     status: mapTaskStatus(t.status),
     result_refs: t.result_refs ?? [],
     started_at: t.started_at,

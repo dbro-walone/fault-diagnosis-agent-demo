@@ -323,6 +323,26 @@ function activePlannerTargetOf(s: DiagnosisSessionSnapshot): PlannerTarget | nul
   )
 }
 
+/** 按 Planner seq 顺序取下一个尚未裁决的目标。 */
+function nextPendingPlannerTarget(s: DiagnosisSessionSnapshot): PlannerTarget | null {
+  const terminalStatuses = new Set(['SUCCEEDED', 'DATA_MISSING', 'FAILED', 'SKIPPED'])
+  return (
+    [...s.planner_targets]
+      .sort((a, b) => a.seq - b.seq)
+      .find((t) => {
+        const hasTerminalTask = s.tasks.some(
+          (tsk) =>
+            (tsk.target_object_refs ?? []).includes(t.target_resource) &&
+            terminalStatuses.has(tsk.status),
+        )
+        if (hasTerminalTask) return false
+        const cands = s.candidates.filter((c) => c.object_id === t.target_resource)
+        if (cands.some((c) => c.status === 'CONFIRMED' || c.status === 'WEAKENED')) return false
+        return true
+      }) ?? null
+  )
+}
+
 /** 候选对象 ids（按支持分降序去重）——PROBABLE_CAUSES 关系组主体成员。 */
 function candidateObjectIds(snapshot: DiagnosisSessionSnapshot): string[] {
   return dedupe(
@@ -333,10 +353,20 @@ function candidateObjectIds(snapshot: DiagnosisSessionSnapshot): string[] {
   )
 }
 
-/** 当前焦点对象：active Planner 目标 > agent_focus > 当前活动目标（与 projection-store 同口径）。 */
+/** 当前焦点对象：active/pending Planner 目标 > 首个任务 > agent_focus > 当前活动目标。 */
 function focusObjectId(s: DiagnosisSessionSnapshot): string | null {
   const active = activePlannerTargetOf(s)
   if (active) return active.target_resource
+  // 诊断中：取第一个 pending 目标，保持 Planner 的逐层扫描顺序。
+  if (s.planner_targets.length > 0 && !s.session.terminal_status) {
+    const nextPending = nextPendingPlannerTarget(s)
+    if (nextPending) return nextPending.target_resource
+  }
+  // PLAN_CREATED 前空白期：优先取第一个任务的 target，而非 agent_focus。
+  if (s.planner_targets.length === 0 && !s.session.terminal_status) {
+    const firstTaskTarget = s.tasks[0]?.target_object_refs?.[0]
+    if (firstTaskTarget) return firstTaskTarget
+  }
   const focusObj = s.session.agent_focus?.object_refs?.[0]
   if (focusObj) return focusObj
   return s.current_activity?.target_object_refs?.[0] ?? null

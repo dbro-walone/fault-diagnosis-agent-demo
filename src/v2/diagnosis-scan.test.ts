@@ -385,4 +385,22 @@ describe('issue#6 阶段C — 逐对象诊断循环 diagnosisScan()', () => {
       prevLen = path.length
     }
   })
+
+  it('layered_topology_demo_001：诊断启动后聚焦对象应为 S1，而非 S3 症状对象', () => {
+    let rt = createDiagnosisRuntime('layered_topology_demo_001')
+    for (let i = 0; i < 30; i++) {
+      rt = rt.advance()
+      const snap = rt.snapshot
+      if (snap.planner_targets.length > 0) {
+        const store = new ProjectionStore()
+        store.bind(snap, {
+          observationsFacts: loadAdaptedCase('layered_topology_demo_001').facts,
+        })
+        const scan = store.diagnosisScan()
+        const sortedTargets = [...snap.planner_targets].sort((a, b) => a.seq - b.seq)
+        expect(scan.focus_object_id).toBe(sortedTargets[0].target_resource)
+        break
+      }
+    }
+  })
 })

@@ -461,7 +461,7 @@ export function generateEvents(adapted: AdaptedCase, failures: FailureInjection[
     prevStage = task.stage
 
     const execId = `exec-${task.task_id}`
-    const uiRole = task.ui_role ?? (task === adapted.tasks[0] ? 'PRIMARY' : 'BACKGROUND')
+    const uiRole = task.ui_role ?? 'PRIMARY'
 
     const taskRunning = b.emit('TASK_STATUS_CHANGED',
       { task: { ...task, status: TaskStatus.RUNNING }, status: TaskStatus.RUNNING },

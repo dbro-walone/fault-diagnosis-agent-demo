@@ -1022,17 +1022,17 @@ export class ProjectionStore {
       }
     }
 
-    const targetCandidate = leading
+    const targetCandidate = activeTarget
       ? {
-          object_id: leading.object_id,
-          fault_mode_code: leading.fault_mode_code,
-          display_name: leading.display_name ?? null,
+          object_id: activeTarget.target_resource,
+          fault_mode_code: activeTarget.target_fault_mode,
+          display_name: null,
         }
-      : activeTarget
+      : leading
         ? {
-            object_id: activeTarget.target_resource,
-            fault_mode_code: activeTarget.target_fault_mode,
-            display_name: null,
+            object_id: leading.object_id,
+            fault_mode_code: leading.fault_mode_code,
+            display_name: leading.display_name ?? null,
           }
         : null
 
@@ -1250,12 +1250,26 @@ function investigatedObjectIds(s: DiagnosisSessionSnapshot): string[] {
 }
 
 /**
- * 当前焦点对象：Planner 当前位置（active 目标资源）> agent_focus > 当前行动目标。
+ * 当前焦点对象：Planner 当前位置（active/pending 目标资源）> 首个任务 > agent_focus > 当前行动目标。
  * 与 PlannerTargetRow 的"当前位置"共用 derivePlannerTargetStatus，保证面板跟随诊断推进。
  */
 function focusObjectId(s: DiagnosisSessionSnapshot): string | null {
   const active = s.planner_targets.find((t) => derivePlannerTargetStatus(s, t) === 'active')
   if (active) return active.target_resource
+
+  // 诊断中：取第一个 pending 目标，保持 Planner 的逐层扫描顺序。
+  if (s.planner_targets.length > 0 && !s.session.terminal_status) {
+    const sorted = [...s.planner_targets].sort((a, b) => a.seq - b.seq)
+    const nextPending = sorted.find((t) => derivePlannerTargetStatus(s, t) === 'pending')
+    if (nextPending) return nextPending.target_resource
+  }
+
+  // PLAN_CREATED 前空白期：优先取第一个任务的 target，而非 agent_focus。
+  if (s.planner_targets.length === 0 && !s.session.terminal_status) {
+    const firstTaskTarget = s.tasks[0]?.target_object_refs?.[0]
+    if (firstTaskTarget) return firstTaskTarget
+  }
+
   const focusObj = s.session.agent_focus?.object_refs?.[0]
   if (focusObj) return focusObj
   return s.current_activity?.target_object_refs?.[0] ?? null
