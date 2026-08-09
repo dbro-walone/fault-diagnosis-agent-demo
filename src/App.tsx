@@ -23,6 +23,7 @@ import {
   activeDiagnosisPath,
   activeBindingsOf,
   releasedFactsFrom,
+  presentationProjection,
   DEFAULT_VIEW_STATE,
   viewStateReducer,
   type DiagnosisRuntime,
@@ -73,9 +74,12 @@ export default function App() {
   const [playbackSpeed, setPlaybackSpeed] = useState(1)
   const [routeError, setRouteError] = useState<string | null>(null)
   const [routeNote, setRouteNote] = useState<string | null>(null)
+  // P1：Agent 相机跟随状态（App 层独立 state，不进 ViewState reducer；用户接管 → false）。
+  const [followAgent, setFollowAgent] = useState(true)
 
   // issue#7 D：LUI 悬浮在画布右侧；诊断会话中按 LUI 宽度把画布右边界左移避让。
   // LUI 宽 = wide(806px，左侧收起) 或 448px；right-4=16px 外边距 + 16px 间隙。
+  // P2: 替换为 useSafeViewport（ResizeObserver 实测 DOM 尺寸）。
   const canvasRightInset = runtime ? (leftPanelCollapsed ? 806 : 448) + 32 : 0
 
   // user_selection (Projection-only; never written by Runtime).
@@ -232,6 +236,7 @@ export default function App() {
       dispatchView({ type: 'SET_PRESET', preset: 'OVERVIEW' })
       dispatchView({ type: 'SET_NAVIGATOR_COLLAPSED', collapsed: true })
       setIsPlaying(true)
+      setFollowAgent(true) // P1: 新会话开始恢复相机跟随
       // F2：分层视图跟随诊断 Case，使红色逻辑链对象落在当前分层模型中。
       setLayeredCaseId(caseId)
       setRouteError(null)
@@ -279,6 +284,7 @@ export default function App() {
     setRuntime(null)
     setSelectedCandidateId(null)
     setSelectedFactId(null)
+    setFollowAgent(true) // P1: 退出诊断恢复浏览态默认（下次会话 startSession 再重置）
     // 阶段5：退出诊断 = ViewState RESET（回到浏览默认）+ 恢复左侧导航；不写诊断 store。
     dispatchView({ type: 'RESET' })
     dispatchView({ type: 'SET_NAVIGATOR_COLLAPSED', collapsed: false })
@@ -344,6 +350,7 @@ export default function App() {
 
   const handleReturnAgentView = () => {
     dispatchView({ type: 'SET_USER_EXPLORING', exploring: false })
+    setFollowAgent(true) // P1: 返回 Agent 视角 → 恢复相机跟随
   }
 
   const handleSearchAround = () => {
@@ -404,6 +411,14 @@ export default function App() {
     }
   }, [snapshot, runtime, knowledgeRefs, knowledgeLinkRefs])
 
+  // P1：PresentationVM（P0 协议层：一屏一主体 + focus_signature → 驱动相机语义跟随）。
+  // 纯函数投影，只读 snapshot；focus_signature 不变则同主体不重复 Travel。
+  const presentationVM = useMemo(() => {
+    if (!snapshot) return null
+    const adapted = loadAdaptedCase(runtime?.caseId ?? '')
+    return presentationProjection(snapshot, adapted)
+  }, [snapshot, runtime])
+
   // 阶段3：画布跨平面光柱只消费 ACTIVE CrossPlaneBinding。
   // 诊断会话中取投影 Store 汇出（静态 + 动态 ACTIVE）；浏览态取当前分层 Case 静态 Binding。
   const canvasActiveBindings = useMemo(() => {
@@ -445,6 +460,10 @@ export default function App() {
         visibleKgLayers={visibleKgLayers}
         diagnosisScan={vms?.scan ?? null}
         activeBindings={canvasActiveBindings}
+        presentationSubject={presentationVM?.subject ?? null}
+        focusSignature={presentationVM?.focus_signature ?? null}
+        followAgent={followAgent}
+        onUserInteract={() => setFollowAgent(false)}
       />
 
       {/* F0：诊断会话默认收起 Object Explorer；退出/手动展开后恢复 */}

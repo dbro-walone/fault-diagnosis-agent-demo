@@ -51,7 +51,12 @@ import {
   type MetricChip,
 } from '@/lib/three-visuals'
 import { LINK_COLORS, STATUS_COLORS, cn } from '@/lib/utils'
-import type { CrossPlaneBinding, DiagnosisScanVM, ExaminedVerdict } from '../v2'
+import type {
+  CrossPlaneBinding,
+  DiagnosisScanVM,
+  ExaminedVerdict,
+  PresentationSubject,
+} from '../v2'
 
 // ---------------------------------------------------------------------------
 // 相机预设（分层 3D：S1 顶带 y≈134 … S3 底带 y≈6，知识平面 y=-70）
@@ -96,6 +101,9 @@ const VERDICT_PRIORITY: Record<ExaminedVerdict, number> = {
 
 /** 扫描态（查询中）节点色。 */
 const SCAN_COLOR = '#22d3ee'
+
+/** P1：节点点击不被视为用户接管的判定窗口（pointerdown → click 同一手势内）。 */
+const NODE_CLICK_GUARD_MS = 300
 
 /**
  * BFS 沿物理拓扑邻接表桥接 from→to，返回路径中间节点 + 链路无序 key（含 to，不含 from）。
@@ -183,6 +191,14 @@ export interface Layered3DCanvasProps {
    * 跨平面光柱/曲线只由 ACTIVE Binding 生成；诊断推进时动态绑定激活即点亮。
    */
   activeBindings?: CrossPlaneBinding[]
+  /** P1: PresentationVM 的语义主体——变化时驱动相机飞行。 */
+  presentationSubject?: PresentationSubject | null
+  /** P1: focus_signature——变化才触发 Travel（同节点多 Skill 合并为一次停留）。 */
+  focusSignature?: string | null
+  /** P1: 是否跟随 Agent（false = 用户已接管，相机不动）。 */
+  followAgent?: boolean
+  /** P1: 用户接管相机（画布拖拽/滚轮）通知 App（设为 MANUAL，停止跟随）。 */
+  onUserInteract?: () => void
 }
 
 // ---------------------------------------------------------------------------
@@ -210,6 +226,10 @@ export default function Layered3DCanvas(props: Layered3DCanvasProps) {
     visibleKgLayers,
     diagnosisScan,
     activeBindings,
+    presentationSubject,
+    focusSignature,
+    followAgent,
+    onUserInteract,
   } = props
 
   const containerRef = useRef<HTMLDivElement>(null)
@@ -220,6 +240,13 @@ export default function Layered3DCanvas(props: Layered3DCanvasProps) {
   const diagnosisScanRef = useRef<DiagnosisScanVM | null>(diagnosisScan ?? null)
   /** issue#7 C3：排查推进时自动展开的层 code（信息条徽标；effect 先写、渲染后读）。 */
   const autoExpandedLayerRef = useRef<TopoLayerCode | null>(null)
+  /** P1：程序化相机运动标记（区分 cameraPosition 程序化飞行 vs 用户 OrbitControls 输入）。 */
+  const programmaticMoveRef = useRef(false)
+  /** P1：已飞到的 focus_signature（同主体不重复 Travel；用户接管时清空以便返回重飞）。 */
+  const flewSignatureRef = useRef<string | null>(null)
+  /** P1：用户接管回调 / LUI 避让宽度最新值 ref（相机飞行 effect 闭包只读 ref，避免过期捕获）。 */
+  const onUserInteractRef = useRef(onUserInteract)
+  const rightInsetRef = useRef(rightInset)
 
   // Latest-value refs so the once-created graph instance never captures stale state.
   const selectedRef = useRef<string | null>(selectedNodeId)
@@ -249,6 +276,8 @@ export default function Layered3DCanvas(props: Layered3DCanvasProps) {
   onSelectRef.current = onNodeSelect
   onToggleLayerRef.current = onToggleLayer
   diagnosisScanRef.current = diagnosisScan ?? null
+  onUserInteractRef.current = onUserInteract
+  rightInsetRef.current = rightInset
 
   /** 3D 分层活动图：拓扑（S1→S3 分层）+ 图谱（分层 X 列）+ 跨层 + 红逻辑链。
    *  issue#9：诊断态（diagnosisScan != null）聚焦链路 —— 拓扑只显示诊断链路、
@@ -706,6 +735,8 @@ export default function Layered3DCanvas(props: Layered3DCanvasProps) {
     let cancelled = false
     let graphInstance: any
     let ro: ResizeObserver | undefined
+    let nodeClickGuardTimer = 0
+    const controlCleanups: Array<() => void> = []
 
     ;(async () => {
       const { default: ForceGraph3D } = await import('3d-force-graph')
@@ -724,6 +755,30 @@ export default function Layered3DCanvas(props: Layered3DCanvasProps) {
 
       // issue#7 P0：修补 OrbitControls 多指针位置记录缺失（防诊断中白屏崩溃）。
       patchOrbitControlsPointerDesync(graphInstance.controls())
+
+      // P1：用户接管检测 —— OrbitControls 拖拽/滚轮派发 'start' → onUserInteract（App 设 MANUAL）。
+      // 程序化 cameraPosition 不派发 'start'，programmaticMoveRef 标记用于防御边界（飞行中用户抓取）。
+      const controls = graphInstance.controls()
+      if (controls) {
+        controls.autoRotate = false // P1 确认：诊断中不自动旋转（维持镜头稳定，聚焦语义主体）
+        const onUserInput = () => {
+          if (programmaticMoveRef.current) {
+            programmaticMoveRef.current = false
+            return
+          }
+          // 节点点击（保持原有 onNodeClick 选中逻辑）不视为用户接管：OrbitControls 的
+          // 'start' 在 pointerdown 派发、onNodeClick 在 click 才触发，故推迟一拍判定。
+          window.clearTimeout(nodeClickGuardTimer)
+          nodeClickGuardTimer = window.setTimeout(() => {
+            const last = lastNodeClickRef.current
+            if (last && Date.now() - last.time < NODE_CLICK_GUARD_MS) return
+            onUserInteractRef.current?.()
+          }, 0)
+          programmaticMoveRef.current = false
+        }
+        controls.addEventListener('start', onUserInput)
+        controlCleanups.push(() => controls.removeEventListener('start', onUserInput))
+      }
 
       graphInstance
         .backgroundColor('#0f1117')
@@ -793,7 +848,9 @@ export default function Layered3DCanvas(props: Layered3DCanvasProps) {
 
     return () => {
       cancelled = true
+      window.clearTimeout(nodeClickGuardTimer)
       ro?.disconnect()
+      for (const fn of controlCleanups) fn()
       if (graphInstance) {
         graphInstance._destructor()
         graphRef.current = null
@@ -872,6 +929,82 @@ export default function Layered3DCanvas(props: Layered3DCanvasProps) {
     diagnosisScan?.focus_object_id,
     expandedLayers,
     model,
+  ])
+
+  // --- P1: 语义相机跟随（focus_signature 变化 → 飞到当前主体节点） ------------
+  // 与上面 issue#7 C3 自动展开 effect 同源：目标真实节点处于收起聚合层内时先展开再飞。
+  // 核心规则：
+  // - focus_signature 不变 → 不移动相机（同节点多 Skill 合并为一次停留）；
+  // - followAgent === false → 不移动相机（用户接管；返回 Agent 视角时强制重飞当前主体）；
+  // - 目标层与 diagnosisScan 焦点同层时由上面的自动展开 effect 展开，本 effect 不重复
+  //   toggle（避免同一 commit 内两次翻转把层又收回）。
+  useEffect(() => {
+    const graphInstance = graphRef.current
+    if (!graphInstance || !presentationSubject) {
+      // 无主体（浏览态/会话切换）：重置已飞签名，避免跨会话同签名误去重（不飞首目标）。
+      flewSignatureRef.current = null
+      return
+    }
+
+    // 用户接管：清空已飞签名 → 恢复跟随（followAgent=true）时重飞当前主体。
+    if (!followAgent) {
+      flewSignatureRef.current = null
+      return
+    }
+
+    const signature = focusSignature ?? null
+    if (signature === flewSignatureRef.current) return
+
+    const targetId = presentationSubject.primary_id
+    const node = model.nodesById.get(targetId)
+    if (!node) return
+
+    // 节点不在当前可见图内（buildLayered3DGraph 产物）→ 其层被收起，先展开。
+    // DETACHED 关键对象即使层收起也可见，这里直接飞行（不误展开其层）。
+    if (!graph.nodesById.has(targetId)) {
+      const sub = node.group as TopoLayerCode
+      const domain = topoLayerDef(sub).domain
+      const expanded = expandedLayersRef.current
+      // diagnosisScan 焦点所在层由自动展开 effect 收敛，本 effect 只补足未覆盖的层
+      //（不同层/无诊断扫描态），避免同一 commit 内两次翻转把层又收回。
+      const scanFocus =
+        diagnosisScan?.active_query_object_id ?? diagnosisScan?.focus_object_id ?? null
+      const scanNode = scanFocus ? model.nodesById.get(scanFocus) : null
+      const scanSub = scanNode ? (scanNode.group as TopoLayerCode) : null
+      const scanDomain = scanNode ? topoLayerDef(scanSub!).domain : null
+
+      if (expanded[domain] !== true) {
+        if (scanDomain !== domain) onToggleLayerRef.current(domain)
+        return
+      }
+      if (expanded[sub] !== true) {
+        if (scanSub !== sub) onToggleLayerRef.current(sub)
+        return
+      }
+    }
+
+    // 目标坐标：固定轴优先、兜底自由轴（防御 NaN/undefined 空白画面）。
+    const tx = node.fx ?? node.x
+    const ty = node.fy ?? node.y
+    const tz = node.fz ?? node.z
+    if (!Number.isFinite(tx) || !Number.isFinite(ty) || !Number.isFinite(tz)) return
+
+    // 右侧 LUI 避让：相机右移 safeOffsetX，使目标在去掉 LUI 的可视区居中。
+    const safeOffsetX = (rightInsetRef.current ?? 0) / 2
+    const cameraPos = { x: tx + safeOffsetX, y: ty, z: tz + 180 }
+    const lookAt = { x: tx, y: ty, z: tz }
+
+    flewSignatureRef.current = signature
+    programmaticMoveRef.current = true
+    graphInstance.cameraPosition(cameraPos, lookAt, 900)
+  }, [
+    focusSignature,
+    followAgent,
+    presentationSubject,
+    expandedLayers,
+    diagnosisScan,
+    model,
+    graph,
   ])
 
   // --- issue#6 阶段C：扫描雷达扫掠 RAF 动画（仅旋转当前扫描对象的扫掠精灵） ---
