@@ -19,6 +19,13 @@ import {
   type InstanceTopologySnapshot,
 } from '../adapters/v1_to_instance_topology'
 import {
+  TOPO_LAYERS,
+  domainOf,
+  resourceToLayer,
+  topoLayerDef,
+  type TopoLayerCode,
+} from '../lib/layered-topology'
+import {
   buildKnowledgePlaneIndex,
   compileStaticBindings,
   type CrossPlaneBinding,
@@ -563,6 +570,67 @@ function normalizePlannerPlan(raw: V1PlannerPlan | undefined): PlannerPlan | nul
   }
 }
 
+/**
+ * 让 Planner 成为诊断扫描顺序的唯一来源：补齐所有任务目标，并按 S1→S3
+ * 的拓扑深度稳定重排。JSON 中的 seq 仅作输入提示，不进入运行时排序。
+ */
+function autoPlanTargets(
+  adapted: Pick<AdaptedCase, 'caseId' | 'tasks'> & { plannerPlan: PlannerPlan | null },
+  instanceTopology: InstanceTopologySnapshot,
+): PlannerPlan {
+  const sourcePlan = adapted.plannerPlan
+  const targetByResource = new Map(
+    (sourcePlan?.targets ?? []).map((target) => [target.target_resource, target]),
+  )
+  const resourceTypeById = new Map(
+    instanceTopology.resources.map((resource) => [resource.resource_id, resource.resource_type_code]),
+  )
+
+  for (const task of adapted.tasks) {
+    for (const resourceId of task.target_object_refs ?? []) {
+      if (targetByResource.has(resourceId)) continue
+      const replan = sourcePlan?.replans?.find((item) => item.added_targets.includes(resourceId))
+      const layer = resourceToLayer(resourceTypeById.get(resourceId) ?? '')
+      const layerName = topoLayerDef(layer).name
+      targetByResource.set(resourceId, {
+        seq: 0,
+        target_resource: resourceId,
+        target_fault_mode: '待诊断异常',
+        verify_question: `${resourceId} 是否存在与当前症状相关的异常`,
+        expected_finding: `核查 ${resourceId} 在 ${layerName} 的状态与观测结果`,
+        topo_path: [resourceId],
+        scope: replan?.new_scope ?? sourcePlan?.original_scope ?? layerName,
+        round: replan?.round ?? 1,
+      })
+    }
+  }
+
+  const domainRank: Record<ReturnType<typeof domainOf>, number> = { S1: 0, S2: 1, S3: 2 }
+  const layerIndex = new Map<TopoLayerCode, number>(
+    TOPO_LAYERS.map((layer, index) => [layer.code, index]),
+  )
+  const layerOf = (resourceId: string): TopoLayerCode =>
+    resourceToLayer(resourceTypeById.get(resourceId) ?? '')
+  const targets = [...targetByResource.values()]
+    .sort((a, b) => {
+      const layerA = layerOf(a.target_resource)
+      const layerB = layerOf(b.target_resource)
+      const domainDiff = domainRank[domainOf(layerA)] - domainRank[domainOf(layerB)]
+      if (domainDiff !== 0) return domainDiff
+      const layerDiff = (layerIndex.get(layerA) ?? 9999) - (layerIndex.get(layerB) ?? 9999)
+      if (layerDiff !== 0) return layerDiff
+      return a.target_resource.localeCompare(b.target_resource)
+    })
+    .map((target, index) => ({ ...target, seq: index + 1 }))
+
+  return {
+    plan_id: sourcePlan?.plan_id ?? `plan-${adapted.caseId}-auto`,
+    original_scope: sourcePlan?.original_scope ?? '',
+    targets,
+    replans: sourcePlan?.replans ?? [],
+  }
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Fact 构建
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1036,6 +1104,7 @@ export function loadAdaptedCase(caseId: string): AdaptedCase {
     staticBindings,
     resourceTypeByObject,
   }
+  adapted.plannerPlan = autoPlanTargets(adapted, instanceTopology)
   ADAPTED_CACHE.set(caseId, adapted)
   return adapted
 }

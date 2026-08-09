@@ -329,24 +329,14 @@ describe('issue#9 诊断聚焦链路视图 buildLayered3DGraph(diagnosisScan)', 
     expect(g.nodesById.has('disk-group-01')).toBe(true)
   })
 
-  it('诊断态：拓扑只显示链路（入口∪已排查∪路径∪桥接），非链路拓扑节点完全隐藏', () => {
+  it('诊断态：拓扑显示完整最终拓扑并强制全展开', () => {
     const scan = controllerScan()
     const g = buildLayered3DGraph(focusInput({ diagnosisScan: scan }))
     expect(g.focusMode).toBe(true)
     const topoIds = g.nodes.filter((n) => n.plane === 'topology').map((n) => n.id)
-    // 入口业务对象在链路起点。
-    for (const id of scan.entry_object_refs) expect(topoIds).toContain(id)
-    // 每个已排查/路径对象都有可见锚点（成员自身或所在层聚合头）。
-    for (const oid of scan.path_object_ids) {
-      const anchor = g.anchorByObjectId.get(oid) ?? oid
-      expect(g.nodesById.has(anchor)).toBe(true)
-    }
-    for (const o of scan.examined_objects) {
-      const anchor = g.anchorByObjectId.get(o.object_id) ?? o.object_id
-      expect(g.nodesById.has(anchor)).toBe(true)
-    }
-    // 非链路拓扑节点（disk-group-01 未被排查）隐藏。
-    expect(topoIds).not.toContain('disk-group-01')
+    expect(topoIds).toHaveLength(controllerModel().nodes.length)
+    for (const node of controllerModel().nodes) expect(topoIds).toContain(node.id)
+    expect(topoIds).toContain('disk-group-01')
   })
 
   it('诊断态：图谱只显示命中子图（原始点∪关联点亮），非命中图谱节点隐藏', () => {
@@ -376,7 +366,7 @@ describe('issue#9 诊断聚焦链路视图 buildLayered3DGraph(diagnosisScan)', 
     }
   })
 
-  it('诊断推进：链路只累积已排查目标，不泄露未排查节点（controller 取证期）', () => {
+  it('诊断推进：拓扑节点集保持完整稳定（controller 取证期）', () => {
     let rt = createDiagnosisRuntime('controller_warm_reset_001')
     let guard = 0
     while (
@@ -399,8 +389,8 @@ describe('issue#9 诊断聚焦链路视图 buildLayered3DGraph(diagnosisScan)', 
     const g = buildLayered3DGraph(focusInput({ diagnosisScan: scan }))
     const topoIds = g.nodes.filter((n) => n.plane === 'topology').map((n) => n.id)
     // 未排查也非桥接的拓扑节点（disk-group-01）不在链路上。
-    expect(topoIds).not.toContain('disk-group-01')
-    // 入口业务对象 + 已排查 controller 可见。
+    expect(topoIds).toHaveLength(controllerModel().nodes.length)
+    expect(topoIds).toContain('disk-group-01')
     expect(topoIds).toContain('db-business-01')
     expect(topoIds).toContain('controller-0a')
   })
@@ -426,17 +416,17 @@ describe('issue#9 诊断聚焦链路视图 buildLayered3DGraph(diagnosisScan)', 
     const scan = store.diagnosisScan()
     expect(scan.focus_object_id ?? scan.active_query_object_id).toBe('storage-pool-01')
 
-    // 全收起：成员不可见（锚到 S3 域聚合头）。
+    // 诊断态忽略浏览态折叠输入，始终全展开。
     const collapsed = buildLayered3DGraph(focusInput({ diagnosisScan: scan, expandedLayers: {} }))
-    expect(collapsed.nodesById.has('storage-pool-01')).toBe(false)
-    expect(collapsed.nodesById.has(layerAggregateId('S3'))).toBe(true)
+    expect(collapsed.nodesById.has('storage-pool-01')).toBe(true)
+    expect(collapsed.nodesById.has(layerAggregateId('S3'))).toBe(false)
 
     // 仅展开 S3 域（第一步）：成员仍收起 → 锚到 S3_4 子层聚合头。
     const domainOnly = buildLayered3DGraph(
       focusInput({ diagnosisScan: scan, expandedLayers: { S3: true } }),
     )
-    expect(domainOnly.nodesById.has('storage-pool-01')).toBe(false)
-    expect(domainOnly.nodesById.has(layerAggregateId('S3_4'))).toBe(true)
+    expect(domainOnly.nodesById.has('storage-pool-01')).toBe(true)
+    expect(domainOnly.nodesById.has(layerAggregateId('S3_4'))).toBe(false)
 
     // 自动展开 S3 域 + S3_4 子层（issue#8 展开逻辑）：成员在聚焦视图可见、子层聚合头隐藏。
     const expanded = buildLayered3DGraph(
@@ -445,7 +435,7 @@ describe('issue#9 诊断聚焦链路视图 buildLayered3DGraph(diagnosisScan)', 
     expect(expanded.nodesById.has('storage-pool-01')).toBe(true)
     expect(expanded.nodesById.has('lun-db01')).toBe(true)
     expect(expanded.nodesById.has(layerAggregateId('S3_4'))).toBe(false)
-    // 非链路拓扑节点仍隐藏（聚焦视图不破坏）。
-    expect(expanded.nodesById.has('disk-group-01')).toBe(false)
+    // 非扫描链路节点同样保持可见。
+    expect(expanded.nodesById.has('disk-group-01')).toBe(true)
   })
 })

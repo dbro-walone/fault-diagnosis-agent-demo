@@ -360,11 +360,16 @@ export interface Layered3DGraph extends ActiveGraph {
  */
 export function buildLayered3DGraph(input: Layered3DGraphInput): Layered3DGraph {
   const { model, expandedLayers, criticalObjectIds, logicPath, selectedNodeId, diagnosisScan } = input
-  const graph = buildLayeredActiveGraph(model, { expandedLayers, criticalObjectIds })
-
-  // issue#9：诊断态聚焦链路 —— 拓扑只显示诊断链路，图谱只显示命中子图。
   const focusMode = diagnosisScan != null
-  const focusTopology = focusMode ? computeFocusTopologyVisible(graph, diagnosisScan!) : null
+  const forcedExpanded = focusMode
+    ? Object.fromEntries(
+        [...TOPO_SUB_LAYERS.map((layer) => layer.code), 'S1', 'S2', 'S3'].map((code) => [code, true]),
+      ) as Partial<Record<TopoLayerCode, boolean>>
+    : expandedLayers
+  const graph = buildLayeredActiveGraph(model, { expandedLayers: forcedExpanded, criticalObjectIds })
+
+  // issue#13：诊断态拓扑是 Planner 的完整投影，不再按诊断进度过滤节点。
+  const focusTopology = null
   const focusKnowledge = focusMode ? computeFocusKnowledgeVisible(diagnosisScan!) : null
 
   // 可见知识节点（按 ModelNavigator 图谱分层显隐 + issue#9 命中子图过滤）。
@@ -391,10 +396,8 @@ export function buildLayered3DGraph(input: Layered3DGraphInput): Layered3DGraph 
     ? topologyAssociationsForKnowledge(selectedNodeId!, crossLinks, kgLinks, 3)
     : new Set<string>()
 
-  // 可见拓扑节点（issue#9：诊断态只保留链路节点；浏览态保留聚合语义全部节点）。
-  const topoNodes = focusTopology
-    ? graph.nodes.filter((n) => focusTopology.has(n.id))
-    : graph.nodes
+  // 诊断态与浏览态都保留完整活动拓扑；诊断态由 forcedExpanded 强制显示全部成员。
+  const topoNodes = graph.nodes
 
   // 节点坐标：拓扑节点按 S1→S3 域/子层定 Y/Z，成员按子层带均匀排布 X（issue#8 自动布局，
   // 拉均匀、不重叠、层级清晰）；DETACHED 关键对象（层收起但成员可见）右移避让聚合头；
@@ -406,7 +409,7 @@ export function buildLayered3DGraph(input: Layered3DGraphInput): Layered3DGraph 
       const memberIds = model.memberIdsByLayer.get(sub) ?? []
       const idx = memberIds.indexOf(node.id)
       pos.x = memberBandX(idx, memberIds.length)
-      if (expandedLayers[sub] !== true) {
+      if (forcedExpanded[sub] !== true) {
         // 层收起仍可见的成员 = DETACHED 关键对象：聚合头居中 x=0，成员右移避让不重叠。
         pos.x = DETACHED_X_OFFSET + (idx % 8) * MEMBER_X_SPACING
       }

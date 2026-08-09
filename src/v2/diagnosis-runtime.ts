@@ -385,17 +385,22 @@ export function generateEvents(adapted: AdaptedCase, failures: FailureInjection[
     { producer: 'planner', causationId: phaseCandidateGen.event_id })
   const plan = adapted.plannerPlan
 
-  // Bug1+2 fix: 按 Planner target seq 排序任务，使画布扫描跟随 Planner 路径。
+  // 按 Planner target seq 排序任务，使画布扫描严格跟随 S1→S3 路径。
   const sortedTasks = (() => {
-    if (!plan || !plan.targets.length) return adapted.tasks
     const seqByResource = new Map<string, number>()
-    for (const t of plan.targets) seqByResource.set(t.target_resource, t.seq)
+    for (const t of plan?.targets ?? []) seqByResource.set(t.target_resource, t.seq)
     const indexed = adapted.tasks.map((t, i) => ({ t, i }))
+    const minSeq = (task: PlanTask): number => {
+      let min = 9999
+      for (const resourceId of task.target_object_refs ?? []) {
+        const seq = seqByResource.get(resourceId)
+        if (seq !== undefined && seq < min) min = seq
+      }
+      return min
+    }
     indexed.sort((a, b) => {
-      const ra = a.t.target_object_refs?.[0] ?? ''
-      const rb = b.t.target_object_refs?.[0] ?? ''
-      const sa = seqByResource.get(ra) ?? 9999
-      const sb = seqByResource.get(rb) ?? 9999
+      const sa = minSeq(a.t)
+      const sb = minSeq(b.t)
       if (sa !== sb) return sa - sb
       return a.i - b.i
     })

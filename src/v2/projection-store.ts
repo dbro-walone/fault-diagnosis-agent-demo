@@ -1492,7 +1492,17 @@ function scanExaminedObjectIds(s: DiagnosisSessionSnapshot): string[] {
   const ids = new Set(investigatedObjectIds(s))
   for (const id of s.conclusion?.root_cause_chain ?? []) ids.add(id)
   for (const id of s.conclusion?.impact_chain ?? []) ids.add(id)
-  return [...ids]
+
+  const seqByResource = new Map<string, number>()
+  for (const target of s.planner_targets) {
+    seqByResource.set(target.target_resource, target.seq)
+  }
+  return [...ids].sort((a, b) => {
+    const seqA = seqByResource.get(a) ?? 9999
+    const seqB = seqByResource.get(b) ?? 9999
+    if (seqA !== seqB) return seqA - seqB
+    return a.localeCompare(b)
+  })
 }
 
 /**

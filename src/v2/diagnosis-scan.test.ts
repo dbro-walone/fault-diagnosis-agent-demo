@@ -257,13 +257,15 @@ describe('issue#6 阶段C — 逐对象诊断循环 diagnosisScan()', () => {
     }
   })
 
-  it('controller 终态：排查路径严格按 PLANNER seq 序（lun→host→fc→controller→pool）', () => {
+  it('controller 终态：排查路径严格按增强后的 PLANNER S1→S3 seq 序', () => {
     const scan = bindScan('controller_warm_reset_001')
     expect(scan.path_object_ids).toEqual([
-      'lun-db01',
       'db-host-01',
       'fc-port-0a',
+      'fc-port-0b',
       'controller-0a',
+      'controller-0b',
+      'lun-db01',
       'storage-pool-01',
     ])
   })
@@ -284,7 +286,7 @@ describe('issue#6 阶段C — 逐对象诊断循环 diagnosisScan()', () => {
     const store = new ProjectionStore()
     store.bind(rt.liveSnapshot, { observationsFacts: loadAdaptedCase('controller_warm_reset_001').facts })
     const scan = store.diagnosisScan()
-    expect(scan.path_object_ids[0]).toBe('lun-db01')
+    expect(scan.path_object_ids[0]).toBe('fc-port-0a')
     // 已排查的 controller（告警事实已由终态任务覆盖）进入路径。
     expect(scan.path_object_ids).toContain('controller-0a')
     // fc-port 排在 KPI 之前（Bug1+2 fix：任务按 Planner seq 排序），此时已排查入路径。
@@ -314,24 +316,28 @@ describe('issue#6 阶段C — 逐对象诊断循环 diagnosisScan()', () => {
 
   // ── 排查路径与 case 无关：能力由 PLANNER seq 序 + 观测 Fact 驱动，无 case 特判 ──
 
-  it('noisy 终态：排查路径严格按 PLANNER seq 序（lun-b→host-b→fc→controller→pool→host-a）', () => {
+  it('noisy 终态：排查路径严格按增强后的 PLANNER S1→S3 seq 序', () => {
     const scan = bindScan('noisy_neighbor_io_contention_001')
     expect(scan.path_object_ids).toEqual([
-      'lun-b',
+      'business-b',
+      'host-a',
       'host-b',
       'fc-port-0a',
       'controller-0a',
+      'lun-a',
+      'lun-b',
       'storage-pool-01',
-      'host-a',
     ])
   })
 
-  it('remote 终态：排查路径严格按 PLANNER seq 序（session→port→wan→pool-a→pool-b）', () => {
+  it('remote 终态：排查路径严格按增强后的 PLANNER S1→S3 seq 序', () => {
     const scan = bindScan('remote_replication_lag_001')
     expect(scan.path_object_ids).toEqual([
-      'replication-session-rs01',
-      'repl-port-a',
       'wan-path-01',
+      'repl-port-a',
+      'repl-port-b',
+      'replication-session-rs01',
+      'lun-prod',
       'pool-a',
       'pool-b',
     ])
