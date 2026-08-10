@@ -254,6 +254,8 @@ export interface ExaminedObjectVM {
 }
 
 export interface DiagnosisScanVM {
+  /** 是否处于诊断终态（结论已出）。 */
+  is_terminal: boolean
   /** 当前正在被 Skill 查询的对象（running task target_object_refs 首项）。 */
   active_query_object_id: string | null
   /** 整体焦点对象（activeQuery > Planner active > agent_focus）。 */
@@ -819,6 +821,7 @@ export class ProjectionStore {
     )
 
     return {
+      is_terminal: isTerminal,
       active_query_object_id: activeQuery,
       focus_object_id: focus,
       // 症状归一化前回退 RuntimeSeed 公开入口对象（保证诊断启动即初始化聚焦链路）。
@@ -1147,10 +1150,16 @@ function derivePlannerTargetStatus(s: DiagnosisSessionSnapshot, t: PlannerTarget
   if (covered) return 'verified_ok'
 
   // 4. 路径推进：后续目标已完成假设裁决（排除/命中故障）→ 本 hop 已通过。
+  // `verified_abnormal` / `excluded` 只由候选裁决产生；直接检查该信号，
+  // 避免对后续 Planner 目标递归求状态。拓扑全量目标下递归会呈指数增长。
   const laterResolved = s.planner_targets.some((o) => {
-    if (o.seq <= t.seq) return false
-    const st = derivePlannerTargetStatus(s, o)
-    return st === 'verified_abnormal' || st === 'excluded'
+    if (o.seq <= t.seq || objs.has(o.target_resource)) return false
+    return s.candidates.some(
+      (candidate) =>
+        candidate.object_id === o.target_resource &&
+        (candidate.status === CandidateStatus.CONFIRMED ||
+          candidate.status === CandidateStatus.WEAKENED),
+    )
   })
   if (laterResolved) return 'verified_ok'
 

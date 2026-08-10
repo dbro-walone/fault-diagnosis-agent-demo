@@ -166,6 +166,8 @@ export function applyNodePosition(node: GraphNode, pos: Node3DPosition): void {
  * - 图谱：只显示命中的知识节点（graph_entry_anchors ∪ graph_lit_knowledge_ids）及其关系边。
  */
 export interface DiagnosisFocusScanRef {
+  /** 是否处于诊断终态（结论已出）。 */
+  is_terminal: boolean
   entry_object_refs: string[]
   examined_objects: Array<{ object_id: string }>
   path_object_ids: string[]
@@ -361,6 +363,7 @@ export interface Layered3DGraph extends ActiveGraph {
 export function buildLayered3DGraph(input: Layered3DGraphInput): Layered3DGraph {
   const { model, expandedLayers, criticalObjectIds, logicPath, selectedNodeId, diagnosisScan } = input
   const focusMode = diagnosisScan != null
+  const isTerminal = diagnosisScan?.is_terminal ?? false
   const forcedExpanded = focusMode
     ? Object.fromEntries(
         [...TOPO_SUB_LAYERS.map((layer) => layer.code), 'S1', 'S2', 'S3'].map((code) => [code, true]),
@@ -370,14 +373,18 @@ export function buildLayered3DGraph(input: Layered3DGraphInput): Layered3DGraph 
 
   // issue#13：诊断态拓扑是 Planner 的完整投影，不再按诊断进度过滤节点。
   const focusTopology = null
-  const focusKnowledge = focusMode ? computeFocusKnowledgeVisible(diagnosisScan!) : null
+  const focusKnowledge = focusMode && isTerminal
+    ? computeFocusKnowledgeVisible(diagnosisScan!)
+    : null
 
   // 可见知识节点（按 ModelNavigator 图谱分层显隐 + issue#9 命中子图过滤）。
   const kgNodes = input.knowledgeNodes.filter(
     (n) => (input.visibleKgLayers ?? {})[n.group] !== false,
   )
-  const visibleKgNodes = focusKnowledge
-    ? kgNodes.filter((n) => focusKnowledge.has(n.id))
+  const visibleKgNodes = focusMode
+    ? isTerminal
+      ? kgNodes.filter((n) => focusKnowledge!.has(n.id))
+      : []
     : kgNodes
   const kgNodeIds = new Set(visibleKgNodes.map((n) => n.id))
   const kgLinks = input.knowledgeLinks.filter(

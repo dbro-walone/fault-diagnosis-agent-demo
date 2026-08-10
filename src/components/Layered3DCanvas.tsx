@@ -15,6 +15,7 @@ import {
   buildLayered3DGraph,
   knowledgeNodePosition,
   topologyNodePosition,
+  type DiagnosisFocusScanRef,
 } from '@/lib/layered-topology-3d'
 import type {
   ActiveGraph,
@@ -286,7 +287,7 @@ export interface Layered3DCanvasProps {
   /** 图谱分层显隐（layer code → visible；与 ModelNavigator Knowledge layers 分区联动）。 */
   visibleKgLayers?: Record<string, boolean>
   /** issue#6 阶段C：逐对象诊断循环 view-model（聚焦→查询→判断→推进 + 图谱点亮）。 */
-  diagnosisScan?: DiagnosisScanVM | null
+  diagnosisScan?: (DiagnosisScanVM & DiagnosisFocusScanRef) | null
   /**
    * 阶段3：当前 ACTIVE CrossPlaneBinding（docs/19 §6.2）。
    * 跨平面光柱/曲线只由 ACTIVE Binding 生成；诊断推进时动态绑定激活即点亮。

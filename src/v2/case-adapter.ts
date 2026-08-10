@@ -571,7 +571,7 @@ function normalizePlannerPlan(raw: V1PlannerPlan | undefined): PlannerPlan | nul
 }
 
 /**
- * 让 Planner 成为诊断扫描顺序的唯一来源：补齐所有任务目标，并按 S1→S3
+ * 让 Planner 成为诊断扫描顺序的唯一来源：补齐所有任务目标与拓扑资源，并按 S1→S3
  * 的拓扑深度稳定重排。JSON 中的 seq 仅作输入提示，不进入运行时排序。
  */
 function autoPlanTargets(
@@ -603,6 +603,23 @@ function autoPlanTargets(
         round: replan?.round ?? 1,
       })
     }
+  }
+
+  // issue#15：Planner 与实例拓扑资源一一对应，补齐未被任务或原始计划引用的节点。
+  for (const resource of instanceTopology.resources) {
+    if (targetByResource.has(resource.resource_id)) continue
+    const layer = resourceToLayer(resource.resource_type_code)
+    const layerName = topoLayerDef(layer).name
+    targetByResource.set(resource.resource_id, {
+      seq: 0,
+      target_resource: resource.resource_id,
+      target_fault_mode: '待诊断',
+      verify_question: `${resource.resource_id} 是否存在与当前症状相关的异常`,
+      expected_finding: `核查 ${resource.resource_id} 在 ${layerName} 的状态`,
+      topo_path: [resource.resource_id],
+      scope: layerName,
+      round: 1,
+    })
   }
 
   const domainRank: Record<ReturnType<typeof domainOf>, number> = { S1: 0, S2: 1, S3: 2 }

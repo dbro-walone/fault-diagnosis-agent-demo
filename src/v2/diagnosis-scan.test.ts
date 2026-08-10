@@ -85,6 +85,7 @@ describe('issue#6 阶段C — 逐对象诊断循环 diagnosisScan()', () => {
 
   it('controller 终态：根因/故障链异常、影响橙、排除与已验证对象正常', () => {
     const scan = bindScan('controller_warm_reset_001')
+    expect(scan.is_terminal).toBe(true)
     expect(scan.active_query_object_id).toBeNull()
     // Bug3 fix: 诊断终态后 focus 也为 null（画布停止扫描态）。
     expect(scan.focus_object_id).toBeNull()
@@ -144,6 +145,7 @@ describe('issue#6 阶段C — 逐对象诊断循环 diagnosisScan()', () => {
       knowledgeLinks: loadModelKnowledgeRefs().links,
     })
     const mid = midStore.diagnosisScan()
+    expect(mid.is_terminal).toBe(false)
     // 诊断中：症状/场景等入口锚点照常点亮，但 HISTORICAL_CASE 案例节点不点亮（真值隔离 Gate5）。
     expect(mid.graph_entry_anchors.length).toBeGreaterThan(0)
     expect(mid.graph_lit_knowledge_ids).not.toContain('case-warm-reset-001')
@@ -276,11 +278,15 @@ describe('issue#6 阶段C — 逐对象诊断循环 diagnosisScan()', () => {
   it('controller 终态：排查路径严格按增强后的 PLANNER S1→S3 seq 序', () => {
     const scan = bindScan('controller_warm_reset_001')
     expect(scan.path_object_ids).toEqual([
+      'db-business-01',
       'db-host-01',
+      'san-fabric-a',
+      'san-fabric-b',
       'fc-port-0a',
       'fc-port-0b',
       'controller-0a',
       'controller-0b',
+      'block-service-01',
       'lun-db01',
       'storage-pool-01',
     ])
@@ -302,7 +308,7 @@ describe('issue#6 阶段C — 逐对象诊断循环 diagnosisScan()', () => {
     const store = new ProjectionStore()
     store.bind(rt.liveSnapshot, { observationsFacts: loadAdaptedCase('controller_warm_reset_001').facts })
     const scan = store.diagnosisScan()
-    expect(scan.path_object_ids[0]).toBe('fc-port-0a')
+    expect(scan.path_object_ids[0]).toBe('san-fabric-a')
     // 已排查的 controller（告警事实已由终态任务覆盖）进入路径。
     expect(scan.path_object_ids).toContain('controller-0a')
     // fc-port 排在 KPI 之前（Bug1+2 fix：任务按 Planner seq 排序），此时已排查入路径。
@@ -335,9 +341,11 @@ describe('issue#6 阶段C — 逐对象诊断循环 diagnosisScan()', () => {
   it('noisy 终态：排查路径严格按增强后的 PLANNER S1→S3 seq 序', () => {
     const scan = bindScan('noisy_neighbor_io_contention_001')
     expect(scan.path_object_ids).toEqual([
+      'business-a',
       'business-b',
       'host-a',
       'host-b',
+      'san-fabric-01',
       'fc-port-0a',
       'controller-0a',
       'lun-a',
@@ -349,10 +357,14 @@ describe('issue#6 阶段C — 逐对象诊断循环 diagnosisScan()', () => {
   it('remote 终态：排查路径严格按增强后的 PLANNER S1→S3 seq 序', () => {
     const scan = bindScan('remote_replication_lag_001')
     expect(scan.path_object_ids).toEqual([
+      'prod-business',
       'wan-path-01',
+      'wan-router-a',
+      'wan-router-b',
       'repl-port-a',
       'repl-port-b',
       'replication-session-rs01',
+      'lun-dr',
       'lun-prod',
       'pool-a',
       'pool-b',

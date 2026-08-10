@@ -339,7 +339,7 @@ describe('issue#9 诊断聚焦链路视图 buildLayered3DGraph(diagnosisScan)', 
     expect(topoIds).toContain('disk-group-01')
   })
 
-  it('诊断态：图谱只显示命中子图（原始点∪关联点亮），非命中图谱节点隐藏', () => {
+  it('诊断终态：图谱只显示命中子图（原始点∪关联点亮），非命中图谱节点隐藏', () => {
     const scan = controllerScan()
     const g = buildLayered3DGraph(focusInput({ diagnosisScan: scan }))
     const kgIds = g.nodes.filter((n) => n.plane === 'knowledge').map((n) => n.id)
@@ -388,6 +388,9 @@ describe('issue#9 诊断聚焦链路视图 buildLayered3DGraph(diagnosisScan)', 
     const scan = store.diagnosisScan()
     const g = buildLayered3DGraph(focusInput({ diagnosisScan: scan }))
     const topoIds = g.nodes.filter((n) => n.plane === 'topology').map((n) => n.id)
+    expect(scan.is_terminal).toBe(false)
+    expect(g.nodes.filter((n) => n.plane === 'knowledge')).toHaveLength(0)
+    expect(g.links.filter((l) => l.category === 'knowledge' || l.category === 'cross')).toHaveLength(0)
     // 未排查也非桥接的拓扑节点（disk-group-01）不在链路上。
     expect(topoIds).toHaveLength(controllerModel().nodes.length)
     expect(topoIds).toContain('disk-group-01')

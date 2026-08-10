@@ -3,9 +3,8 @@
  *
  * 完全由 V2 ProjectionStore 的只读 View Model 驱动，不执行任何诊断计算：
  *   1. 会话状态栏（模式 / 阶段 / 现象 + 实时/回放切换）
- *   2. 诊断态势（领先候选、支持分、证据链进度、冲突）
- *   3. 候选根因（分数、变化、缺口）
- *   4. 调查工作区（证据链 ｜ 计划 ｜ 历史 ｜ 详情）
+ *   2. 候选根因（分数、变化、缺口）
+ *   3. 调查工作区（证据链 ｜ 计划 ｜ 历史 ｜ 详情）
  *
  * 注：issue 本轮删除「当前行动」栏 —— 排查进行到哪个节点，通过拓扑上的状态点/边流转
  * （路径高亮推进）直观呈现，不再在 LUI 重复展示目标/Skill/对象/原因/期望/结果。
@@ -121,7 +120,7 @@ export interface LuiPanelProps {
 }
 
 export default function LuiPanel(props: LuiPanelProps) {
-  const { knowledge, candidates, snapshot, store } = props
+  const { candidates, snapshot, store } = props
   // issue#7 B2：时间线回放不再作为独立 tab，改为主内容区下方可折叠的窄条（默认收起）。
   const [timelineOpen, setTimelineOpen] = useState(false)
   // issue#7 B2：事实三级详情从 tab 改为浮层弹窗（点击"产出事实/证据事实"打开）。
@@ -137,7 +136,7 @@ export default function LuiPanel(props: LuiPanelProps) {
   }
 
   // P2：按需生长 —— COMPACT 阶段（ORIENT/TRAVEL/FOCUS/INSPECT）自动折叠深层内容，
-  // 只保留"诊断态势"（一屏一主体原则：正在定位/聚焦/取证时不过度刷屏）。
+  // 只保留候选根因（一屏一主体原则：正在定位/聚焦/取证时不过度刷屏）。
   // 用户在任意阶段可手动展开/收起（手动展开优先于阶段自动折叠）。
   const [forceExpanded, setForceExpanded] = useState(false)
   const phaseCompact = !!props.cameraPhase && COMPACT_PHASES.has(props.cameraPhase)
@@ -193,20 +192,9 @@ export default function LuiPanel(props: LuiPanelProps) {
             </span>
           </button>
         )}
-        {/* Layer 2 — 诊断态势 */}
-        <DiagnosisSituation
-          knowledge={knowledge}
-          candidates={candidates}
-          snapshot={snapshot}
-          onReturnAgentView={props.onReturnAgentView}
-        />
-
         {/* P2：非 COMPACT（或用户手动展开）时显示深层内容 */}
         {showFull && (
           <>
-            {/* 阶段5：当前决策 —— LUI 三问之"下一步为什么这样做"（docs/19 §14.3） */}
-            <CurrentDecisionView decision={props.decision} />
-
             {/* issue#6 阶段A + issue#7 C1/C2：Planner 目标区（排查路径主线 + 目标资源/故障模式/
                 验证问题/期望发现/实际发现 + 重规划差异） */}
             <PlannerTargetsView planner={props.planner} />
@@ -429,172 +417,7 @@ function SessionStatusBar(props: LuiPanelProps & { timelineOpen: boolean; onTogg
   )
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Layer 2 — 诊断态势
-// ─────────────────────────────────────────────────────────────────────────────
-
-function DiagnosisSituation({
-  knowledge,
-  candidates,
-  snapshot,
-  onReturnAgentView,
-}: {
-  knowledge: KnowledgeSnapshotVM
-  candidates: CandidateListVM
-  snapshot: DiagnosisSessionSnapshot
-  onReturnAgentView: () => void
-}) {
-  const leading = candidates.items.find((c) => c.candidate_id === knowledge.leading_candidate_id) ?? candidates.items[0]
-  const chain = knowledge.chain_progress
-  const chainPct = chain.total > 0 ? Math.round((chain.satisfied / chain.total) * 100) : 0
-  const factCount = snapshot.facts.length
-  const evidenceCount = snapshot.evidences.length
-
-  return (
-    <section className="rounded-lg border border-white/8 bg-white/[0.02] p-2.5">
-      <div className="mb-2 flex items-center justify-between">
-        <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-[#94a3b8]">
-          <Crosshair className="h-3.5 w-3.5 text-status-active" />
-          诊断态势
-        </div>
-        <button
-          type="button"
-          onClick={onReturnAgentView}
-          title="恢复相机到 Agent 当前对象"
-          className="flex items-center gap-1 rounded border border-status-active/25 bg-status-active/10 px-1.5 py-0.5 text-[9px] text-status-active hover:bg-status-active/15"
-        >
-          <Crosshair className="h-3 w-3" />
-          返回 Agent 视角
-        </button>
-      </div>
-
-      <div className="flex items-center gap-2.5">
-        <div className="min-w-0 flex-1">
-          <div className="text-[9px] uppercase tracking-wide text-[#64748b]">领先候选</div>
-          <div className="mt-0.5 truncate text-[12px] font-semibold text-[#e2e8f0]" title={leading?.display_name ?? '-'}>
-            {leading?.is_confirmed && <ShieldCheck className="mr-1 inline h-3.5 w-3.5 text-status-recovered" />}
-            {leading?.display_name ?? '尚未生成候选'}
-          </div>
-        </div>
-        <div className="shrink-0 text-right">
-          <div className="text-[9px] uppercase tracking-wide text-[#64748b]">支持分</div>
-          <div className="text-[18px] font-bold tabular leading-none text-status-evidence">
-            {leading ? leading.score_label : '-'}
-          </div>
-        </div>
-      </div>
-
-      <div className="mt-2.5">
-        <div className="flex items-center justify-between text-[9px] text-[#94a3b8]">
-          <span>最小证据链</span>
-          <span className="tabular">
-            {chain.satisfied}/{chain.total} 满足
-            {chain.required_missing > 0 && (
-              <span className="ml-1 text-status-warning">· 缺 {chain.required_missing}</span>
-            )}
-          </span>
-        </div>
-        <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-white/8">
-          <div className="h-full rounded-full bg-status-evidence transition-all" style={{ width: `${chainPct}%` }} />
-        </div>
-      </div>
-
-      <div className="mt-2 flex flex-wrap gap-1 text-[9px]">
-        <span className="rounded bg-status-evidence/10 px-1.5 py-0.5 text-status-evidence">事实 {factCount}</span>
-        <span className="rounded bg-status-evidence/10 px-1.5 py-0.5 text-status-evidence">证据 {evidenceCount}</span>
-        <span className="rounded bg-status-evidence/10 px-1.5 py-0.5 text-status-evidence">候选 {candidates.items.length}</span>
-        {knowledge.critical_conflict_count > 0 && (
-          <span className="rounded bg-status-fault/10 px-1.5 py-0.5 text-status-fault">
-            关键冲突 {knowledge.critical_conflict_count}
-          </span>
-        )}
-      </div>
-    </section>
-  )
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// 阶段5 — 当前决策（LUI 三问之"为什么"）
-// ─────────────────────────────────────────────────────────────────────────────
-
-/**
- * 当前决策条（docs/19 §14.3 LUI 三问之"下一步为什么这样做"）。
- * 显式回答：正在做什么 / 为什么 / 目标候选 / 预期证据 / 证据缺口。
- * 完全由 ProjectionStore.currentDecision() 只读 View Model 驱动，不执行诊断计算。
- */
-function CurrentDecisionView({ decision }: { decision: CurrentDecisionVM }) {
-  return (
-    <section className="rounded-lg border border-status-active/15 bg-status-active/[0.03] p-2.5">
-      <div className="mb-1.5 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-status-active">
-        <Target className="h-3.5 w-3.5" />
-        当前决策
-        <span className="ml-auto rounded bg-white/5 px-1.5 py-0.5 text-[8px] font-medium normal-case tracking-normal text-[#94a3b8]">
-          {decision.context_label}
-        </span>
-      </div>
-
-      <div className="space-y-1 text-[9px] leading-relaxed">
-        {decision.action_text && (
-          <div className="flex items-start gap-1.5">
-            <span className="mt-px shrink-0 font-semibold text-status-active">正在</span>
-            <span className="min-w-0 flex-1 text-[#cbd5e1]">{decision.action_text}</span>
-          </div>
-        )}
-        {decision.reason_text && (
-          <div className="flex items-start gap-1.5">
-            <span className="mt-px shrink-0 font-semibold text-status-active">为什么</span>
-            <span className="min-w-0 flex-1 text-[#94a3b8]">{decision.reason_text}</span>
-          </div>
-        )}
-        {decision.target_candidate && (
-          <div className="flex items-start gap-1.5">
-            <span className="mt-px shrink-0 font-semibold text-status-active">目标</span>
-            <span className="min-w-0 flex-1 text-[#cbd5e1]">
-              {decision.target_candidate.object_id}
-              <span className="ml-1.5 rounded bg-white/5 px-1 py-0.5 text-[8px] text-[#94a3b8]">
-                {decision.target_candidate.fault_mode_code}
-              </span>
-            </span>
-          </div>
-        )}
-        {decision.expected_evidence && (
-          <div className="flex items-start gap-1.5">
-            <span className="mt-px shrink-0 font-semibold text-status-active">预期</span>
-            <span className="min-w-0 flex-1 text-[#94a3b8]">{decision.expected_evidence}</span>
-          </div>
-        )}
-        {decision.result_summary && decision.activity_ended && (
-          <div className="flex items-start gap-1.5">
-            <span className="mt-px shrink-0 font-semibold text-status-recovered">结果</span>
-            <span className="min-w-0 flex-1 text-status-recovered">{decision.result_summary}</span>
-          </div>
-        )}
-      </div>
-
-      {decision.evidence_gaps.length > 0 && (
-        <div className="mt-1.5 border-t border-white/5 pt-1.5">
-          <div className="text-[8px] uppercase tracking-wide text-status-warning">证据缺口</div>
-          <div className="mt-1 flex flex-wrap gap-1">
-            {decision.evidence_gaps.map((gap) => (
-              <span
-                key={`${gap.candidate_id ?? 'chain'}:${gap.requirement_id}`}
-                className="rounded bg-status-warning/10 px-1.5 py-0.5 text-[8px] text-status-warning"
-                title={gap.candidate_id ? `${gap.candidate_id} · ${gap.requirement_id}` : gap.requirement_id}
-              >
-                {gap.label}
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
-    </section>
-  )
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
 // issue#6 阶段A — Planner 目标区
-// ─────────────────────────────────────────────────────────────────────────────
-
 /** 从 original_scope 提取排查路径 hop 序列："…路径（a → b → c）" → [a,b,c]。 */
 function parsePathHops(scope: string): string[] {
   const m = /（([^）]+)）/.exec(scope)
