@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { loadModelData } from '../lib/model-loader'
 import { loadAdaptedCase } from './case-adapter'
 import { createDiagnosisRuntime, replayCase } from './diagnosis-runtime'
+import { createEmptySnapshot } from './event-reducer'
 import { ProjectionStore } from './projection-store'
 import type { KnowledgeGraphLinkRef, KnowledgeGraphNodeRef } from './projection-store'
 
@@ -67,6 +68,21 @@ function loadModelKnowledgeRefs(): {
 }
 
 describe('issue#6 阶段C — 逐对象诊断循环 diagnosisScan()', () => {
+  it('PLAN_CREATED 前保持无焦点，不回退到 agent_focus', () => {
+    const snap = createEmptySnapshot('session-pre-plan', 'layered_topology_demo_001')
+    snap.session.agent_focus = {
+      source_type: 'candidate',
+      source_id: 'candidate-pre-plan',
+      object_refs: ['lun-backup-01'],
+      path_refs: [],
+    }
+    const store = new ProjectionStore()
+    store.bind(snap)
+
+    expect(store.diagnosisScan().focus_object_id).toBeNull()
+    expect(store.viewProjection().view_hint.focus_object_id).toBeNull()
+  })
+
   it('controller 终态：根因/故障链异常、影响橙、排除与已验证对象正常', () => {
     const scan = bindScan('controller_warm_reset_001')
     expect(scan.active_query_object_id).toBeNull()
@@ -408,5 +424,32 @@ describe('issue#6 阶段C — 逐对象诊断循环 diagnosisScan()', () => {
         break
       }
     }
+  })
+
+  it('layered_topology_demo_001：任务间隙由下一个 pending Planner 目标接管焦点', () => {
+    let rt = createDiagnosisRuntime('layered_topology_demo_001')
+    let checkedGaps = 0
+    for (let i = 0; i < 2000 && !rt.complete; i++) {
+      rt = rt.advance()
+      const snap = rt.snapshot
+      if (
+        snap.planner_targets.length === 0 ||
+        snap.session.terminal_status ||
+        snap.tasks.some((task) => task.status === 'RUNNING')
+      ) continue
+
+      const store = new ProjectionStore()
+      store.bind(snap, {
+        observationsFacts: loadAdaptedCase('layered_topology_demo_001').facts,
+      })
+      const nextPending = [...store.plannerTargets().targets]
+        .sort((a, b) => a.seq - b.seq)
+        .find((target) => target.status === 'pending')
+      if (!nextPending) continue
+
+      expect(store.diagnosisScan().focus_object_id).toBe(nextPending.target_resource)
+      checkedGaps++
+    }
+    expect(checkedGaps).toBeGreaterThan(0)
   })
 })

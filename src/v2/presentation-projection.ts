@@ -353,7 +353,7 @@ function candidateObjectIds(snapshot: DiagnosisSessionSnapshot): string[] {
   )
 }
 
-/** 当前焦点对象：active/pending Planner 目标 > 首个任务 > agent_focus > 当前活动目标。 */
+/** 当前焦点对象：active/pending Planner 目标 > agent_focus > 当前活动目标。 */
 function focusObjectId(s: DiagnosisSessionSnapshot): string | null {
   const active = activePlannerTargetOf(s)
   if (active) return active.target_resource
@@ -362,10 +362,9 @@ function focusObjectId(s: DiagnosisSessionSnapshot): string | null {
     const nextPending = nextPendingPlannerTarget(s)
     if (nextPending) return nextPending.target_resource
   }
-  // PLAN_CREATED 前空白期：优先取第一个任务的 target，而非 agent_focus。
+  // PLAN_CREATED 前空白期：不回退 agent_focus / candidate，画布保持无焦点。
   if (s.planner_targets.length === 0 && !s.session.terminal_status) {
-    const firstTaskTarget = s.tasks[0]?.target_object_refs?.[0]
-    if (firstTaskTarget) return firstTaskTarget
+    return null
   }
   const focusObj = s.session.agent_focus?.object_refs?.[0]
   if (focusObj) return focusObj

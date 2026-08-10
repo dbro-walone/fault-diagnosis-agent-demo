@@ -1250,7 +1250,8 @@ function investigatedObjectIds(s: DiagnosisSessionSnapshot): string[] {
 }
 
 /**
- * 当前焦点对象：Planner 当前位置（active/pending 目标资源）> 首个任务 > agent_focus > 当前行动目标。
+ * 当前焦点对象：Planner 当前位置（active/pending 目标资源）> agent_focus > 当前行动目标。
+ * PLAN_CREATED 前保持无焦点，避免症状对象或候选对象抢先成为画布主体。
  * 与 PlannerTargetRow 的"当前位置"共用 derivePlannerTargetStatus，保证面板跟随诊断推进。
  */
 function focusObjectId(s: DiagnosisSessionSnapshot): string | null {
@@ -1264,10 +1265,9 @@ function focusObjectId(s: DiagnosisSessionSnapshot): string | null {
     if (nextPending) return nextPending.target_resource
   }
 
-  // PLAN_CREATED 前空白期：优先取第一个任务的 target，而非 agent_focus。
+  // PLAN_CREATED 前空白期：不回退 agent_focus / candidate，画布保持无焦点。
   if (s.planner_targets.length === 0 && !s.session.terminal_status) {
-    const firstTaskTarget = s.tasks[0]?.target_object_refs?.[0]
-    if (firstTaskTarget) return firstTaskTarget
+    return null
   }
 
   const focusObj = s.session.agent_focus?.object_refs?.[0]

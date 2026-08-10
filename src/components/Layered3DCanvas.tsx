@@ -815,6 +815,14 @@ export default function Layered3DCanvas(props: Layered3DCanvasProps) {
     return metrics ? { metrics } : {}
   }
 
+  /**
+   * 常显名称标签：浏览态沿用模型配置；诊断态为全部真实拓扑节点显示资源名称。
+   * 聚合头与知识节点不额外放开，避免标签密度过高。node.label 由 LayeredResource.name 派生。
+   */
+  const shouldShowNodeLabel = (node: GraphNode): boolean =>
+    node.alwaysLabel ||
+    (diagnosisScan != null && node.plane === 'topology' && !isLayerAggregateId(node.id))
+
   /** Per-node 3D object：聚合头徽标、DETACHED 层标签、跨层关联环、agent/根因光晕、
    *  issue#6 阶段C：扫描雷达、判定环、上下游一跳提示、图谱原始点/关联点亮。 */
   const nodeThreeObjectFor = (node: GraphNode): THREE.Object3D => {
@@ -862,12 +870,12 @@ export default function Layered3DCanvas(props: Layered3DCanvasProps) {
     const summary = summariesRef.current.get(node.id)
     if (summary) {
       group.add(countBadgeSprite(summary))
-      if (node.alwaysLabel) group.add(labelSprite(node))
+      if (shouldShowNodeLabel(node)) group.add(labelSprite(node))
       return group
     }
     const detachedLayer = detachedLayerLabelFor(node)
     if (detachedLayer) group.add(detachedLayerTagSprite(node, detachedLayer))
-    if (node.alwaysLabel) group.add(labelSprite(node))
+    if (shouldShowNodeLabel(node)) group.add(labelSprite(node))
     return group
   }
 

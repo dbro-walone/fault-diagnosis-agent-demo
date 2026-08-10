@@ -268,6 +268,64 @@ describe('Presentation Projection', () => {
     if (subject?.kind === 'path') expect(subject.node_ids).toEqual(target!.topo_path)
   })
 
+  it('deriveSubject：PLAN_CREATED 前不回退到 agent_focus', () => {
+    const adapted = loadAdaptedCase('layered_topology_demo_001')
+    const snapshot = createEmptySnapshot('session-pre-plan', 'layered_topology_demo_001')
+    snapshot.session.agent_focus = {
+      source_type: 'candidate',
+      source_id: 'candidate-pre-plan',
+      object_refs: ['lun-backup-01'],
+      path_refs: [],
+    }
+
+    expect(deriveSubject(snapshot, adapted)).toBeNull()
+  })
+
+  it('deriveSubject：任务间隙聚焦下一个 pending Planner 目标', () => {
+    const adapted = loadAdaptedCase('layered_topology_demo_001')
+    let rt = createDiagnosisRuntime('layered_topology_demo_001')
+    let checkedGaps = 0
+    for (let i = 0; i < 2000 && !rt.complete; i++) {
+      rt = rt.advance()
+      const snapshot = rt.snapshot
+      if (
+        snapshot.planner_targets.length === 0 ||
+        snapshot.session.terminal_status ||
+        snapshot.tasks.some((task) => task.status === TaskStatus.RUNNING)
+      ) continue
+
+      const terminalStatuses = new Set<TaskStatus>([
+        TaskStatus.SUCCEEDED,
+        TaskStatus.DATA_MISSING,
+        TaskStatus.FAILED,
+        TaskStatus.SKIPPED,
+      ])
+      const nextPending = [...snapshot.planner_targets]
+        .sort((a, b) => a.seq - b.seq)
+        .find((target) => {
+          const resolvedByTask = snapshot.tasks.some(
+            (task) =>
+              task.target_object_refs.includes(target.target_resource) &&
+              terminalStatuses.has(task.status),
+          )
+          const resolvedByCandidate = snapshot.candidates.some(
+            (candidate) =>
+              candidate.object_id === target.target_resource &&
+              (candidate.status === CandidateStatus.CONFIRMED ||
+                candidate.status === CandidateStatus.WEAKENED),
+          )
+          return !resolvedByTask && !resolvedByCandidate
+        })
+      if (!nextPending) continue
+
+      const subject = deriveSubject(snapshot, adapted)
+      expect(subject?.kind).toBe('node')
+      expect(subject?.primary_id).toBe(nextPending.target_resource)
+      checkedGaps++
+    }
+    expect(checkedGaps).toBeGreaterThan(0)
+  })
+
   it('deriveSubject：终态按 ROOT_CAUSE_CONFIRMED / PROBABLE_CAUSES 差异化派生主体', () => {
     const adapted = loadAdaptedCase('remote_replication_lag_001')
     const resourceIds = adapted.instanceTopology.resources.slice(0, 2).map((resource) => resource.resource_id)
