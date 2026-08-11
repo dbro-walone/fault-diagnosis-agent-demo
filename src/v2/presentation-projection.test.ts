@@ -300,13 +300,22 @@ describe('Presentation Projection', () => {
         TaskStatus.FAILED,
         TaskStatus.SKIPPED,
       ])
+      // 与 projection-store 同口径：终态任务产出的全量观测 Fact（含路径映射 Fact）也视为"已验证"。
+      const doneTaskIds = new Set(
+        snapshot.tasks.filter((tsk) => terminalStatuses.has(tsk.status)).map((tsk) => tsk.task_id),
+      )
       const nextPending = [...snapshot.planner_targets]
         .sort((a, b) => a.seq - b.seq)
         .find((target) => {
           const resolvedByTask = snapshot.tasks.some(
             (task) =>
-              task.target_object_refs.includes(target.target_resource) &&
+              (task.target_object_refs ?? []).includes(target.target_resource) &&
               terminalStatuses.has(task.status),
+          )
+          const coveredByFact = adapted.facts.some(
+            (f) =>
+              (f.object_refs ?? []).includes(target.target_resource) &&
+              doneTaskIds.has(f.source.execution_id.replace(/^exec-/, '')),
           )
           const resolvedByCandidate = snapshot.candidates.some(
             (candidate) =>
@@ -314,7 +323,7 @@ describe('Presentation Projection', () => {
               (candidate.status === CandidateStatus.CONFIRMED ||
                 candidate.status === CandidateStatus.WEAKENED),
           )
-          return !resolvedByTask && !resolvedByCandidate
+          return !resolvedByTask && !coveredByFact && !resolvedByCandidate
         })
       if (!nextPending) continue
 

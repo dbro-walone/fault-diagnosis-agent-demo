@@ -270,6 +270,8 @@ export interface DiagnosisScanVM {
   examined_objects: ExaminedObjectVM[]
   /** 排查路径（PLANNER seq 序，已排查/正在排查的目标资源；画布按此累积高亮，与右侧 PLANNER 一一对应）。 */
   path_object_ids: string[]
+  /** 全部 Planner 排查目标资源（按 seq 序，issue#16：画布诊断态据此展示完整排查路径，无关节点隐藏）。 */
+  planner_path_ids: string[]
   /** 图谱原始点 ids（当前现象 → 故障模式，诊断启动后点亮，随候选收敛）。 */
   graph_entry_anchors: string[]
   /** 图谱关联知识点 ids（机制 → 证据规则 → 案例，随证据/候选更新扩展）。 */
@@ -724,7 +726,7 @@ export class ProjectionStore {
     for (const r of s.planner_replans) for (const id of r.paused_targets) paused.add(id)
     const allFacts = allObservationFacts(this.snapshot!, this.observationsFacts)
     const targets: PlannerTargetVM[] = s.planner_targets.map((t) => {
-      const status = derivePlannerTargetStatus(s, t)
+      const status = derivePlannerTargetStatus(s, t, allFacts)
       const finding = plannerTargetFinding(s, t.target_resource, allFacts)
       return {
         seq: t.seq,
@@ -768,7 +770,7 @@ export class ProjectionStore {
   objectObservationPanel(): ObjectObservationPanelVM {
     const s = this.require()
     const allFacts = allObservationFacts(this.snapshot!, this.observationsFacts)
-    const focus = focusObjectId(s)
+    const focus = focusObjectId(s, allFacts)
     const vms: ObjectObservationVM[] = investigatedObjectIds(s).map((objectId) =>
       buildObjectObservation(s, objectId, allFacts, focus === objectId),
     )
@@ -794,13 +796,13 @@ export class ProjectionStore {
     // Bug3 fix: 诊断终态后不再有扫描/聚焦态（画布停止青白扫描动画）。
     const isTerminal = s.session.terminal_status != null
     const activeQuery = isTerminal ? null : activeQueryObjectIdOf(s)
-    const focus = isTerminal ? null : focusObjectId(s)
     const allFacts = allObservationFacts(this.snapshot!, this.observationsFacts)
+    const focus = isTerminal ? null : focusObjectId(s, allFacts)
 
     const examined: ExaminedObjectVM[] = scanExaminedObjectIds(s).map((objectId) => ({
       object_id: objectId,
       display_name: displayNameOf(allFacts, objectId),
-      verdict: examinedVerdictFor(s, objectId),
+      verdict: examinedVerdictFor(s, objectId, allFacts),
       is_scanning: objectId === activeQuery,
       is_focus: objectId === focus,
       metrics: objectMetricChips(s, objectId, allFacts),
@@ -828,6 +830,10 @@ export class ProjectionStore {
       entry_object_refs: s.symptom?.object_refs ?? this.entryObjectRefs ?? [],
       examined_objects: examined,
       path_object_ids: scanPathObjectIds(s, allFacts),
+      // issue#16：完整排查路径（Planner 全部目标，按 seq 序）——画布诊断态展示完整路径并隐藏无关节点。
+      planner_path_ids: [...s.planner_targets]
+        .sort((a, b) => a.seq - b.seq)
+        .map((t) => t.target_resource),
       graph_entry_anchors,
       graph_lit_knowledge_ids,
     }
@@ -958,7 +964,7 @@ export class ProjectionStore {
   viewProjection(activeBindings?: CrossPlaneBinding[]): ViewProjection {
     const s = this.require()
     const allFacts = allObservationFacts(s, this.observationsFacts)
-    const focus = focusObjectId(s)
+    const focus = focusObjectId(s, allFacts)
     const agentRefs = s.session.agent_focus?.object_refs ?? []
     const critical = new Set<string>(agentRefs)
     const c = s.conclusion
@@ -1115,7 +1121,11 @@ export function activeDiagnosisPath(snapshot: DiagnosisSessionSnapshot): string[
  *     → verified_ok；
  *  5. 否则 pending。
  */
-function derivePlannerTargetStatus(s: DiagnosisSessionSnapshot, t: PlannerTarget): PlannerTargetStatus {
+function derivePlannerTargetStatus(
+  s: DiagnosisSessionSnapshot,
+  t: PlannerTarget,
+  allFacts?: CanonicalFact[] | null,
+): PlannerTargetStatus {
   // 1. 当前正在验证的目标资源：最近一个 RUNNING 任务（含 PRIMARY/BACKGROUND）的
   //    target_object_refs。让"当前位置高亮"随诊断推进逐个目标移动（不依赖
   //    current_activity —— 它只展示主活动，任务全并行时会长期停留在首任务）。
@@ -1133,6 +1143,9 @@ function derivePlannerTargetStatus(s: DiagnosisSessionSnapshot, t: PlannerTarget
   if (cands.length > 0) return 'pending'
 
   // 3. 非假设目标：已完成任务的产出覆盖该资源 → 已验证（非故障本体）。
+  //    allFacts 合并快照事实与全量观测 Fact（含 BUSINESS_MAPPING 等路径发现任务产出的
+  //    边缘/映射 Fact，它们不被证据引用、不进 FACT_DISCOVERED 事件流，但同样证明路径节点
+  //    已排查，避免扫描焦点在任务间隙回跳到首个 pending 目标）。
   const terminalTasks: TaskStatus[] = [
     TaskStatus.SUCCEEDED,
     TaskStatus.DATA_MISSING,
@@ -1142,7 +1155,8 @@ function derivePlannerTargetStatus(s: DiagnosisSessionSnapshot, t: PlannerTarget
   const doneTaskIds = new Set(
     s.tasks.filter((tsk) => terminalTasks.includes(tsk.status)).map((tsk) => tsk.task_id),
   )
-  const covered = s.facts.some(
+  const factsPool = allFacts ?? s.facts
+  const covered = factsPool.some(
     (f) =>
       (f.object_refs ?? []).includes(t.target_resource) &&
       doneTaskIds.has(f.source.execution_id.replace(/^exec-/, '')),
@@ -1263,14 +1277,32 @@ function investigatedObjectIds(s: DiagnosisSessionSnapshot): string[] {
  * PLAN_CREATED 前保持无焦点，避免症状对象或候选对象抢先成为画布主体。
  * 与 PlannerTargetRow 的"当前位置"共用 derivePlannerTargetStatus，保证面板跟随诊断推进。
  */
-function focusObjectId(s: DiagnosisSessionSnapshot): string | null {
-  const active = s.planner_targets.find((t) => derivePlannerTargetStatus(s, t) === 'active')
+function focusObjectId(s: DiagnosisSessionSnapshot, allFacts?: CanonicalFact[] | null): string | null {
+  const active = s.planner_targets.find((t) => derivePlannerTargetStatus(s, t, allFacts) === 'active')
   if (active) return active.target_resource
 
-  // 诊断中：取第一个 pending 目标，保持 Planner 的逐层扫描顺序。
+  // 诊断中：取"当前扫描位置之后"的第一个 pending 目标（S1→S2→S3 前向推进）。
+  // 位置 = 最近一个已启动任务（RUNNING/终态）的 target 最小 seq；其后第一个 pending 才接棒，
+  // 避免任务间隙焦点回跳到较早的 pending 假设（如候选正在验证的 host-if-01）。
   if (s.planner_targets.length > 0 && !s.session.terminal_status) {
+    const seqByResource = new Map(s.planner_targets.map((t) => [t.target_resource, t.seq]))
+    const minSeqOf = (ids: string[] | undefined): number => {
+      let min = Infinity
+      for (const id of ids ?? []) {
+        const seq = seqByResource.get(id)
+        if (seq !== undefined && seq < min) min = seq
+      }
+      return min
+    }
+    const started = (tsk: { status: TaskStatus }): boolean =>
+      tsk.status !== TaskStatus.PLANNED && tsk.status !== TaskStatus.READY
+    const lastTask = [...s.tasks].reverse().find(started)
+    const position = lastTask ? minSeqOf(lastTask.target_object_refs) : 0
     const sorted = [...s.planner_targets].sort((a, b) => a.seq - b.seq)
-    const nextPending = sorted.find((t) => derivePlannerTargetStatus(s, t) === 'pending')
+    const nextPending =
+      sorted.find(
+        (t) => derivePlannerTargetStatus(s, t, allFacts) === 'pending' && t.seq > position,
+      ) ?? sorted.find((t) => derivePlannerTargetStatus(s, t, allFacts) === 'pending')
     if (nextPending) return nextPending.target_resource
   }
 
@@ -1528,7 +1560,7 @@ function scanPathObjectIds(s: DiagnosisSessionSnapshot, allFacts: CanonicalFact[
     const id = t.target_resource
     const walked =
       objectHasTerminalTaskFacts(s, id, allFacts) ||
-      derivePlannerTargetStatus(s, t) !== 'pending'
+      derivePlannerTargetStatus(s, t, allFacts) !== 'pending'
     if (walked && !path.includes(id)) path.push(id)
   }
   return path
@@ -1660,7 +1692,11 @@ const ACTIVE_HYPOTHESIS_STATUSES: ReadonlySet<CandidateStatus> = new Set([
  * 对象判定（优先级：根因 > 故障链 > 活跃假设候选 > 受影响 > 异常观测 > 排除候选 > 已排查正常）。
  * 纯函数、确定性，禁止 case_id 特判。
  */
-function examinedVerdictFor(s: DiagnosisSessionSnapshot, objectId: string): ExaminedVerdict | null {
+function examinedVerdictFor(
+  s: DiagnosisSessionSnapshot,
+  objectId: string,
+  allFacts?: CanonicalFact[] | null,
+): ExaminedVerdict | null {
   const c = s.conclusion
   if (c?.root_cause?.object_id === objectId) return 'ABNORMAL'
   if ((c?.root_cause_chain ?? []).includes(objectId)) return 'ABNORMAL'
@@ -1682,7 +1718,7 @@ function examinedVerdictFor(s: DiagnosisSessionSnapshot, objectId: string): Exam
 
   const target = s.planner_targets.find((t) => t.target_resource === objectId)
   if (target) {
-    const st = derivePlannerTargetStatus(s, target)
+    const st = derivePlannerTargetStatus(s, target, allFacts)
     if (st === 'verified_abnormal') return 'ABNORMAL'
     if (st === 'verified_ok' || st === 'excluded') return 'NORMAL'
   }

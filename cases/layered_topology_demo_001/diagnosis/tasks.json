@@ -21,6 +21,42 @@
       "error": null
     },
     {
+      "task_id": "task-check-competitors",
+      "stage": "evidence_collection",
+      "skill_code": "QUERY_KPI",
+      "display_name": "检查备份客户端主机是否饱和",
+      "input": {
+        "series_ids": [
+          "kpi-host-cpu"
+        ]
+      },
+      "started_at": "2026-08-02T10:00:10.600+08:00",
+      "ended_at": "2026-08-02T10:00:11.100+08:00",
+      "status": "succeeded",
+      "result_refs": [
+        "kpi-host-cpu"
+      ],
+      "error": null
+    },
+    {
+      "task_id": "task-verify-host-if",
+      "stage": "evidence_collection",
+      "skill_code": "LINK_HEALTH_QUERY",
+      "display_name": "验证主机访问链路健康",
+      "input": {
+        "object_ids": [
+          "host-if-01"
+        ]
+      },
+      "started_at": "2026-08-02T10:00:11.200+08:00",
+      "ended_at": "2026-08-02T10:00:11.800+08:00",
+      "status": "succeeded",
+      "result_refs": [
+        "log-host-if-normal"
+      ],
+      "error": null
+    },
+    {
       "task_id": "task-verify-lun-kpi",
       "stage": "evidence_collection",
       "skill_code": "QUERY_KPI",
@@ -30,8 +66,8 @@
           "kpi-lun-backup-latency"
         ]
       },
-      "started_at": "2026-08-02T10:00:10.600+08:00",
-      "ended_at": "2026-08-02T10:00:11.200+08:00",
+      "started_at": "2026-08-02T10:00:11.900+08:00",
+      "ended_at": "2026-08-02T10:00:12.500+08:00",
       "status": "succeeded",
       "result_refs": [
         "kpi-lun-backup-latency"
@@ -42,19 +78,23 @@
       "task_id": "task-query-disk-alarm",
       "stage": "evidence_collection",
       "skill_code": "QUERY_ALARM",
-      "display_name": "查询RAID与磁盘告警",
+      "display_name": "查询RAID与磁盘告警及读错误",
       "input": {
         "object_ids": [
           "raid-01a",
           "disk-01a"
+        ],
+        "series_ids": [
+          "kpi-disk-01a-read-err"
         ]
       },
-      "started_at": "2026-08-02T10:00:11.500+08:00",
-      "ended_at": "2026-08-02T10:00:12.000+08:00",
+      "started_at": "2026-08-02T10:00:12.600+08:00",
+      "ended_at": "2026-08-02T10:00:13.200+08:00",
       "status": "succeeded",
       "result_refs": [
         "alm-raid-degrade-8802",
-        "alm-disk-01a-fault"
+        "alm-disk-01a-fault",
+        "kpi-disk-01a-read-err"
       ],
       "error": null
     },
@@ -69,32 +109,12 @@
           "raid-01a"
         ]
       },
-      "started_at": "2026-08-02T10:00:12.100+08:00",
-      "ended_at": "2026-08-02T10:00:12.700+08:00",
+      "started_at": "2026-08-02T10:00:13.300+08:00",
+      "ended_at": "2026-08-02T10:00:13.900+08:00",
       "status": "succeeded",
       "result_refs": [
         "fp-sector-fault",
         "fp-raid-rebuild"
-      ],
-      "error": null
-    },
-    {
-      "task_id": "task-check-competitors",
-      "stage": "evidence_collection",
-      "skill_code": "QUERY_KPI",
-      "display_name": "检查主机与IO竞争候选",
-      "input": {
-        "series_ids": [
-          "kpi-host-cpu",
-          "kpi-disk-01a-read-err"
-        ]
-      },
-      "started_at": "2026-08-02T10:00:12.800+08:00",
-      "ended_at": "2026-08-02T10:00:13.400+08:00",
-      "status": "succeeded",
-      "result_refs": [
-        "kpi-host-cpu",
-        "kpi-disk-01a-read-err"
       ],
       "error": null
     },
@@ -109,8 +129,8 @@
           "raid_degrade"
         ]
       },
-      "started_at": "2026-08-02T10:00:13.500+08:00",
-      "ended_at": "2026-08-02T10:00:14.200+08:00",
+      "started_at": "2026-08-02T10:00:14.000+08:00",
+      "ended_at": "2026-08-02T10:00:14.700+08:00",
       "status": "succeeded",
       "result_refs": [
         "case-20260728-021"

@@ -366,7 +366,7 @@ describe('issue#9 诊断聚焦链路视图 buildLayered3DGraph(diagnosisScan)', 
     }
   })
 
-  it('诊断推进：拓扑节点集保持完整稳定（controller 取证期）', () => {
+  it('诊断推进：拓扑只显示完整排查路径（Planner targets ∪ 入口 ∪ 桥接，无关节点隐藏）', () => {
     let rt = createDiagnosisRuntime('controller_warm_reset_001')
     let guard = 0
     while (
@@ -391,11 +391,14 @@ describe('issue#9 诊断聚焦链路视图 buildLayered3DGraph(diagnosisScan)', 
     expect(scan.is_terminal).toBe(false)
     expect(g.nodes.filter((n) => n.plane === 'knowledge')).toHaveLength(0)
     expect(g.links.filter((l) => l.category === 'knowledge' || l.category === 'cross')).toHaveLength(0)
-    // 未排查也非桥接的拓扑节点（disk-group-01）不在链路上。
-    expect(topoIds).toHaveLength(controllerModel().nodes.length)
-    expect(topoIds).toContain('disk-group-01')
+    // issue#16：全部 Planner 排查目标 + 入口业务对象可见。
+    for (const id of scan.planner_path_ids) expect(topoIds).toContain(id)
+    for (const id of scan.entry_object_refs) expect(topoIds).toContain(id)
     expect(topoIds).toContain('db-business-01')
     expect(topoIds).toContain('controller-0a')
+    expect(topoIds).toContain('san-fabric-a') // BFS 桥接中间节点
+    // 未排查也非桥接的拓扑节点（disk-group-01）不在排查路径上。
+    expect(topoIds).not.toContain('disk-group-01')
   })
 
   it('issue#10 聚合展开复查：聚焦视图下展开层真实成员可见、聚合头隐藏（storage-pool/S3_4）', () => {
@@ -438,7 +441,7 @@ describe('issue#9 诊断聚焦链路视图 buildLayered3DGraph(diagnosisScan)', 
     expect(expanded.nodesById.has('storage-pool-01')).toBe(true)
     expect(expanded.nodesById.has('lun-db01')).toBe(true)
     expect(expanded.nodesById.has(layerAggregateId('S3_4'))).toBe(false)
-    // 非扫描链路节点同样保持可见。
-    expect(expanded.nodesById.has('disk-group-01')).toBe(true)
+    // issue#16：非排查路径节点（disk-group-01）在诊断中隐藏。
+    expect(expanded.nodesById.has('disk-group-01')).toBe(false)
   })
 })

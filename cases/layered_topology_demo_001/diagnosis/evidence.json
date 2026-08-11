@@ -79,6 +79,19 @@
       "quality": "high"
     },
     {
+      "evidence_id": "ev-host-if-normal",
+      "evidence_type": "log",
+      "source_ref": "log-host-if-normal",
+      "task_id": "task-verify-host-if",
+      "candidate_id": "cand-host-bottleneck",
+      "stance": "contradict",
+      "strength": 0.6,
+      "summary": "主机访问链路健康，削弱主机瓶颈候选",
+      "detail": "host-if-01 无拥塞、无接口错误",
+      "time_alignment_ms": 900,
+      "quality": "high"
+    },
+    {
       "evidence_id": "ev-latency-contend",
       "evidence_type": "kpi",
       "source_ref": "kpi-lun-backup-latency",
@@ -95,7 +108,7 @@
       "evidence_id": "ev-disk-read-err",
       "evidence_type": "kpi",
       "source_ref": "kpi-disk-01a-read-err",
-      "task_id": "task-check-competitors",
+      "task_id": "task-query-disk-alarm",
       "candidate_id": "cand-disk-sector-fault",
       "stance": "support",
       "strength": 0.9,

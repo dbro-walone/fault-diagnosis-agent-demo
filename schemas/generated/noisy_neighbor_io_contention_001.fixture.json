@@ -28,6 +28,99 @@
   },
   "facts": [
     {
+      "fact_id": "fact-fp-batch-start-001",
+      "fact_type": "LOG_FINGERPRINT",
+      "object_refs": [
+        "host-a"
+      ],
+      "occurred_at": "2026-08-01T10:15:00.000+08:00",
+      "observed_range": {
+        "start": "2026-08-01T10:15:00.000+08:00",
+        "end": "2026-08-01T10:15:01.000+08:00"
+      },
+      "source": {
+        "execution_id": "exec-task-query-batch-logs",
+        "skill_id": "log_fingerprint_query",
+        "source_refs": [
+          "fp-batch-start-001"
+        ]
+      },
+      "payload": {
+        "name": "批处理任务启动",
+        "template": "batch workload started, job=<*>, host=<*>, expected_parallelism=<NUM>",
+        "fault_mode_codes": [
+          "NOISY_NEIGHBOR_IO_CONTENTION"
+        ],
+        "hit_count": 1,
+        "matched_log_ids": [
+          "nn-log-001"
+        ]
+      },
+      "created_sequence": 15
+    },
+    {
+      "fact_id": "fact-fp-batch-complete-005",
+      "fact_type": "LOG_FINGERPRINT",
+      "object_refs": [
+        "host-a"
+      ],
+      "occurred_at": "2026-08-01T10:19:00.000+08:00",
+      "observed_range": {
+        "start": "2026-08-01T10:19:00.000+08:00",
+        "end": "2026-08-01T10:19:01.000+08:00"
+      },
+      "source": {
+        "execution_id": "exec-task-query-batch-logs",
+        "skill_id": "log_fingerprint_query",
+        "source_refs": [
+          "fp-batch-complete-005"
+        ]
+      },
+      "payload": {
+        "name": "批处理任务完成",
+        "template": "batch workload completed, job=<*>, host=<*>",
+        "fault_mode_codes": [
+          "NOISY_NEIGHBOR_IO_CONTENTION"
+        ],
+        "hit_count": 1,
+        "matched_log_ids": [
+          "nn-log-005"
+        ]
+      },
+      "created_sequence": 15
+    },
+    {
+      "fact_id": "fact-fp-pool-recovered-006",
+      "fact_type": "LOG_FINGERPRINT",
+      "object_refs": [
+        "storage-pool-01"
+      ],
+      "occurred_at": "2026-08-01T10:19:35.000+08:00",
+      "observed_range": {
+        "start": "2026-08-01T10:19:35.000+08:00",
+        "end": "2026-08-01T10:19:45.000+08:00"
+      },
+      "source": {
+        "execution_id": "exec-task-query-batch-logs",
+        "skill_id": "log_fingerprint_query",
+        "source_refs": [
+          "fp-pool-recovered-006"
+        ]
+      },
+      "payload": {
+        "name": "存储池带宽恢复",
+        "template": "backend bandwidth recovered, pool=<*>, utilization_pct=<NUM>",
+        "fault_mode_codes": [
+          "NOISY_NEIGHBOR_IO_CONTENTION"
+        ],
+        "hit_count": 1,
+        "matched_log_ids": [
+          "nn-log-006"
+        ]
+      },
+      "created_sequence": 15
+    },
+    {
       "fact_id": "fact-kpi-lun-b-latency",
       "fact_type": "KPI_WINDOW",
       "object_refs": [
@@ -104,7 +197,7 @@
           }
         ]
       },
-      "created_sequence": 11
+      "created_sequence": 20
     },
     {
       "fact_id": "fact-kpi-host-b-cpu",
@@ -173,7 +266,7 @@
           }
         ]
       },
-      "created_sequence": 11
+      "created_sequence": 20
     },
     {
       "fact_id": "fact-kpi-fc-crc-delta",
@@ -242,7 +335,7 @@
           }
         ]
       },
-      "created_sequence": 20
+      "created_sequence": 29
     },
     {
       "fact_id": "fact-absence-ev-controller-no-fault",
@@ -269,7 +362,7 @@
         "detail": "控制器只呈现由工作负载引起的队列压力",
         "evidence_type": "alarm_absence"
       },
-      "created_sequence": 20
+      "created_sequence": 29
     },
     {
       "fact_id": "fact-kpi-controller-queue-depth",
@@ -348,7 +441,7 @@
           }
         ]
       },
-      "created_sequence": 25
+      "created_sequence": 34
     },
     {
       "fact_id": "fact-e-lun-a-shares-lun-b",
@@ -376,100 +469,7 @@
         "redundancy_group": "shared-pool",
         "state": "event"
       },
-      "created_sequence": 31
-    },
-    {
-      "fact_id": "fact-fp-batch-start-001",
-      "fact_type": "LOG_FINGERPRINT",
-      "object_refs": [
-        "host-a"
-      ],
-      "occurred_at": "2026-08-01T10:15:00.000+08:00",
-      "observed_range": {
-        "start": "2026-08-01T10:15:00.000+08:00",
-        "end": "2026-08-01T10:15:01.000+08:00"
-      },
-      "source": {
-        "execution_id": "exec-task-query-batch-logs",
-        "skill_id": "log_fingerprint_query",
-        "source_refs": [
-          "fp-batch-start-001"
-        ]
-      },
-      "payload": {
-        "name": "批处理任务启动",
-        "template": "batch workload started, job=<*>, host=<*>, expected_parallelism=<NUM>",
-        "fault_mode_codes": [
-          "NOISY_NEIGHBOR_IO_CONTENTION"
-        ],
-        "hit_count": 1,
-        "matched_log_ids": [
-          "nn-log-001"
-        ]
-      },
-      "created_sequence": 37
-    },
-    {
-      "fact_id": "fact-fp-batch-complete-005",
-      "fact_type": "LOG_FINGERPRINT",
-      "object_refs": [
-        "host-a"
-      ],
-      "occurred_at": "2026-08-01T10:19:00.000+08:00",
-      "observed_range": {
-        "start": "2026-08-01T10:19:00.000+08:00",
-        "end": "2026-08-01T10:19:01.000+08:00"
-      },
-      "source": {
-        "execution_id": "exec-task-query-batch-logs",
-        "skill_id": "log_fingerprint_query",
-        "source_refs": [
-          "fp-batch-complete-005"
-        ]
-      },
-      "payload": {
-        "name": "批处理任务完成",
-        "template": "batch workload completed, job=<*>, host=<*>",
-        "fault_mode_codes": [
-          "NOISY_NEIGHBOR_IO_CONTENTION"
-        ],
-        "hit_count": 1,
-        "matched_log_ids": [
-          "nn-log-005"
-        ]
-      },
-      "created_sequence": 37
-    },
-    {
-      "fact_id": "fact-fp-pool-recovered-006",
-      "fact_type": "LOG_FINGERPRINT",
-      "object_refs": [
-        "storage-pool-01"
-      ],
-      "occurred_at": "2026-08-01T10:19:35.000+08:00",
-      "observed_range": {
-        "start": "2026-08-01T10:19:35.000+08:00",
-        "end": "2026-08-01T10:19:45.000+08:00"
-      },
-      "source": {
-        "execution_id": "exec-task-query-batch-logs",
-        "skill_id": "log_fingerprint_query",
-        "source_refs": [
-          "fp-pool-recovered-006"
-        ]
-      },
-      "payload": {
-        "name": "存储池带宽恢复",
-        "template": "backend bandwidth recovered, pool=<*>, utilization_pct=<NUM>",
-        "fault_mode_codes": [
-          "NOISY_NEIGHBOR_IO_CONTENTION"
-        ],
-        "hit_count": 1,
-        "matched_log_ids": [
-          "nn-log-006"
-        ]
-      },
-      "created_sequence": 37
+      "created_sequence": 40
     },
     {
       "fact_id": "fact-kpi-lun-a-iops",
@@ -1183,21 +1183,91 @@
       "payload": {
         "plan_id": "plan-noisy_neighbor_io_contention_001-001",
         "phase": "CANDIDATE_EVIDENCE",
-        "primary_task_id": "task-query-b-kpi",
+        "primary_task_id": "task-map-business-b",
         "task_refs": [
+          "task-map-business-b",
+          "task-query-batch-logs",
           "task-query-b-kpi",
           "task-trace-b-path",
           "task-check-competitors",
           "task-query-shared-pressure",
           "task-expand-shared-consumers",
-          "task-query-batch-logs",
-          "task-map-business-b",
           "task-compare-a-b-kpi",
           "task-search-similar"
         ],
         "planner_targets": [
           {
             "seq": 1,
+            "target_resource": "business-b",
+            "target_fault_mode": "待诊断异常",
+            "verify_question": "business-b 是否存在与当前症状相关的异常",
+            "expected_finding": "核查 business-b 在 S1.1 业务应用 的状态与观测结果",
+            "topo_path": [
+              "business-b"
+            ],
+            "scope": "受害业务路径（host-b → lun-b → fc-port-0a → controller-0a → storage-pool-01）",
+            "round": 1
+          },
+          {
+            "seq": 3,
+            "target_resource": "host-b",
+            "target_fault_mode": "Host-B 资源瓶颈",
+            "verify_question": "受害主机自身 CPU/IO 是否成为瓶颈",
+            "expected_finding": "如命中则 Host-B 资源占用突增，否则排除主机本体",
+            "topo_path": [
+              "business-b",
+              "host-b",
+              "san-fabric-01",
+              "lun-b"
+            ],
+            "scope": "受害业务路径",
+            "round": 1
+          },
+          {
+            "seq": 4,
+            "target_resource": "fc-port-0a",
+            "target_fault_mode": "FC 端口链路抖动",
+            "verify_question": "共享 FC 链路是否出现抖动或错误计数增长",
+            "expected_finding": "如命中则链路错误计数异常；否则排除链路问题",
+            "topo_path": [
+              "host-b",
+              "san-fabric-01",
+              "fc-port-0a",
+              "controller-0a"
+            ],
+            "scope": "共享资源",
+            "round": 1
+          },
+          {
+            "seq": 5,
+            "target_resource": "controller-0a",
+            "target_fault_mode": "共享控制器队列压力",
+            "verify_question": "共享控制器队列深度是否被兄弟消费者抬高",
+            "expected_finding": "如命中则队列深度/带宽利用率突增且与受害时延同步",
+            "topo_path": [
+              "fc-port-0a",
+              "controller-0a",
+              "lun-a",
+              "lun-b",
+              "storage-pool-01"
+            ],
+            "scope": "共享资源",
+            "round": 1
+          },
+          {
+            "seq": 6,
+            "target_resource": "lun-a",
+            "target_fault_mode": "待诊断异常",
+            "verify_question": "lun-a 是否存在与当前症状相关的异常",
+            "expected_finding": "核查 lun-a 在 S3.4 存储资源层 的状态与观测结果",
+            "topo_path": [
+              "lun-a"
+            ],
+            "scope": "受害业务路径（host-b → lun-b → fc-port-0a → controller-0a → storage-pool-01）",
+            "round": 1
+          },
+          {
+            "seq": 7,
             "target_resource": "lun-b",
             "target_fault_mode": "LUN-B 时延突增",
             "verify_question": "受害 LUN 自身 IO 是否异常且与现象时间窗一致",
@@ -1215,53 +1285,7 @@
             "round": 1
           },
           {
-            "seq": 2,
-            "target_resource": "host-b",
-            "target_fault_mode": "Host-B 资源瓶颈",
-            "verify_question": "受害主机自身 CPU/IO 是否成为瓶颈",
-            "expected_finding": "如命中则 Host-B 资源占用突增，否则排除主机本体",
-            "topo_path": [
-              "business-b",
-              "host-b",
-              "san-fabric-01",
-              "lun-b"
-            ],
-            "scope": "受害业务路径",
-            "round": 1
-          },
-          {
-            "seq": 3,
-            "target_resource": "fc-port-0a",
-            "target_fault_mode": "FC 端口链路抖动",
-            "verify_question": "共享 FC 链路是否出现抖动或错误计数增长",
-            "expected_finding": "如命中则链路错误计数异常；否则排除链路问题",
-            "topo_path": [
-              "host-b",
-              "san-fabric-01",
-              "fc-port-0a",
-              "controller-0a"
-            ],
-            "scope": "共享资源",
-            "round": 1
-          },
-          {
-            "seq": 4,
-            "target_resource": "controller-0a",
-            "target_fault_mode": "共享控制器队列压力",
-            "verify_question": "共享控制器队列深度是否被兄弟消费者抬高",
-            "expected_finding": "如命中则队列深度/带宽利用率突增且与受害时延同步",
-            "topo_path": [
-              "fc-port-0a",
-              "controller-0a",
-              "lun-a",
-              "lun-b",
-              "storage-pool-01"
-            ],
-            "scope": "共享资源",
-            "round": 1
-          },
-          {
-            "seq": 5,
+            "seq": 8,
             "target_resource": "storage-pool-01",
             "target_fault_mode": "共享存储池带宽争用",
             "verify_question": "共享存储池带宽是否被兄弟 LUN 争用",
@@ -1283,6 +1307,304 @@
       "event_id": "evt-0008",
       "session_id": "session-noisy_neighbor_io_contention_001",
       "sequence": 8,
+      "event_type": "TASK_STATUS_CHANGED",
+      "producer": "planner",
+      "correlation_id": "exec-task-map-business-b",
+      "causation_id": "evt-0007",
+      "payload": {
+        "task": {
+          "task_id": "task-map-business-b",
+          "skill_code": "BUSINESS_MAPPING",
+          "skill_id": "business_mapping",
+          "action": "BUSINESS_MAPPING",
+          "stage": "scope_localization",
+          "display_name": "映射Host-B业务与LUN",
+          "goal": "映射Host-B业务与LUN",
+          "target_object_refs": [
+            "business-b"
+          ],
+          "input": {
+            "object_ids": [
+              "business-b"
+            ]
+          },
+          "priority": 100,
+          "execution_mode": "PARALLEL",
+          "ui_role": "PRIMARY",
+          "status": "RUNNING",
+          "result_refs": [
+            "e-business-b-host-b",
+            "e-host-b-lun-b"
+          ],
+          "started_at": "2026-08-01T10:20:10.000+08:00",
+          "ended_at": "2026-08-01T10:20:10.350+08:00",
+          "error": null
+        },
+        "status": "RUNNING"
+      }
+    },
+    {
+      "event_id": "evt-0009",
+      "session_id": "session-noisy_neighbor_io_contention_001",
+      "sequence": 9,
+      "event_type": "SKILL_STARTED",
+      "occurred_at": "2026-08-01T10:20:10.000+08:00",
+      "producer": "skill-executor",
+      "correlation_id": "exec-task-map-business-b",
+      "causation_id": "evt-0008",
+      "payload": {
+        "execution_id": "exec-task-map-business-b",
+        "task_id": "task-map-business-b",
+        "skill_id": "business_mapping",
+        "ui_role": "PRIMARY",
+        "goal": "映射Host-B业务与LUN",
+        "action_text": "执行 business_mapping：映射Host-B业务与LUN",
+        "reason_text": "business-b 是否存在与当前症状相关的异常",
+        "expected_result_text": "核查 business-b 在 S1.1 业务应用 的状态与观测结果",
+        "target_object_refs": [
+          "business-b"
+        ]
+      }
+    },
+    {
+      "event_id": "evt-0010",
+      "session_id": "session-noisy_neighbor_io_contention_001",
+      "sequence": 10,
+      "event_type": "SKILL_COMPLETED",
+      "occurred_at": "2026-08-01T10:20:10.350+08:00",
+      "producer": "skill-executor",
+      "correlation_id": "exec-task-map-business-b",
+      "causation_id": "evt-0008",
+      "payload": {
+        "execution_id": "exec-task-map-business-b",
+        "result_summary": "映射Host-B业务与LUN",
+        "ended_at": "2026-08-01T10:20:10.350+08:00"
+      }
+    },
+    {
+      "event_id": "evt-0011",
+      "session_id": "session-noisy_neighbor_io_contention_001",
+      "sequence": 11,
+      "event_type": "TASK_STATUS_CHANGED",
+      "producer": "planner",
+      "correlation_id": "exec-task-map-business-b",
+      "causation_id": "evt-0010",
+      "payload": {
+        "task_id": "task-map-business-b",
+        "status": "SUCCEEDED"
+      }
+    },
+    {
+      "event_id": "evt-0012",
+      "session_id": "session-noisy_neighbor_io_contention_001",
+      "sequence": 12,
+      "event_type": "TASK_STATUS_CHANGED",
+      "producer": "planner",
+      "correlation_id": "exec-task-query-batch-logs",
+      "causation_id": "evt-0007",
+      "payload": {
+        "task": {
+          "task_id": "task-query-batch-logs",
+          "skill_code": "MATCH_LOG_FINGERPRINT",
+          "skill_id": "log_fingerprint_query",
+          "action": "MATCH_LOG_FINGERPRINT",
+          "stage": "evidence_collection",
+          "display_name": "查询Host-A批处理与恢复日志",
+          "goal": "查询Host-A批处理与恢复日志",
+          "target_object_refs": [
+            "host-a",
+            "lun-a",
+            "storage-pool-01"
+          ],
+          "input": {
+            "object_ids": [
+              "host-a",
+              "lun-a",
+              "storage-pool-01"
+            ]
+          },
+          "priority": 93,
+          "execution_mode": "PARALLEL",
+          "ui_role": "PRIMARY",
+          "status": "RUNNING",
+          "result_refs": [
+            "fp-batch-start-001",
+            "fp-workload-surge-002",
+            "fp-batch-complete-005",
+            "fp-pool-recovered-006"
+          ],
+          "started_at": "2026-08-01T10:20:12.150+08:00",
+          "ended_at": "2026-08-01T10:20:12.950+08:00",
+          "error": null
+        },
+        "status": "RUNNING"
+      }
+    },
+    {
+      "event_id": "evt-0013",
+      "session_id": "session-noisy_neighbor_io_contention_001",
+      "sequence": 13,
+      "event_type": "SKILL_STARTED",
+      "occurred_at": "2026-08-01T10:20:12.150+08:00",
+      "producer": "skill-executor",
+      "correlation_id": "exec-task-query-batch-logs",
+      "causation_id": "evt-0012",
+      "payload": {
+        "execution_id": "exec-task-query-batch-logs",
+        "task_id": "task-query-batch-logs",
+        "skill_id": "log_fingerprint_query",
+        "ui_role": "PRIMARY",
+        "goal": "查询Host-A批处理与恢复日志",
+        "action_text": "执行 log_fingerprint_query：查询Host-A批处理与恢复日志",
+        "reason_text": "兄弟消费者 Host-A 是否产生 IO 突增抢占共享资源",
+        "expected_result_text": "如命中则 Host-A/LUN-A IO 突增先于受害时延，且共享资源队列同步抬升",
+        "target_object_refs": [
+          "host-a",
+          "lun-a",
+          "storage-pool-01"
+        ]
+      }
+    },
+    {
+      "event_id": "evt-0014",
+      "session_id": "session-noisy_neighbor_io_contention_001",
+      "sequence": 14,
+      "event_type": "SKILL_COMPLETED",
+      "occurred_at": "2026-08-01T10:20:12.950+08:00",
+      "producer": "skill-executor",
+      "correlation_id": "exec-task-query-batch-logs",
+      "causation_id": "evt-0012",
+      "payload": {
+        "execution_id": "exec-task-query-batch-logs",
+        "result_summary": "查询Host-A批处理与恢复日志",
+        "ended_at": "2026-08-01T10:20:12.950+08:00"
+      }
+    },
+    {
+      "event_id": "evt-0015",
+      "session_id": "session-noisy_neighbor_io_contention_001",
+      "sequence": 15,
+      "event_type": "FACT_DISCOVERED",
+      "producer": "fact-normalizer",
+      "correlation_id": "exec-task-query-batch-logs",
+      "causation_id": "evt-0014",
+      "payload": {
+        "fact_refs": [
+          "fact-fp-batch-start-001",
+          "fact-fp-batch-complete-005",
+          "fact-fp-pool-recovered-006"
+        ],
+        "facts": [
+          {
+            "fact_id": "fact-fp-batch-start-001",
+            "fact_type": "LOG_FINGERPRINT",
+            "object_refs": [
+              "host-a"
+            ],
+            "occurred_at": "2026-08-01T10:15:00.000+08:00",
+            "observed_range": {
+              "start": "2026-08-01T10:15:00.000+08:00",
+              "end": "2026-08-01T10:15:01.000+08:00"
+            },
+            "source": {
+              "execution_id": "exec-task-query-batch-logs",
+              "skill_id": "log_fingerprint_query",
+              "source_refs": [
+                "fp-batch-start-001"
+              ]
+            },
+            "payload": {
+              "name": "批处理任务启动",
+              "template": "batch workload started, job=<*>, host=<*>, expected_parallelism=<NUM>",
+              "fault_mode_codes": [
+                "NOISY_NEIGHBOR_IO_CONTENTION"
+              ],
+              "hit_count": 1,
+              "matched_log_ids": [
+                "nn-log-001"
+              ]
+            }
+          },
+          {
+            "fact_id": "fact-fp-batch-complete-005",
+            "fact_type": "LOG_FINGERPRINT",
+            "object_refs": [
+              "host-a"
+            ],
+            "occurred_at": "2026-08-01T10:19:00.000+08:00",
+            "observed_range": {
+              "start": "2026-08-01T10:19:00.000+08:00",
+              "end": "2026-08-01T10:19:01.000+08:00"
+            },
+            "source": {
+              "execution_id": "exec-task-query-batch-logs",
+              "skill_id": "log_fingerprint_query",
+              "source_refs": [
+                "fp-batch-complete-005"
+              ]
+            },
+            "payload": {
+              "name": "批处理任务完成",
+              "template": "batch workload completed, job=<*>, host=<*>",
+              "fault_mode_codes": [
+                "NOISY_NEIGHBOR_IO_CONTENTION"
+              ],
+              "hit_count": 1,
+              "matched_log_ids": [
+                "nn-log-005"
+              ]
+            }
+          },
+          {
+            "fact_id": "fact-fp-pool-recovered-006",
+            "fact_type": "LOG_FINGERPRINT",
+            "object_refs": [
+              "storage-pool-01"
+            ],
+            "occurred_at": "2026-08-01T10:19:35.000+08:00",
+            "observed_range": {
+              "start": "2026-08-01T10:19:35.000+08:00",
+              "end": "2026-08-01T10:19:45.000+08:00"
+            },
+            "source": {
+              "execution_id": "exec-task-query-batch-logs",
+              "skill_id": "log_fingerprint_query",
+              "source_refs": [
+                "fp-pool-recovered-006"
+              ]
+            },
+            "payload": {
+              "name": "存储池带宽恢复",
+              "template": "backend bandwidth recovered, pool=<*>, utilization_pct=<NUM>",
+              "fault_mode_codes": [
+                "NOISY_NEIGHBOR_IO_CONTENTION"
+              ],
+              "hit_count": 1,
+              "matched_log_ids": [
+                "nn-log-006"
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "event_id": "evt-0016",
+      "session_id": "session-noisy_neighbor_io_contention_001",
+      "sequence": 16,
+      "event_type": "TASK_STATUS_CHANGED",
+      "producer": "planner",
+      "correlation_id": "exec-task-query-batch-logs",
+      "causation_id": "evt-0015",
+      "payload": {
+        "task_id": "task-query-batch-logs",
+        "status": "SUCCEEDED"
+      }
+    },
+    {
+      "event_id": "evt-0017",
+      "session_id": "session-noisy_neighbor_io_contention_001",
+      "sequence": 17,
       "event_type": "TASK_STATUS_CHANGED",
       "producer": "planner",
       "correlation_id": "exec-task-query-b-kpi",
@@ -1309,7 +1631,7 @@
           },
           "priority": 99,
           "execution_mode": "PARALLEL",
-          "ui_role": "BACKGROUND",
+          "ui_role": "PRIMARY",
           "status": "RUNNING",
           "result_refs": [
             "kpi-lun-b-latency",
@@ -1324,23 +1646,23 @@
       }
     },
     {
-      "event_id": "evt-0009",
+      "event_id": "evt-0018",
       "session_id": "session-noisy_neighbor_io_contention_001",
-      "sequence": 9,
+      "sequence": 18,
       "event_type": "SKILL_STARTED",
       "occurred_at": "2026-08-01T10:20:10.400+08:00",
       "producer": "skill-executor",
       "correlation_id": "exec-task-query-b-kpi",
-      "causation_id": "evt-0008",
+      "causation_id": "evt-0017",
       "payload": {
         "execution_id": "exec-task-query-b-kpi",
         "task_id": "task-query-b-kpi",
         "skill_id": "kpi_query",
-        "ui_role": "BACKGROUND",
+        "ui_role": "PRIMARY",
         "goal": "验证Host-B业务影响与自身资源",
         "action_text": "执行 kpi_query：验证Host-B业务影响与自身资源",
-        "reason_text": "受害 LUN 自身 IO 是否异常且与现象时间窗一致",
-        "expected_result_text": "如命中则 LUN-B 时延/iops 异常；否则为受外部影响",
+        "reason_text": "受害主机自身 CPU/IO 是否成为瓶颈",
+        "expected_result_text": "如命中则 Host-B 资源占用突增，否则排除主机本体",
         "target_object_refs": [
           "lun-b",
           "host-b"
@@ -1348,14 +1670,14 @@
       }
     },
     {
-      "event_id": "evt-0010",
+      "event_id": "evt-0019",
       "session_id": "session-noisy_neighbor_io_contention_001",
-      "sequence": 10,
+      "sequence": 19,
       "event_type": "SKILL_COMPLETED",
       "occurred_at": "2026-08-01T10:20:11.200+08:00",
       "producer": "skill-executor",
       "correlation_id": "exec-task-query-b-kpi",
-      "causation_id": "evt-0008",
+      "causation_id": "evt-0017",
       "payload": {
         "execution_id": "exec-task-query-b-kpi",
         "result_summary": "验证Host-B业务影响与自身资源",
@@ -1363,13 +1685,13 @@
       }
     },
     {
-      "event_id": "evt-0011",
+      "event_id": "evt-0020",
       "session_id": "session-noisy_neighbor_io_contention_001",
-      "sequence": 11,
+      "sequence": 20,
       "event_type": "FACT_DISCOVERED",
       "producer": "fact-normalizer",
       "correlation_id": "exec-task-query-b-kpi",
-      "causation_id": "evt-0010",
+      "causation_id": "evt-0019",
       "payload": {
         "fact_refs": [
           "fact-kpi-lun-b-latency",
@@ -1526,22 +1848,22 @@
       }
     },
     {
-      "event_id": "evt-0012",
+      "event_id": "evt-0021",
       "session_id": "session-noisy_neighbor_io_contention_001",
-      "sequence": 12,
+      "sequence": 21,
       "event_type": "TASK_STATUS_CHANGED",
       "producer": "planner",
       "correlation_id": "exec-task-query-b-kpi",
-      "causation_id": "evt-0011",
+      "causation_id": "evt-0020",
       "payload": {
         "task_id": "task-query-b-kpi",
         "status": "SUCCEEDED"
       }
     },
     {
-      "event_id": "evt-0013",
+      "event_id": "evt-0022",
       "session_id": "session-noisy_neighbor_io_contention_001",
-      "sequence": 13,
+      "sequence": 22,
       "event_type": "TASK_STATUS_CHANGED",
       "producer": "planner",
       "correlation_id": "exec-task-trace-b-path",
@@ -1564,7 +1886,7 @@
           },
           "priority": 98,
           "execution_mode": "PARALLEL",
-          "ui_role": "BACKGROUND",
+          "ui_role": "PRIMARY",
           "status": "RUNNING",
           "result_refs": [
             "e-host-b-lun-b",
@@ -1579,37 +1901,37 @@
       }
     },
     {
-      "event_id": "evt-0014",
+      "event_id": "evt-0023",
       "session_id": "session-noisy_neighbor_io_contention_001",
-      "sequence": 14,
+      "sequence": 23,
       "event_type": "SKILL_STARTED",
       "occurred_at": "2026-08-01T10:20:10.450+08:00",
       "producer": "skill-executor",
       "correlation_id": "exec-task-trace-b-path",
-      "causation_id": "evt-0013",
+      "causation_id": "evt-0022",
       "payload": {
         "execution_id": "exec-task-trace-b-path",
         "task_id": "task-trace-b-path",
         "skill_id": "topology_query",
-        "ui_role": "BACKGROUND",
+        "ui_role": "PRIMARY",
         "goal": "沿Host-B路径定位共享资源",
         "action_text": "执行 topology_query：沿Host-B路径定位共享资源",
-        "reason_text": "受害 LUN 自身 IO 是否异常且与现象时间窗一致",
-        "expected_result_text": "如命中则 LUN-B 时延/iops 异常；否则为受外部影响",
+        "reason_text": "受害主机自身 CPU/IO 是否成为瓶颈",
+        "expected_result_text": "如命中则 Host-B 资源占用突增，否则排除主机本体",
         "target_object_refs": [
           "host-b"
         ]
       }
     },
     {
-      "event_id": "evt-0015",
+      "event_id": "evt-0024",
       "session_id": "session-noisy_neighbor_io_contention_001",
-      "sequence": 15,
+      "sequence": 24,
       "event_type": "SKILL_COMPLETED",
       "occurred_at": "2026-08-01T10:20:11.050+08:00",
       "producer": "skill-executor",
       "correlation_id": "exec-task-trace-b-path",
-      "causation_id": "evt-0013",
+      "causation_id": "evt-0022",
       "payload": {
         "execution_id": "exec-task-trace-b-path",
         "result_summary": "沿Host-B路径定位共享资源",
@@ -1617,22 +1939,22 @@
       }
     },
     {
-      "event_id": "evt-0016",
+      "event_id": "evt-0025",
       "session_id": "session-noisy_neighbor_io_contention_001",
-      "sequence": 16,
+      "sequence": 25,
       "event_type": "TASK_STATUS_CHANGED",
       "producer": "planner",
       "correlation_id": "exec-task-trace-b-path",
-      "causation_id": "evt-0015",
+      "causation_id": "evt-0024",
       "payload": {
         "task_id": "task-trace-b-path",
         "status": "SUCCEEDED"
       }
     },
     {
-      "event_id": "evt-0017",
+      "event_id": "evt-0026",
       "session_id": "session-noisy_neighbor_io_contention_001",
-      "sequence": 17,
+      "sequence": 26,
       "event_type": "TASK_STATUS_CHANGED",
       "producer": "planner",
       "correlation_id": "exec-task-check-competitors",
@@ -1662,7 +1984,7 @@
           },
           "priority": 94,
           "execution_mode": "PARALLEL",
-          "ui_role": "BACKGROUND",
+          "ui_role": "PRIMARY",
           "status": "RUNNING",
           "result_refs": [
             "kpi-fc-crc-delta"
@@ -1675,19 +1997,19 @@
       }
     },
     {
-      "event_id": "evt-0018",
+      "event_id": "evt-0027",
       "session_id": "session-noisy_neighbor_io_contention_001",
-      "sequence": 18,
+      "sequence": 27,
       "event_type": "SKILL_STARTED",
       "occurred_at": "2026-08-01T10:20:12.100+08:00",
       "producer": "skill-executor",
       "correlation_id": "exec-task-check-competitors",
-      "causation_id": "evt-0017",
+      "causation_id": "evt-0026",
       "payload": {
         "execution_id": "exec-task-check-competitors",
         "task_id": "task-check-competitors",
         "skill_id": "alarm_query",
-        "ui_role": "BACKGROUND",
+        "ui_role": "PRIMARY",
         "goal": "检查链路、控制器和后端硬件竞争候选",
         "action_text": "执行 alarm_query：检查链路、控制器和后端硬件竞争候选",
         "reason_text": "共享 FC 链路是否出现抖动或错误计数增长",
@@ -1700,14 +2022,14 @@
       }
     },
     {
-      "event_id": "evt-0019",
+      "event_id": "evt-0028",
       "session_id": "session-noisy_neighbor_io_contention_001",
-      "sequence": 19,
+      "sequence": 28,
       "event_type": "SKILL_COMPLETED",
       "occurred_at": "2026-08-01T10:20:12.850+08:00",
       "producer": "skill-executor",
       "correlation_id": "exec-task-check-competitors",
-      "causation_id": "evt-0017",
+      "causation_id": "evt-0026",
       "payload": {
         "execution_id": "exec-task-check-competitors",
         "result_summary": "检查链路、控制器和后端硬件竞争候选",
@@ -1715,13 +2037,13 @@
       }
     },
     {
-      "event_id": "evt-0020",
+      "event_id": "evt-0029",
       "session_id": "session-noisy_neighbor_io_contention_001",
-      "sequence": 20,
+      "sequence": 29,
       "event_type": "FACT_DISCOVERED",
       "producer": "fact-normalizer",
       "correlation_id": "exec-task-check-competitors",
-      "causation_id": "evt-0019",
+      "causation_id": "evt-0028",
       "payload": {
         "fact_refs": [
           "fact-kpi-fc-crc-delta",
@@ -1826,22 +2148,22 @@
       }
     },
     {
-      "event_id": "evt-0021",
+      "event_id": "evt-0030",
       "session_id": "session-noisy_neighbor_io_contention_001",
-      "sequence": 21,
+      "sequence": 30,
       "event_type": "TASK_STATUS_CHANGED",
       "producer": "planner",
       "correlation_id": "exec-task-check-competitors",
-      "causation_id": "evt-0020",
+      "causation_id": "evt-0029",
       "payload": {
         "task_id": "task-check-competitors",
         "status": "SUCCEEDED"
       }
     },
     {
-      "event_id": "evt-0022",
+      "event_id": "evt-0031",
       "session_id": "session-noisy_neighbor_io_contention_001",
-      "sequence": 22,
+      "sequence": 31,
       "event_type": "TASK_STATUS_CHANGED",
       "producer": "planner",
       "correlation_id": "exec-task-query-shared-pressure",
@@ -1867,7 +2189,7 @@
           },
           "priority": 97,
           "execution_mode": "PARALLEL",
-          "ui_role": "BACKGROUND",
+          "ui_role": "PRIMARY",
           "status": "RUNNING",
           "result_refs": [
             "kpi-controller-queue-depth",
@@ -1883,19 +2205,19 @@
       }
     },
     {
-      "event_id": "evt-0023",
+      "event_id": "evt-0032",
       "session_id": "session-noisy_neighbor_io_contention_001",
-      "sequence": 23,
+      "sequence": 32,
       "event_type": "SKILL_STARTED",
       "occurred_at": "2026-08-01T10:20:10.500+08:00",
       "producer": "skill-executor",
       "correlation_id": "exec-task-query-shared-pressure",
-      "causation_id": "evt-0022",
+      "causation_id": "evt-0031",
       "payload": {
         "execution_id": "exec-task-query-shared-pressure",
         "task_id": "task-query-shared-pressure",
         "skill_id": "kpi_query",
-        "ui_role": "BACKGROUND",
+        "ui_role": "PRIMARY",
         "goal": "查询共享控制器与存储池压力",
         "action_text": "执行 kpi_query：查询共享控制器与存储池压力",
         "reason_text": "共享控制器队列深度是否被兄弟消费者抬高",
@@ -1907,14 +2229,14 @@
       }
     },
     {
-      "event_id": "evt-0024",
+      "event_id": "evt-0033",
       "session_id": "session-noisy_neighbor_io_contention_001",
-      "sequence": 24,
+      "sequence": 33,
       "event_type": "SKILL_COMPLETED",
       "occurred_at": "2026-08-01T10:20:11.350+08:00",
       "producer": "skill-executor",
       "correlation_id": "exec-task-query-shared-pressure",
-      "causation_id": "evt-0022",
+      "causation_id": "evt-0031",
       "payload": {
         "execution_id": "exec-task-query-shared-pressure",
         "result_summary": "查询共享控制器与存储池压力",
@@ -1922,13 +2244,13 @@
       }
     },
     {
-      "event_id": "evt-0025",
+      "event_id": "evt-0034",
       "session_id": "session-noisy_neighbor_io_contention_001",
-      "sequence": 25,
+      "sequence": 34,
       "event_type": "FACT_DISCOVERED",
       "producer": "fact-normalizer",
       "correlation_id": "exec-task-query-shared-pressure",
-      "causation_id": "evt-0024",
+      "causation_id": "evt-0033",
       "payload": {
         "fact_refs": [
           "fact-kpi-controller-queue-depth"
@@ -2016,26 +2338,26 @@
       }
     },
     {
-      "event_id": "evt-0026",
+      "event_id": "evt-0035",
       "session_id": "session-noisy_neighbor_io_contention_001",
-      "sequence": 26,
+      "sequence": 35,
       "event_type": "TASK_STATUS_CHANGED",
       "producer": "planner",
       "correlation_id": "exec-task-query-shared-pressure",
-      "causation_id": "evt-0025",
+      "causation_id": "evt-0034",
       "payload": {
         "task_id": "task-query-shared-pressure",
         "status": "SUCCEEDED"
       }
     },
     {
-      "event_id": "evt-0027",
+      "event_id": "evt-0036",
       "session_id": "session-noisy_neighbor_io_contention_001",
-      "sequence": 27,
+      "sequence": 36,
       "event_type": "PLAN_REPLANNED",
       "producer": "planner",
       "correlation_id": null,
-      "causation_id": "evt-0025",
+      "causation_id": "evt-0034",
       "payload": {
         "plan_id": "plan-noisy_neighbor_io_contention_001-002",
         "previous_plan_id": "plan-noisy_neighbor_io_contention_001-001",
@@ -2047,6 +2369,94 @@
         "planner_targets": [
           {
             "seq": 1,
+            "target_resource": "business-b",
+            "target_fault_mode": "待诊断异常",
+            "verify_question": "business-b 是否存在与当前症状相关的异常",
+            "expected_finding": "核查 business-b 在 S1.1 业务应用 的状态与观测结果",
+            "topo_path": [
+              "business-b"
+            ],
+            "scope": "受害业务路径（host-b → lun-b → fc-port-0a → controller-0a → storage-pool-01）",
+            "round": 1
+          },
+          {
+            "seq": 2,
+            "target_resource": "host-a",
+            "target_fault_mode": "Host-A 批处理 IO 突增（施压者）",
+            "verify_question": "兄弟消费者 Host-A 是否产生 IO 突增抢占共享资源",
+            "expected_finding": "如命中则 Host-A/LUN-A IO 突增先于受害时延，且共享资源队列同步抬升",
+            "topo_path": [
+              "business-a",
+              "host-a",
+              "san-fabric-01",
+              "fc-port-0a",
+              "controller-0a",
+              "lun-a",
+              "storage-pool-01"
+            ],
+            "scope": "共享消费者反向追溯",
+            "round": 2
+          },
+          {
+            "seq": 3,
+            "target_resource": "host-b",
+            "target_fault_mode": "Host-B 资源瓶颈",
+            "verify_question": "受害主机自身 CPU/IO 是否成为瓶颈",
+            "expected_finding": "如命中则 Host-B 资源占用突增，否则排除主机本体",
+            "topo_path": [
+              "business-b",
+              "host-b",
+              "san-fabric-01",
+              "lun-b"
+            ],
+            "scope": "受害业务路径",
+            "round": 1
+          },
+          {
+            "seq": 4,
+            "target_resource": "fc-port-0a",
+            "target_fault_mode": "FC 端口链路抖动",
+            "verify_question": "共享 FC 链路是否出现抖动或错误计数增长",
+            "expected_finding": "如命中则链路错误计数异常；否则排除链路问题",
+            "topo_path": [
+              "host-b",
+              "san-fabric-01",
+              "fc-port-0a",
+              "controller-0a"
+            ],
+            "scope": "共享资源",
+            "round": 1
+          },
+          {
+            "seq": 5,
+            "target_resource": "controller-0a",
+            "target_fault_mode": "共享控制器队列压力",
+            "verify_question": "共享控制器队列深度是否被兄弟消费者抬高",
+            "expected_finding": "如命中则队列深度/带宽利用率突增且与受害时延同步",
+            "topo_path": [
+              "fc-port-0a",
+              "controller-0a",
+              "lun-a",
+              "lun-b",
+              "storage-pool-01"
+            ],
+            "scope": "共享资源",
+            "round": 1
+          },
+          {
+            "seq": 6,
+            "target_resource": "lun-a",
+            "target_fault_mode": "待诊断异常",
+            "verify_question": "lun-a 是否存在与当前症状相关的异常",
+            "expected_finding": "核查 lun-a 在 S3.4 存储资源层 的状态与观测结果",
+            "topo_path": [
+              "lun-a"
+            ],
+            "scope": "受害业务路径（host-b → lun-b → fc-port-0a → controller-0a → storage-pool-01）",
+            "round": 1
+          },
+          {
+            "seq": 7,
             "target_resource": "lun-b",
             "target_fault_mode": "LUN-B 时延突增",
             "verify_question": "受害 LUN 自身 IO 是否异常且与现象时间窗一致",
@@ -2064,53 +2474,7 @@
             "round": 1
           },
           {
-            "seq": 2,
-            "target_resource": "host-b",
-            "target_fault_mode": "Host-B 资源瓶颈",
-            "verify_question": "受害主机自身 CPU/IO 是否成为瓶颈",
-            "expected_finding": "如命中则 Host-B 资源占用突增，否则排除主机本体",
-            "topo_path": [
-              "business-b",
-              "host-b",
-              "san-fabric-01",
-              "lun-b"
-            ],
-            "scope": "受害业务路径",
-            "round": 1
-          },
-          {
-            "seq": 3,
-            "target_resource": "fc-port-0a",
-            "target_fault_mode": "FC 端口链路抖动",
-            "verify_question": "共享 FC 链路是否出现抖动或错误计数增长",
-            "expected_finding": "如命中则链路错误计数异常；否则排除链路问题",
-            "topo_path": [
-              "host-b",
-              "san-fabric-01",
-              "fc-port-0a",
-              "controller-0a"
-            ],
-            "scope": "共享资源",
-            "round": 1
-          },
-          {
-            "seq": 4,
-            "target_resource": "controller-0a",
-            "target_fault_mode": "共享控制器队列压力",
-            "verify_question": "共享控制器队列深度是否被兄弟消费者抬高",
-            "expected_finding": "如命中则队列深度/带宽利用率突增且与受害时延同步",
-            "topo_path": [
-              "fc-port-0a",
-              "controller-0a",
-              "lun-a",
-              "lun-b",
-              "storage-pool-01"
-            ],
-            "scope": "共享资源",
-            "round": 1
-          },
-          {
-            "seq": 5,
+            "seq": 8,
             "target_resource": "storage-pool-01",
             "target_fault_mode": "共享存储池带宽争用",
             "verify_question": "共享存储池带宽是否被兄弟 LUN 争用",
@@ -2123,24 +2487,6 @@
             ],
             "scope": "共享资源",
             "round": 1
-          },
-          {
-            "seq": 6,
-            "target_resource": "host-a",
-            "target_fault_mode": "Host-A 批处理 IO 突增（施压者）",
-            "verify_question": "兄弟消费者 Host-A 是否产生 IO 突增抢占共享资源",
-            "expected_finding": "如命中则 Host-A/LUN-A IO 突增先于受害时延，且共享资源队列同步抬升",
-            "topo_path": [
-              "business-a",
-              "host-a",
-              "san-fabric-01",
-              "fc-port-0a",
-              "controller-0a",
-              "lun-a",
-              "storage-pool-01"
-            ],
-            "scope": "共享消费者反向追溯",
-            "round": 2
           }
         ],
         "replan": {
@@ -2156,13 +2502,13 @@
       }
     },
     {
-      "event_id": "evt-0028",
+      "event_id": "evt-0037",
       "session_id": "session-noisy_neighbor_io_contention_001",
-      "sequence": 28,
+      "sequence": 37,
       "event_type": "TASK_STATUS_CHANGED",
       "producer": "planner",
       "correlation_id": "exec-task-expand-shared-consumers",
-      "causation_id": "evt-0027",
+      "causation_id": "evt-0036",
       "payload": {
         "task": {
           "task_id": "task-expand-shared-consumers",
@@ -2190,7 +2536,7 @@
           },
           "priority": 96,
           "execution_mode": "PARALLEL",
-          "ui_role": "BACKGROUND",
+          "ui_role": "PRIMARY",
           "status": "RUNNING",
           "result_refs": [
             "e-lun-a-shares-lun-b",
@@ -2204,23 +2550,23 @@
       }
     },
     {
-      "event_id": "evt-0029",
+      "event_id": "evt-0038",
       "session_id": "session-noisy_neighbor_io_contention_001",
-      "sequence": 29,
+      "sequence": 38,
       "event_type": "SKILL_STARTED",
       "occurred_at": "2026-08-01T10:20:11.400+08:00",
       "producer": "skill-executor",
       "correlation_id": "exec-task-expand-shared-consumers",
-      "causation_id": "evt-0028",
+      "causation_id": "evt-0037",
       "payload": {
         "execution_id": "exec-task-expand-shared-consumers",
         "task_id": "task-expand-shared-consumers",
         "skill_id": "topology_query",
-        "ui_role": "BACKGROUND",
+        "ui_role": "PRIMARY",
         "goal": "反向展开共享资源消费者",
         "action_text": "执行 topology_query：反向展开共享资源消费者",
-        "reason_text": "受害 LUN 自身 IO 是否异常且与现象时间窗一致",
-        "expected_result_text": "如命中则 LUN-B 时延/iops 异常；否则为受外部影响",
+        "reason_text": "兄弟消费者 Host-A 是否产生 IO 突增抢占共享资源",
+        "expected_result_text": "如命中则 Host-A/LUN-A IO 突增先于受害时延，且共享资源队列同步抬升",
         "target_object_refs": [
           "controller-0a",
           "storage-pool-01"
@@ -2228,14 +2574,14 @@
       }
     },
     {
-      "event_id": "evt-0030",
+      "event_id": "evt-0039",
       "session_id": "session-noisy_neighbor_io_contention_001",
-      "sequence": 30,
+      "sequence": 39,
       "event_type": "SKILL_COMPLETED",
       "occurred_at": "2026-08-01T10:20:12.000+08:00",
       "producer": "skill-executor",
       "correlation_id": "exec-task-expand-shared-consumers",
-      "causation_id": "evt-0028",
+      "causation_id": "evt-0037",
       "payload": {
         "execution_id": "exec-task-expand-shared-consumers",
         "result_summary": "反向展开共享资源消费者",
@@ -2243,13 +2589,13 @@
       }
     },
     {
-      "event_id": "evt-0031",
+      "event_id": "evt-0040",
       "session_id": "session-noisy_neighbor_io_contention_001",
-      "sequence": 31,
+      "sequence": 40,
       "event_type": "FACT_DISCOVERED",
       "producer": "fact-normalizer",
       "correlation_id": "exec-task-expand-shared-consumers",
-      "causation_id": "evt-0030",
+      "causation_id": "evt-0039",
       "payload": {
         "fact_refs": [
           "fact-e-lun-a-shares-lun-b"
@@ -2286,26 +2632,26 @@
       }
     },
     {
-      "event_id": "evt-0032",
+      "event_id": "evt-0041",
       "session_id": "session-noisy_neighbor_io_contention_001",
-      "sequence": 32,
+      "sequence": 41,
       "event_type": "TASK_STATUS_CHANGED",
       "producer": "planner",
       "correlation_id": "exec-task-expand-shared-consumers",
-      "causation_id": "evt-0031",
+      "causation_id": "evt-0040",
       "payload": {
         "task_id": "task-expand-shared-consumers",
         "status": "SUCCEEDED"
       }
     },
     {
-      "event_id": "evt-0033",
+      "event_id": "evt-0042",
       "session_id": "session-noisy_neighbor_io_contention_001",
-      "sequence": 33,
+      "sequence": 42,
       "event_type": "CANDIDATES_GENERATED",
       "producer": "reasoning",
       "correlation_id": null,
-      "causation_id": "evt-0031",
+      "causation_id": "evt-0040",
       "payload": {
         "candidate_refs": [
           "cand-noisy-neighbor-a"
@@ -2331,311 +2677,13 @@
       }
     },
     {
-      "event_id": "evt-0034",
-      "session_id": "session-noisy_neighbor_io_contention_001",
-      "sequence": 34,
-      "event_type": "TASK_STATUS_CHANGED",
-      "producer": "planner",
-      "correlation_id": "exec-task-query-batch-logs",
-      "causation_id": "evt-0027",
-      "payload": {
-        "task": {
-          "task_id": "task-query-batch-logs",
-          "skill_code": "MATCH_LOG_FINGERPRINT",
-          "skill_id": "log_fingerprint_query",
-          "action": "MATCH_LOG_FINGERPRINT",
-          "stage": "evidence_collection",
-          "display_name": "查询Host-A批处理与恢复日志",
-          "goal": "查询Host-A批处理与恢复日志",
-          "target_object_refs": [
-            "host-a",
-            "lun-a",
-            "storage-pool-01"
-          ],
-          "input": {
-            "object_ids": [
-              "host-a",
-              "lun-a",
-              "storage-pool-01"
-            ]
-          },
-          "priority": 93,
-          "execution_mode": "PARALLEL",
-          "ui_role": "BACKGROUND",
-          "status": "RUNNING",
-          "result_refs": [
-            "fp-batch-start-001",
-            "fp-workload-surge-002",
-            "fp-batch-complete-005",
-            "fp-pool-recovered-006"
-          ],
-          "started_at": "2026-08-01T10:20:12.150+08:00",
-          "ended_at": "2026-08-01T10:20:12.950+08:00",
-          "error": null
-        },
-        "status": "RUNNING"
-      }
-    },
-    {
-      "event_id": "evt-0035",
-      "session_id": "session-noisy_neighbor_io_contention_001",
-      "sequence": 35,
-      "event_type": "SKILL_STARTED",
-      "occurred_at": "2026-08-01T10:20:12.150+08:00",
-      "producer": "skill-executor",
-      "correlation_id": "exec-task-query-batch-logs",
-      "causation_id": "evt-0034",
-      "payload": {
-        "execution_id": "exec-task-query-batch-logs",
-        "task_id": "task-query-batch-logs",
-        "skill_id": "log_fingerprint_query",
-        "ui_role": "BACKGROUND",
-        "goal": "查询Host-A批处理与恢复日志",
-        "action_text": "执行 log_fingerprint_query：查询Host-A批处理与恢复日志",
-        "reason_text": "共享存储池带宽是否被兄弟 LUN 争用",
-        "expected_result_text": "如命中则池带宽利用率突增且与受害时延同步",
-        "target_object_refs": [
-          "host-a",
-          "lun-a",
-          "storage-pool-01"
-        ]
-      }
-    },
-    {
-      "event_id": "evt-0036",
-      "session_id": "session-noisy_neighbor_io_contention_001",
-      "sequence": 36,
-      "event_type": "SKILL_COMPLETED",
-      "occurred_at": "2026-08-01T10:20:12.950+08:00",
-      "producer": "skill-executor",
-      "correlation_id": "exec-task-query-batch-logs",
-      "causation_id": "evt-0034",
-      "payload": {
-        "execution_id": "exec-task-query-batch-logs",
-        "result_summary": "查询Host-A批处理与恢复日志",
-        "ended_at": "2026-08-01T10:20:12.950+08:00"
-      }
-    },
-    {
-      "event_id": "evt-0037",
-      "session_id": "session-noisy_neighbor_io_contention_001",
-      "sequence": 37,
-      "event_type": "FACT_DISCOVERED",
-      "producer": "fact-normalizer",
-      "correlation_id": "exec-task-query-batch-logs",
-      "causation_id": "evt-0036",
-      "payload": {
-        "fact_refs": [
-          "fact-fp-batch-start-001",
-          "fact-fp-batch-complete-005",
-          "fact-fp-pool-recovered-006"
-        ],
-        "facts": [
-          {
-            "fact_id": "fact-fp-batch-start-001",
-            "fact_type": "LOG_FINGERPRINT",
-            "object_refs": [
-              "host-a"
-            ],
-            "occurred_at": "2026-08-01T10:15:00.000+08:00",
-            "observed_range": {
-              "start": "2026-08-01T10:15:00.000+08:00",
-              "end": "2026-08-01T10:15:01.000+08:00"
-            },
-            "source": {
-              "execution_id": "exec-task-query-batch-logs",
-              "skill_id": "log_fingerprint_query",
-              "source_refs": [
-                "fp-batch-start-001"
-              ]
-            },
-            "payload": {
-              "name": "批处理任务启动",
-              "template": "batch workload started, job=<*>, host=<*>, expected_parallelism=<NUM>",
-              "fault_mode_codes": [
-                "NOISY_NEIGHBOR_IO_CONTENTION"
-              ],
-              "hit_count": 1,
-              "matched_log_ids": [
-                "nn-log-001"
-              ]
-            }
-          },
-          {
-            "fact_id": "fact-fp-batch-complete-005",
-            "fact_type": "LOG_FINGERPRINT",
-            "object_refs": [
-              "host-a"
-            ],
-            "occurred_at": "2026-08-01T10:19:00.000+08:00",
-            "observed_range": {
-              "start": "2026-08-01T10:19:00.000+08:00",
-              "end": "2026-08-01T10:19:01.000+08:00"
-            },
-            "source": {
-              "execution_id": "exec-task-query-batch-logs",
-              "skill_id": "log_fingerprint_query",
-              "source_refs": [
-                "fp-batch-complete-005"
-              ]
-            },
-            "payload": {
-              "name": "批处理任务完成",
-              "template": "batch workload completed, job=<*>, host=<*>",
-              "fault_mode_codes": [
-                "NOISY_NEIGHBOR_IO_CONTENTION"
-              ],
-              "hit_count": 1,
-              "matched_log_ids": [
-                "nn-log-005"
-              ]
-            }
-          },
-          {
-            "fact_id": "fact-fp-pool-recovered-006",
-            "fact_type": "LOG_FINGERPRINT",
-            "object_refs": [
-              "storage-pool-01"
-            ],
-            "occurred_at": "2026-08-01T10:19:35.000+08:00",
-            "observed_range": {
-              "start": "2026-08-01T10:19:35.000+08:00",
-              "end": "2026-08-01T10:19:45.000+08:00"
-            },
-            "source": {
-              "execution_id": "exec-task-query-batch-logs",
-              "skill_id": "log_fingerprint_query",
-              "source_refs": [
-                "fp-pool-recovered-006"
-              ]
-            },
-            "payload": {
-              "name": "存储池带宽恢复",
-              "template": "backend bandwidth recovered, pool=<*>, utilization_pct=<NUM>",
-              "fault_mode_codes": [
-                "NOISY_NEIGHBOR_IO_CONTENTION"
-              ],
-              "hit_count": 1,
-              "matched_log_ids": [
-                "nn-log-006"
-              ]
-            }
-          }
-        ]
-      }
-    },
-    {
-      "event_id": "evt-0038",
-      "session_id": "session-noisy_neighbor_io_contention_001",
-      "sequence": 38,
-      "event_type": "TASK_STATUS_CHANGED",
-      "producer": "planner",
-      "correlation_id": "exec-task-query-batch-logs",
-      "causation_id": "evt-0037",
-      "payload": {
-        "task_id": "task-query-batch-logs",
-        "status": "SUCCEEDED"
-      }
-    },
-    {
-      "event_id": "evt-0039",
-      "session_id": "session-noisy_neighbor_io_contention_001",
-      "sequence": 39,
-      "event_type": "TASK_STATUS_CHANGED",
-      "producer": "planner",
-      "correlation_id": "exec-task-map-business-b",
-      "causation_id": "evt-0027",
-      "payload": {
-        "task": {
-          "task_id": "task-map-business-b",
-          "skill_code": "BUSINESS_MAPPING",
-          "skill_id": "business_mapping",
-          "action": "BUSINESS_MAPPING",
-          "stage": "scope_localization",
-          "display_name": "映射Host-B业务与LUN",
-          "goal": "映射Host-B业务与LUN",
-          "target_object_refs": [
-            "business-b"
-          ],
-          "input": {
-            "object_ids": [
-              "business-b"
-            ]
-          },
-          "priority": 100,
-          "execution_mode": "PARALLEL",
-          "ui_role": "PRIMARY",
-          "status": "RUNNING",
-          "result_refs": [
-            "e-business-b-host-b",
-            "e-host-b-lun-b"
-          ],
-          "started_at": "2026-08-01T10:20:10.000+08:00",
-          "ended_at": "2026-08-01T10:20:10.350+08:00",
-          "error": null
-        },
-        "status": "RUNNING"
-      }
-    },
-    {
-      "event_id": "evt-0040",
-      "session_id": "session-noisy_neighbor_io_contention_001",
-      "sequence": 40,
-      "event_type": "SKILL_STARTED",
-      "occurred_at": "2026-08-01T10:20:10.000+08:00",
-      "producer": "skill-executor",
-      "correlation_id": "exec-task-map-business-b",
-      "causation_id": "evt-0039",
-      "payload": {
-        "execution_id": "exec-task-map-business-b",
-        "task_id": "task-map-business-b",
-        "skill_id": "business_mapping",
-        "ui_role": "PRIMARY",
-        "goal": "映射Host-B业务与LUN",
-        "action_text": "执行 business_mapping：映射Host-B业务与LUN",
-        "reason_text": "受害 LUN 自身 IO 是否异常且与现象时间窗一致",
-        "expected_result_text": "如命中则 LUN-B 时延/iops 异常；否则为受外部影响",
-        "target_object_refs": [
-          "business-b"
-        ]
-      }
-    },
-    {
-      "event_id": "evt-0041",
-      "session_id": "session-noisy_neighbor_io_contention_001",
-      "sequence": 41,
-      "event_type": "SKILL_COMPLETED",
-      "occurred_at": "2026-08-01T10:20:10.350+08:00",
-      "producer": "skill-executor",
-      "correlation_id": "exec-task-map-business-b",
-      "causation_id": "evt-0039",
-      "payload": {
-        "execution_id": "exec-task-map-business-b",
-        "result_summary": "映射Host-B业务与LUN",
-        "ended_at": "2026-08-01T10:20:10.350+08:00"
-      }
-    },
-    {
-      "event_id": "evt-0042",
-      "session_id": "session-noisy_neighbor_io_contention_001",
-      "sequence": 42,
-      "event_type": "TASK_STATUS_CHANGED",
-      "producer": "planner",
-      "correlation_id": "exec-task-map-business-b",
-      "causation_id": "evt-0041",
-      "payload": {
-        "task_id": "task-map-business-b",
-        "status": "SUCCEEDED"
-      }
-    },
-    {
       "event_id": "evt-0043",
       "session_id": "session-noisy_neighbor_io_contention_001",
       "sequence": 43,
       "event_type": "TASK_STATUS_CHANGED",
       "producer": "planner",
       "correlation_id": "exec-task-compare-a-b-kpi",
-      "causation_id": "evt-0027",
+      "causation_id": "evt-0036",
       "payload": {
         "task": {
           "task_id": "task-compare-a-b-kpi",
@@ -2662,7 +2710,7 @@
           },
           "priority": 95,
           "execution_mode": "PARALLEL",
-          "ui_role": "BACKGROUND",
+          "ui_role": "PRIMARY",
           "status": "RUNNING",
           "result_refs": [
             "kpi-lun-a-iops",
@@ -2691,11 +2739,11 @@
         "execution_id": "exec-task-compare-a-b-kpi",
         "task_id": "task-compare-a-b-kpi",
         "skill_id": "kpi_query",
-        "ui_role": "BACKGROUND",
+        "ui_role": "PRIMARY",
         "goal": "对齐Host-A、共享资源与Host-B KPI",
         "action_text": "执行 kpi_query：对齐Host-A、共享资源与Host-B KPI",
-        "reason_text": "受害 LUN 自身 IO 是否异常且与现象时间窗一致",
-        "expected_result_text": "如命中则 LUN-B 时延/iops 异常；否则为受外部影响",
+        "reason_text": "共享控制器队列深度是否被兄弟消费者抬高",
+        "expected_result_text": "如命中则队列深度/带宽利用率突增且与受害时延同步",
         "target_object_refs": [
           "lun-a",
           "controller-0a",
@@ -2833,7 +2881,7 @@
       "event_type": "TASK_STATUS_CHANGED",
       "producer": "planner",
       "correlation_id": "exec-task-search-similar",
-      "causation_id": "evt-0027",
+      "causation_id": "evt-0036",
       "payload": {
         "task": {
           "task_id": "task-search-similar",
@@ -2853,7 +2901,7 @@
           },
           "priority": 92,
           "execution_mode": "PARALLEL",
-          "ui_role": "BACKGROUND",
+          "ui_role": "PRIMARY",
           "status": "RUNNING",
           "result_refs": [
             "case-20260708-014"
@@ -2878,7 +2926,7 @@
         "execution_id": "exec-task-search-similar",
         "task_id": "task-search-similar",
         "skill_id": "similar_case_query",
-        "ui_role": "BACKGROUND",
+        "ui_role": "PRIMARY",
         "goal": "检索共享存储扰邻历史案例",
         "action_text": "执行 similar_case_query：检索共享存储扰邻历史案例",
         "reason_text": "按 Planner 优先级验证候选相关对象与时间窗",
@@ -2978,7 +3026,7 @@
       "event_type": "EVIDENCE_CREATED",
       "producer": "reasoning",
       "correlation_id": null,
-      "causation_id": "evt-0011",
+      "causation_id": "evt-0020",
       "payload": {
         "evidence_ref": "ev-b-latency-impact",
         "evidence": {
@@ -3011,7 +3059,7 @@
       "event_type": "EVIDENCE_CREATED",
       "producer": "reasoning",
       "correlation_id": null,
-      "causation_id": "evt-0031",
+      "causation_id": "evt-0040",
       "payload": {
         "evidence_ref": "ev-shared-path",
         "evidence": {
@@ -3045,7 +3093,7 @@
       "event_type": "EVIDENCE_CREATED",
       "producer": "reasoning",
       "correlation_id": null,
-      "causation_id": "evt-0025",
+      "causation_id": "evt-0034",
       "payload": {
         "evidence_ref": "ev-shared-queue-high",
         "evidence": {
@@ -3111,7 +3159,7 @@
       "event_type": "EVIDENCE_CREATED",
       "producer": "reasoning",
       "correlation_id": null,
-      "causation_id": "evt-0037",
+      "causation_id": "evt-0015",
       "payload": {
         "evidence_ref": "ev-a-batch-log",
         "evidence": {
@@ -3144,7 +3192,7 @@
       "event_type": "EVIDENCE_CREATED",
       "producer": "reasoning",
       "correlation_id": null,
-      "causation_id": "evt-0037",
+      "causation_id": "evt-0015",
       "payload": {
         "evidence_ref": "ev-recovery-closure",
         "evidence": {
@@ -3177,7 +3225,7 @@
       "event_type": "EVIDENCE_CREATED",
       "producer": "reasoning",
       "correlation_id": null,
-      "causation_id": "evt-0011",
+      "causation_id": "evt-0020",
       "payload": {
         "evidence_ref": "ev-host-b-cpu-normal",
         "evidence": {
@@ -3210,7 +3258,7 @@
       "event_type": "EVIDENCE_CREATED",
       "producer": "reasoning",
       "correlation_id": null,
-      "causation_id": "evt-0020",
+      "causation_id": "evt-0029",
       "payload": {
         "evidence_ref": "ev-fc-crc-zero",
         "evidence": {
@@ -3243,7 +3291,7 @@
       "event_type": "EVIDENCE_CREATED",
       "producer": "reasoning",
       "correlation_id": null,
-      "causation_id": "evt-0020",
+      "causation_id": "evt-0029",
       "payload": {
         "evidence_ref": "ev-controller-no-fault",
         "evidence": {
@@ -3276,7 +3324,7 @@
       "event_type": "EVIDENCE_CREATED",
       "producer": "reasoning",
       "correlation_id": null,
-      "causation_id": "evt-0037",
+      "causation_id": "evt-0015",
       "payload": {
         "evidence_ref": "ev-pool-not-intrinsic",
         "evidence": {

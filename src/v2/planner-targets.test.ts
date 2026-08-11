@@ -9,26 +9,21 @@ import { ProjectionStore } from './projection-store'
  * SKILL_STARTED 目标化 reason/expected、投影层目标状态推导与"当前位置"随动。
  */
 describe('issue#6 阶段A — Planner 目标呈现', () => {
-  it('controller 案例补齐全部任务目标，并按 S1→S3 拓扑深度排序', () => {
+  it('controller 案例补齐任务目标，并按 S1→S3 拓扑深度排序', () => {
     const adapted = loadAdaptedCase('controller_warm_reset_001')
     expect(adapted.plannerPlan).not.toBeNull()
     const targets = adapted.plannerPlan!.targets
+    // issue#16：Planner 只保留排查路径节点（源计划 + 任务目标），不再把整张拓扑塞入。
     expect(targets.map((t) => t.target_resource)).toEqual([
-      'db-business-01',
       'db-host-01',
-      'san-fabric-a',
-      'san-fabric-b',
       'fc-port-0a',
       'fc-port-0b',
       'controller-0a',
       'controller-0b',
-      'block-service-01',
       'lun-db01',
       'storage-pool-01',
-      'disk-group-01',
-      'storage-01',
     ])
-    expect(targets.map((t) => t.seq)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13])
+    expect(targets.map((t) => t.seq)).toEqual([1, 2, 3, 4, 5, 6, 7])
     // 每个目标都具备"为什么验证/期望发现什么/当前范围"。
     for (const t of targets) {
       expect(t.verify_question.length).toBeGreaterThan(0)
@@ -44,12 +39,12 @@ describe('issue#6 阶段A — Planner 目标呈现', () => {
   it('PLAN_CREATED 携带 round-1 目标；task-check-pool 触发 PLAN_REPLANNED 并追加目标', () => {
     const events = generateEvents(loadAdaptedCase('controller_warm_reset_001'))
     const created = events.find((e) => e.event_type === 'PLAN_CREATED')!
-    expect(created.payload['planner_targets']).toHaveLength(12)
+    expect(created.payload['planner_targets']).toHaveLength(6)
     expect(created.payload['planner_original_scope']).toContain('业务专属路径')
 
     const replanned = events.find((e) => e.event_type === 'PLAN_REPLANNED')!
     expect(replanned).toBeTruthy()
-    expect(replanned.payload['planner_targets']).toHaveLength(13)
+    expect(replanned.payload['planner_targets']).toHaveLength(7)
     expect(replanned.payload['replan']).toMatchObject({
       round: 2,
       original_scope: expect.stringContaining('业务专属路径'),
@@ -82,7 +77,7 @@ describe('issue#6 阶段A — Planner 目标呈现', () => {
     const store = new ProjectionStore()
     store.bind(snap)
     const vm = store.plannerTargets()
-    expect(vm.targets).toHaveLength(13)
+    expect(vm.targets).toHaveLength(7)
     const byRes = Object.fromEntries(vm.targets.map((t) => [t.target_resource, t.status]))
     expect(byRes['controller-0a']).toBe('verified_abnormal')
     expect(byRes['fc-port-0a']).toBe('excluded')

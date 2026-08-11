@@ -1,34 +1,84 @@
 {
   "plan_id": "plan-layered_topology_demo_001-001",
-  "original_scope": "分层拓扑路径（host-if-01 → lun-backup-01 → disk-01a）",
+  "original_scope": "分层拓扑路径（backup-app-01 → bs-backup-01 → client-os-01 → host-if-01 → lun-backup-01 → disk-01a）",
   "targets": [
     {
       "seq": 1,
-      "target_resource": "lun-backup-01",
-      "target_fault_mode": "LUN IO 争用",
-      "verify_question": "LUN 自身是否出现 IO 争用或时延异常",
-      "expected_finding": "如命中则 LUN IO/时延异常；否则为底层故障影响",
-      "topo_path": ["host-if-01", "lun-backup-01", "disk-01a"],
-      "scope": "业务专属路径",
+      "target_resource": "backup-app-01",
+      "target_fault_mode": "业务受影响",
+      "verify_question": "备份业务应用是否因底层时延升高而受影响",
+      "expected_finding": "备份业务服务异常或依赖路径时延升高",
+      "topo_path": ["backup-app-01", "bs-backup-01", "client-os-01", "host-if-01", "lun-backup-01", "disk-01a"],
+      "scope": "S1 客户业务域",
       "round": 1
     },
     {
       "seq": 2,
-      "target_resource": "host-if-01",
-      "target_fault_mode": "主机接口瓶颈",
-      "verify_question": "主机侧接口是否出现拥塞或链路异常",
-      "expected_finding": "如命中则主机接口错误计数或带宽打满",
-      "topo_path": ["host-if-01", "lun-backup-01"],
-      "scope": "业务专属路径",
+      "target_resource": "bs-backup-01",
+      "target_fault_mode": "业务服务异常",
+      "verify_question": "备份业务服务是否出现异常或连接中断",
+      "expected_finding": "如命中则业务服务异常；否则沿依赖下钻",
+      "topo_path": ["bs-backup-01", "client-os-01", "host-if-01", "lun-backup-01"],
+      "scope": "S1 客户业务域",
       "round": 1
     },
     {
       "seq": 3,
+      "target_resource": "client-os-01",
+      "target_fault_mode": "客户端主机瓶颈",
+      "verify_question": "备份客户端主机 CPU/IO 是否饱和或本地争用",
+      "expected_finding": "如命中则客户端本地饱和；否则为访问链路或后端故障",
+      "topo_path": ["client-os-01", "host-if-01", "lun-backup-01"],
+      "scope": "S1 客户业务域",
+      "round": 1
+    },
+    {
+      "seq": 4,
+      "target_resource": "host-if-01",
+      "target_fault_mode": "主机接口瓶颈",
+      "verify_question": "主机侧接口是否出现拥塞、错误或链路异常",
+      "expected_finding": "如命中则主机接口错误计数或带宽打满；否则为存储侧故障",
+      "topo_path": ["host-if-01", "lun-backup-01"],
+      "scope": "S2 访问连接域",
+      "round": 1
+    },
+    {
+      "seq": 5,
+      "target_resource": "lun-backup-01",
+      "target_fault_mode": "LUN IO 争用",
+      "verify_question": "LUN 自身是否出现 IO 争用或时延异常",
+      "expected_finding": "如命中则 LUN IO/时延异常；否则为底层故障影响",
+      "topo_path": ["lun-backup-01", "pool-01a", "raid-01a", "disk-01a"],
+      "scope": "S3 存储系统域",
+      "round": 1
+    },
+    {
+      "seq": 6,
+      "target_resource": "pool-01a",
+      "target_fault_mode": "存储池容量/性能瓶颈",
+      "verify_question": "存储池是否出现容量或性能瓶颈",
+      "expected_finding": "如命中则池容量/性能异常；否则继续下钻到 RAID 与磁盘",
+      "topo_path": ["pool-01a", "raid-01a", "disk-01a"],
+      "scope": "S3 存储系统域",
+      "round": 1
+    },
+    {
+      "seq": 7,
+      "target_resource": "raid-01a",
+      "target_fault_mode": "RAID 组降级",
+      "verify_question": "RAID 组是否降级或在重建",
+      "expected_finding": "如命中则 RAID 降级告警与重建日志一致",
+      "topo_path": ["raid-01a", "disk-01a"],
+      "scope": "底层资源",
+      "round": 1
+    },
+    {
+      "seq": 8,
       "target_resource": "disk-01a",
       "target_fault_mode": "磁盘扇区故障",
       "verify_question": "底层磁盘是否出现扇区故障",
       "expected_finding": "如命中则磁盘扇区错误日志与读延迟一致",
-      "topo_path": ["lun-backup-01", "disk-01a"],
+      "topo_path": ["disk-01a"],
       "scope": "底层资源",
       "round": 1
     }

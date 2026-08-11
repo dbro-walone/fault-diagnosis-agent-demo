@@ -26,6 +26,15 @@
       "component": "os",
       "message": "CPU/IO normal, no local saturation",
       "fingerprint_id": "fp-host-normal"
+    },
+    {
+      "log_id": "log-host-if-normal",
+      "timestamp": "2026-08-02T10:00:11.400+08:00",
+      "object_id": "host-if-01",
+      "level": "INFO",
+      "component": "host-if",
+      "message": "host-if-01 link healthy, no congestion or interface errors",
+      "fingerprint_id": "fp-host-normal"
     }
   ]
 }

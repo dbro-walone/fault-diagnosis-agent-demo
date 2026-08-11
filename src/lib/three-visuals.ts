@@ -134,23 +134,58 @@ export function nodeLabelHtml(node: GraphNode, ctx: NodeLabelContext = {}): stri
   return base
 }
 
-/** A lightweight canvas label attached to the same Three.js scene as the node. */
+/**
+ * A lightweight canvas label attached to the same Three.js scene as the node.
+ * 拓扑真实成员（非聚合头）双行显示「资源 ID + 中文名」，与 Planner 面板一一对应；
+ * 聚合头/知识节点保持单行，避免标签过密。
+ */
 export function labelSprite(node: GraphNode): THREE.Sprite {
   const canvas = document.createElement('canvas')
   const context = canvas.getContext('2d')!
   const ratio = Math.min(window.devicePixelRatio || 1, 2)
+  const isTopologyMember = node.plane === 'topology' && !node.id.startsWith('layer:')
   const fontSize = node.alwaysLabel ? 24 : 20
-  context.font = `600 ${fontSize * ratio}px system-ui, sans-serif`
-  const width = Math.ceil(context.measureText(node.label).width + 20 * ratio)
-  canvas.width = width
-  canvas.height = 36 * ratio
-  context.font = `600 ${fontSize * ratio}px system-ui, sans-serif`
-  context.fillStyle = 'rgba(15, 17, 23, 0.78)'
-  context.roundRect(0, 0, canvas.width, canvas.height, 8 * ratio)
-  context.fill()
-  context.fillStyle = '#e2e8f0'
-  context.textBaseline = 'middle'
-  context.fillText(node.label, 10 * ratio, canvas.height / 2)
+  const subFontSize = 12
+  const idText = node.id
+  const nameText = node.label
+  const pad = 10 * ratio
+
+  if (isTopologyMember) {
+    // 双行：ID 主行 + 中文名副行。
+    context.font = `600 ${fontSize * ratio}px system-ui, sans-serif`
+    const idWidth = Math.ceil(context.measureText(idText).width)
+    context.font = `400 ${subFontSize * ratio}px system-ui, sans-serif`
+    const nameWidth = Math.ceil(context.measureText(nameText).width)
+    const width = Math.max(idWidth, nameWidth) + pad * 2
+    const height = 46 * ratio
+    canvas.width = width
+    canvas.height = height
+
+    context.fillStyle = 'rgba(15, 17, 23, 0.82)'
+    context.roundRect(0, 0, canvas.width, canvas.height, 8 * ratio)
+    context.fill()
+
+    context.textBaseline = 'middle'
+    context.font = `600 ${fontSize * ratio}px system-ui, sans-serif`
+    context.fillStyle = '#e2e8f0'
+    context.fillText(idText, pad, 16 * ratio)
+    context.font = `400 ${subFontSize * ratio}px system-ui, sans-serif`
+    context.fillStyle = '#94a3b8'
+    context.fillText(nameText, pad, 34 * ratio)
+  } else {
+    // 单行：默认行为（聚合头/知识节点）。
+    context.font = `600 ${fontSize * ratio}px system-ui, sans-serif`
+    const width = Math.ceil(context.measureText(node.label).width + pad * 2)
+    canvas.width = width
+    canvas.height = 36 * ratio
+    context.fillStyle = 'rgba(15, 17, 23, 0.78)'
+    context.roundRect(0, 0, canvas.width, canvas.height, 8 * ratio)
+    context.fill()
+    context.fillStyle = '#e2e8f0'
+    context.textBaseline = 'middle'
+    context.fillText(node.label, pad, canvas.height / 2)
+  }
+
   const texture = new THREE.CanvasTexture(canvas)
   texture.colorSpace = THREE.SRGBColorSpace
   const sprite = new THREE.Sprite(

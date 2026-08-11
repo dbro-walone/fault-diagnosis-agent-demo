@@ -277,16 +277,13 @@ describe('issue#6 阶段C — 逐对象诊断循环 diagnosisScan()', () => {
 
   it('controller 终态：排查路径严格按增强后的 PLANNER S1→S3 seq 序', () => {
     const scan = bindScan('controller_warm_reset_001')
+    // issue#16：Planner 只保留排查路径节点（源计划 + 任务目标）。
     expect(scan.path_object_ids).toEqual([
-      'db-business-01',
       'db-host-01',
-      'san-fabric-a',
-      'san-fabric-b',
       'fc-port-0a',
       'fc-port-0b',
       'controller-0a',
       'controller-0b',
-      'block-service-01',
       'lun-db01',
       'storage-pool-01',
     ])
@@ -308,7 +305,8 @@ describe('issue#6 阶段C — 逐对象诊断循环 diagnosisScan()', () => {
     const store = new ProjectionStore()
     store.bind(rt.liveSnapshot, { observationsFacts: loadAdaptedCase('controller_warm_reset_001').facts })
     const scan = store.diagnosisScan()
-    expect(scan.path_object_ids[0]).toBe('san-fabric-a')
+    // issue#16：排查路径 = 排查路径节点中已排查者，首项为按 seq 序第一个已排查目标。
+    expect(scan.path_object_ids[0]).toBe('fc-port-0a')
     // 已排查的 controller（告警事实已由终态任务覆盖）进入路径。
     expect(scan.path_object_ids).toContain('controller-0a')
     // fc-port 排在 KPI 之前（Bug1+2 fix：任务按 Planner seq 排序），此时已排查入路径。
@@ -340,12 +338,11 @@ describe('issue#6 阶段C — 逐对象诊断循环 diagnosisScan()', () => {
 
   it('noisy 终态：排查路径严格按增强后的 PLANNER S1→S3 seq 序', () => {
     const scan = bindScan('noisy_neighbor_io_contention_001')
+    // issue#16：Planner 只保留排查路径节点。
     expect(scan.path_object_ids).toEqual([
-      'business-a',
       'business-b',
       'host-a',
       'host-b',
-      'san-fabric-01',
       'fc-port-0a',
       'controller-0a',
       'lun-a',
@@ -356,15 +353,12 @@ describe('issue#6 阶段C — 逐对象诊断循环 diagnosisScan()', () => {
 
   it('remote 终态：排查路径严格按增强后的 PLANNER S1→S3 seq 序', () => {
     const scan = bindScan('remote_replication_lag_001')
+    // issue#16：Planner 只保留排查路径节点。
     expect(scan.path_object_ids).toEqual([
-      'prod-business',
       'wan-path-01',
-      'wan-router-a',
-      'wan-router-b',
       'repl-port-a',
       'repl-port-b',
       'replication-session-rs01',
-      'lun-dr',
       'lun-prod',
       'pool-a',
       'pool-b',
@@ -454,9 +448,24 @@ describe('issue#6 阶段C — 逐对象诊断循环 diagnosisScan()', () => {
       store.bind(snap, {
         observationsFacts: loadAdaptedCase('layered_topology_demo_001').facts,
       })
-      const nextPending = [...store.plannerTargets().targets]
-        .sort((a, b) => a.seq - b.seq)
-        .find((target) => target.status === 'pending')
+      // 与 focusObjectId 同口径：取"当前扫描位置之后"的第一个 pending（S1→S2→S3 前向推进）。
+      const targets = [...store.plannerTargets().targets].sort((a, b) => a.seq - b.seq)
+      const seqByResource = new Map(snap.planner_targets.map((t) => [t.target_resource, t.seq]))
+      const minSeqOf = (ids: string[] | undefined): number => {
+        let min = Infinity
+        for (const id of ids ?? []) {
+          const seq = seqByResource.get(id)
+          if (seq !== undefined && seq < min) min = seq
+        }
+        return min
+      }
+      const lastTask = [...snap.tasks]
+        .reverse()
+        .find((t) => t.status !== 'PLANNED' && t.status !== 'READY')
+      const position = lastTask ? minSeqOf(lastTask.target_object_refs) : 0
+      const nextPending =
+        targets.find((target) => target.status === 'pending' && target.seq > position) ??
+        targets.find((target) => target.status === 'pending')
       if (!nextPending) continue
 
       expect(store.diagnosisScan().focus_object_id).toBe(nextPending.target_resource)

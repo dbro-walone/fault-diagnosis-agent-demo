@@ -3,8 +3,8 @@
   "session": {
     "session_id": "session-layered_topology_demo_001",
     "case_id": "layered_topology_demo_001",
-    "version": 58,
-    "last_sequence": 58,
+    "version": 64,
+    "last_sequence": 64,
     "mode": "LIVE",
     "phase": "CONCLUSION_CHECK",
     "terminal_status": "ROOT_CAUSE_CONFIRMED",
@@ -25,6 +25,83 @@
     }
   },
   "facts": [
+    {
+      "fact_id": "fact-kpi-host-cpu",
+      "fact_type": "KPI_WINDOW",
+      "object_refs": [
+        "client-os-01"
+      ],
+      "occurred_at": "2026-08-02T10:00:10.000+08:00",
+      "observed_range": {
+        "start": "2026-08-02T09:59:50.000+08:00",
+        "end": "2026-08-02T10:00:20.000+08:00"
+      },
+      "source": {
+        "execution_id": "exec-task-check-competitors",
+        "skill_id": "kpi_query",
+        "source_refs": [
+          "kpi-host-cpu"
+        ],
+        "query_coverage": {
+          "object_coverage": "COMPLETE",
+          "time_coverage": "COMPLETE",
+          "metric_coverage": "COMPLETE"
+        }
+      },
+      "quality": {
+        "level": "HIGH",
+        "completeness": "COMPLETE",
+        "freshness": "REPLAY_DATA"
+      },
+      "payload": {
+        "metric_name": "客户端CPU",
+        "indicator_id": "cpu_util",
+        "unit": "%",
+        "baseline": 30,
+        "thresholds": {
+          "high": 90
+        },
+        "peak_value": 34,
+        "peak_at": "2026-08-02T10:00:10.000+08:00",
+        "samples": [
+          {
+            "timestamp": "2026-08-02T09:59:50.000+08:00",
+            "value": 32
+          },
+          {
+            "timestamp": "2026-08-02T10:00:10.000+08:00",
+            "value": 34
+          },
+          {
+            "timestamp": "2026-08-02T10:00:20.000+08:00",
+            "value": 33
+          }
+        ]
+      },
+      "created_sequence": 15
+    },
+    {
+      "fact_id": "fact-log-host-if-normal",
+      "fact_type": "LOG",
+      "object_refs": [
+        "host-if-01"
+      ],
+      "occurred_at": "2026-08-02T10:00:11.400+08:00",
+      "source": {
+        "execution_id": "exec-task-verify-host-if",
+        "skill_id": "link_health_query",
+        "source_refs": [
+          "log-host-if-normal"
+        ]
+      },
+      "payload": {
+        "level": "INFO",
+        "component": "host-if",
+        "message": "host-if-01 link healthy, no congestion or interface errors",
+        "fingerprint_id": "fp-host-normal"
+      },
+      "created_sequence": 20
+    },
     {
       "fact_id": "fact-kpi-lun-backup-latency",
       "fact_type": "KPI_WINDOW",
@@ -82,69 +159,7 @@
           }
         ]
       },
-      "created_sequence": 11
-    },
-    {
-      "fact_id": "fact-fp-sector-fault",
-      "fact_type": "LOG_FINGERPRINT",
-      "object_refs": [
-        "disk-01a"
-      ],
-      "occurred_at": "2026-08-02T09:59:55.000+08:00",
-      "observed_range": {
-        "start": "2026-08-02T09:59:55.000+08:00",
-        "end": "2026-08-02T10:00:00.000+08:00"
-      },
-      "source": {
-        "execution_id": "exec-task-match-sector-fp",
-        "skill_id": "log_fingerprint_query",
-        "source_refs": [
-          "fp-sector-fault"
-        ]
-      },
-      "payload": {
-        "name": "扇区坏道指纹",
-        "template": "sector reallocation",
-        "fault_mode_codes": [
-          "DISK_SECTOR_FAULT"
-        ],
-        "hit_count": 51,
-        "matched_log_ids": [
-          "log-disk-01a-sector"
-        ]
-      },
-      "created_sequence": 16
-    },
-    {
-      "fact_id": "fact-fp-raid-rebuild",
-      "fact_type": "LOG_FINGERPRINT",
-      "object_refs": [
-        "raid-01a"
-      ],
-      "occurred_at": "2026-08-02T10:00:04.000+08:00",
-      "observed_range": {
-        "start": "2026-08-02T10:00:04.000+08:00",
-        "end": "2026-08-02T10:00:30.000+08:00"
-      },
-      "source": {
-        "execution_id": "exec-task-match-sector-fp",
-        "skill_id": "log_fingerprint_query",
-        "source_refs": [
-          "fp-raid-rebuild"
-        ]
-      },
-      "payload": {
-        "name": "RAID 重建指纹",
-        "template": "degraded, rebuild",
-        "fault_mode_codes": [
-          "DISK_SECTOR_FAULT"
-        ],
-        "hit_count": 1,
-        "matched_log_ids": [
-          "log-raid-rebuild"
-        ]
-      },
-      "created_sequence": 16
+      "created_sequence": 25
     },
     {
       "fact_id": "fact-alm-raid-degrade-8802",
@@ -172,7 +187,7 @@
           "degraded_disk": "disk-01a"
         }
       },
-      "created_sequence": 25
+      "created_sequence": 30
     },
     {
       "fact_id": "fact-alm-disk-01a-fault",
@@ -200,61 +215,6 @@
           "sector_count": 51
         }
       },
-      "created_sequence": 25
-    },
-    {
-      "fact_id": "fact-kpi-host-cpu",
-      "fact_type": "KPI_WINDOW",
-      "object_refs": [
-        "client-os-01"
-      ],
-      "occurred_at": "2026-08-02T10:00:10.000+08:00",
-      "observed_range": {
-        "start": "2026-08-02T09:59:50.000+08:00",
-        "end": "2026-08-02T10:00:20.000+08:00"
-      },
-      "source": {
-        "execution_id": "exec-task-check-competitors",
-        "skill_id": "kpi_query",
-        "source_refs": [
-          "kpi-host-cpu"
-        ],
-        "query_coverage": {
-          "object_coverage": "COMPLETE",
-          "time_coverage": "COMPLETE",
-          "metric_coverage": "COMPLETE"
-        }
-      },
-      "quality": {
-        "level": "HIGH",
-        "completeness": "COMPLETE",
-        "freshness": "REPLAY_DATA"
-      },
-      "payload": {
-        "metric_name": "客户端CPU",
-        "indicator_id": "cpu_util",
-        "unit": "%",
-        "baseline": 30,
-        "thresholds": {
-          "high": 90
-        },
-        "peak_value": 34,
-        "peak_at": "2026-08-02T10:00:10.000+08:00",
-        "samples": [
-          {
-            "timestamp": "2026-08-02T09:59:50.000+08:00",
-            "value": 32
-          },
-          {
-            "timestamp": "2026-08-02T10:00:10.000+08:00",
-            "value": 34
-          },
-          {
-            "timestamp": "2026-08-02T10:00:20.000+08:00",
-            "value": 33
-          }
-        ]
-      },
       "created_sequence": 30
     },
     {
@@ -269,8 +229,8 @@
         "end": "2026-08-02T10:00:20.000+08:00"
       },
       "source": {
-        "execution_id": "exec-task-check-competitors",
-        "skill_id": "kpi_query",
+        "execution_id": "exec-task-query-disk-alarm",
+        "skill_id": "alarm_query",
         "source_refs": [
           "kpi-disk-01a-read-err"
         ],
@@ -317,6 +277,68 @@
       "created_sequence": 30
     },
     {
+      "fact_id": "fact-fp-sector-fault",
+      "fact_type": "LOG_FINGERPRINT",
+      "object_refs": [
+        "disk-01a"
+      ],
+      "occurred_at": "2026-08-02T09:59:55.000+08:00",
+      "observed_range": {
+        "start": "2026-08-02T09:59:55.000+08:00",
+        "end": "2026-08-02T10:00:00.000+08:00"
+      },
+      "source": {
+        "execution_id": "exec-task-match-sector-fp",
+        "skill_id": "log_fingerprint_query",
+        "source_refs": [
+          "fp-sector-fault"
+        ]
+      },
+      "payload": {
+        "name": "扇区坏道指纹",
+        "template": "sector reallocation",
+        "fault_mode_codes": [
+          "DISK_SECTOR_FAULT"
+        ],
+        "hit_count": 51,
+        "matched_log_ids": [
+          "log-disk-01a-sector"
+        ]
+      },
+      "created_sequence": 35
+    },
+    {
+      "fact_id": "fact-fp-raid-rebuild",
+      "fact_type": "LOG_FINGERPRINT",
+      "object_refs": [
+        "raid-01a"
+      ],
+      "occurred_at": "2026-08-02T10:00:04.000+08:00",
+      "observed_range": {
+        "start": "2026-08-02T10:00:04.000+08:00",
+        "end": "2026-08-02T10:00:30.000+08:00"
+      },
+      "source": {
+        "execution_id": "exec-task-match-sector-fp",
+        "skill_id": "log_fingerprint_query",
+        "source_refs": [
+          "fp-raid-rebuild"
+        ]
+      },
+      "payload": {
+        "name": "RAID 重建指纹",
+        "template": "degraded, rebuild",
+        "fault_mode_codes": [
+          "DISK_SECTOR_FAULT"
+        ],
+        "hit_count": 1,
+        "matched_log_ids": [
+          "log-raid-rebuild"
+        ]
+      },
+      "created_sequence": 35
+    },
+    {
       "fact_id": "fact-case-20260728-021",
       "fact_type": "SIMILAR_CASE_REFERENCE",
       "object_refs": [
@@ -343,7 +365,7 @@
         ],
         "resolution_summary": "更换故障盘后重建完成，性能恢复"
       },
-      "created_sequence": 35
+      "created_sequence": 40
     }
   ],
   "evidences": [
@@ -367,7 +389,7 @@
       "time_alignment_ms": 1500,
       "quality": "HIGH",
       "created_by": "reasoning-engine",
-      "created_sequence": 38
+      "created_sequence": 43
     },
     {
       "evidence_id": "ev-disk-fault-alarm",
@@ -389,7 +411,7 @@
       "time_alignment_ms": 1600,
       "quality": "HIGH",
       "created_by": "reasoning-engine",
-      "created_sequence": 39
+      "created_sequence": 44
     },
     {
       "evidence_id": "ev-sector-fp",
@@ -411,7 +433,7 @@
       "time_alignment_ms": 4200,
       "quality": "HIGH",
       "created_by": "reasoning-engine",
-      "created_sequence": 40
+      "created_sequence": 45
     },
     {
       "evidence_id": "ev-rebuild-fp",
@@ -433,7 +455,7 @@
       "time_alignment_ms": 2600,
       "quality": "HIGH",
       "created_by": "reasoning-engine",
-      "created_sequence": 41
+      "created_sequence": 46
     },
     {
       "evidence_id": "ev-backup-latency",
@@ -455,7 +477,7 @@
       "time_alignment_ms": 800,
       "quality": "HIGH",
       "created_by": "reasoning-engine",
-      "created_sequence": 42
+      "created_sequence": 47
     },
     {
       "evidence_id": "ev-host-normal",
@@ -477,7 +499,29 @@
       "time_alignment_ms": 900,
       "quality": "HIGH",
       "created_by": "reasoning-engine",
-      "created_sequence": 43
+      "created_sequence": 48
+    },
+    {
+      "evidence_id": "ev-host-if-normal",
+      "evidence_type": "MECHANISM",
+      "fact_refs": [
+        "fact-log-host-if-normal"
+      ],
+      "effects": [
+        {
+          "candidate_id": "cand-host-bottleneck",
+          "effect": "WEAKEN",
+          "score_delta": -15,
+          "explanation": "主机访问链路健康，削弱主机瓶颈候选"
+        }
+      ],
+      "object_refs": [
+        "host-if-01"
+      ],
+      "time_alignment_ms": 900,
+      "quality": "HIGH",
+      "created_by": "reasoning-engine",
+      "created_sequence": 49
     },
     {
       "evidence_id": "ev-latency-contend",
@@ -499,7 +543,7 @@
       "time_alignment_ms": 800,
       "quality": "MEDIUM",
       "created_by": "reasoning-engine",
-      "created_sequence": 44
+      "created_sequence": 50
     },
     {
       "evidence_id": "ev-disk-read-err",
@@ -521,7 +565,7 @@
       "time_alignment_ms": 700,
       "quality": "HIGH",
       "created_by": "reasoning-engine",
-      "created_sequence": 45
+      "created_sequence": 51
     },
     {
       "evidence_id": "ev-similar-disk",
@@ -543,7 +587,7 @@
       "time_alignment_ms": null,
       "quality": "MEDIUM",
       "created_by": "reasoning-engine",
-      "created_sequence": 46
+      "created_sequence": 52
     }
   ],
   "candidates": [
@@ -612,7 +656,8 @@
       },
       "supporting_evidence_refs": [],
       "weakening_evidence_refs": [
-        "ev-host-normal"
+        "ev-host-normal",
+        "ev-host-if-normal"
       ],
       "conflicting_evidence_refs": []
     }
@@ -678,6 +723,7 @@
         "status": "SATISFIED",
         "evidence_refs": [
           "ev-host-normal",
+          "ev-host-if-normal",
           "ev-latency-contend"
         ]
       },
@@ -844,64 +890,517 @@
       "payload": {
         "plan_id": "plan-layered_topology_demo_001-001",
         "phase": "CANDIDATE_EVIDENCE",
-        "primary_task_id": "task-verify-lun-kpi",
+        "primary_task_id": "task-map-backup",
         "task_refs": [
-          "task-verify-lun-kpi",
-          "task-match-sector-fp",
           "task-map-backup",
-          "task-query-disk-alarm",
           "task-check-competitors",
+          "task-verify-host-if",
+          "task-verify-lun-kpi",
+          "task-query-disk-alarm",
+          "task-match-sector-fp",
           "task-search-similar"
         ],
         "planner_targets": [
           {
             "seq": 1,
+            "target_resource": "backup-app-01",
+            "target_fault_mode": "业务受影响",
+            "verify_question": "备份业务应用是否因底层时延升高而受影响",
+            "expected_finding": "备份业务服务异常或依赖路径时延升高",
+            "topo_path": [
+              "backup-app-01",
+              "bs-backup-01",
+              "client-os-01",
+              "host-if-01",
+              "lun-backup-01",
+              "disk-01a"
+            ],
+            "scope": "S1 客户业务域",
+            "round": 1
+          },
+          {
+            "seq": 2,
+            "target_resource": "bs-backup-01",
+            "target_fault_mode": "业务服务异常",
+            "verify_question": "备份业务服务是否出现异常或连接中断",
+            "expected_finding": "如命中则业务服务异常；否则沿依赖下钻",
+            "topo_path": [
+              "bs-backup-01",
+              "client-os-01",
+              "host-if-01",
+              "lun-backup-01"
+            ],
+            "scope": "S1 客户业务域",
+            "round": 1
+          },
+          {
+            "seq": 3,
+            "target_resource": "client-os-01",
+            "target_fault_mode": "客户端主机瓶颈",
+            "verify_question": "备份客户端主机 CPU/IO 是否饱和或本地争用",
+            "expected_finding": "如命中则客户端本地饱和；否则为访问链路或后端故障",
+            "topo_path": [
+              "client-os-01",
+              "host-if-01",
+              "lun-backup-01"
+            ],
+            "scope": "S1 客户业务域",
+            "round": 1
+          },
+          {
+            "seq": 4,
+            "target_resource": "host-if-01",
+            "target_fault_mode": "主机接口瓶颈",
+            "verify_question": "主机侧接口是否出现拥塞、错误或链路异常",
+            "expected_finding": "如命中则主机接口错误计数或带宽打满；否则为存储侧故障",
+            "topo_path": [
+              "host-if-01",
+              "lun-backup-01"
+            ],
+            "scope": "S2 访问连接域",
+            "round": 1
+          },
+          {
+            "seq": 5,
             "target_resource": "lun-backup-01",
             "target_fault_mode": "LUN IO 争用",
             "verify_question": "LUN 自身是否出现 IO 争用或时延异常",
             "expected_finding": "如命中则 LUN IO/时延异常；否则为底层故障影响",
             "topo_path": [
-              "host-if-01",
               "lun-backup-01",
+              "pool-01a",
+              "raid-01a",
               "disk-01a"
             ],
-            "scope": "业务专属路径",
+            "scope": "S3 存储系统域",
             "round": 1
           },
           {
-            "seq": 2,
-            "target_resource": "host-if-01",
-            "target_fault_mode": "主机接口瓶颈",
-            "verify_question": "主机侧接口是否出现拥塞或链路异常",
-            "expected_finding": "如命中则主机接口错误计数或带宽打满",
+            "seq": 6,
+            "target_resource": "pool-01a",
+            "target_fault_mode": "存储池容量/性能瓶颈",
+            "verify_question": "存储池是否出现容量或性能瓶颈",
+            "expected_finding": "如命中则池容量/性能异常；否则继续下钻到 RAID 与磁盘",
             "topo_path": [
-              "host-if-01",
-              "lun-backup-01"
+              "pool-01a",
+              "raid-01a",
+              "disk-01a"
             ],
-            "scope": "业务专属路径",
+            "scope": "S3 存储系统域",
             "round": 1
           },
           {
-            "seq": 3,
+            "seq": 7,
+            "target_resource": "raid-01a",
+            "target_fault_mode": "RAID 组降级",
+            "verify_question": "RAID 组是否降级或在重建",
+            "expected_finding": "如命中则 RAID 降级告警与重建日志一致",
+            "topo_path": [
+              "raid-01a",
+              "disk-01a"
+            ],
+            "scope": "底层资源",
+            "round": 1
+          },
+          {
+            "seq": 8,
             "target_resource": "disk-01a",
             "target_fault_mode": "磁盘扇区故障",
             "verify_question": "底层磁盘是否出现扇区故障",
             "expected_finding": "如命中则磁盘扇区错误日志与读延迟一致",
             "topo_path": [
-              "lun-backup-01",
               "disk-01a"
             ],
             "scope": "底层资源",
             "round": 1
           }
         ],
-        "planner_original_scope": "分层拓扑路径（host-if-01 → lun-backup-01 → disk-01a）"
+        "planner_original_scope": "分层拓扑路径（backup-app-01 → bs-backup-01 → client-os-01 → host-if-01 → lun-backup-01 → disk-01a）"
       }
     },
     {
       "event_id": "evt-0008",
       "session_id": "session-layered_topology_demo_001",
       "sequence": 8,
+      "event_type": "TASK_STATUS_CHANGED",
+      "producer": "planner",
+      "correlation_id": "exec-task-map-backup",
+      "causation_id": "evt-0007",
+      "payload": {
+        "task": {
+          "task_id": "task-map-backup",
+          "skill_code": "BUSINESS_MAPPING",
+          "skill_id": "business_mapping",
+          "action": "BUSINESS_MAPPING",
+          "stage": "scope_localization",
+          "display_name": "映射备份业务端到端路径",
+          "goal": "映射备份业务端到端路径",
+          "target_object_refs": [
+            "backup-app-01"
+          ],
+          "input": {
+            "object_ids": [
+              "backup-app-01"
+            ]
+          },
+          "priority": 100,
+          "execution_mode": "PARALLEL",
+          "ui_role": "PRIMARY",
+          "status": "RUNNING",
+          "result_refs": [
+            "e-backup-app-bs",
+            "e-bs-backup-client",
+            "e-os-lun-backup"
+          ],
+          "started_at": "2026-08-02T10:00:10.000+08:00",
+          "ended_at": "2026-08-02T10:00:10.500+08:00",
+          "error": null
+        },
+        "status": "RUNNING"
+      }
+    },
+    {
+      "event_id": "evt-0009",
+      "session_id": "session-layered_topology_demo_001",
+      "sequence": 9,
+      "event_type": "SKILL_STARTED",
+      "occurred_at": "2026-08-02T10:00:10.000+08:00",
+      "producer": "skill-executor",
+      "correlation_id": "exec-task-map-backup",
+      "causation_id": "evt-0008",
+      "payload": {
+        "execution_id": "exec-task-map-backup",
+        "task_id": "task-map-backup",
+        "skill_id": "business_mapping",
+        "ui_role": "PRIMARY",
+        "goal": "映射备份业务端到端路径",
+        "action_text": "执行 business_mapping：映射备份业务端到端路径",
+        "reason_text": "备份业务应用是否因底层时延升高而受影响",
+        "expected_result_text": "备份业务服务异常或依赖路径时延升高",
+        "target_object_refs": [
+          "backup-app-01"
+        ]
+      }
+    },
+    {
+      "event_id": "evt-0010",
+      "session_id": "session-layered_topology_demo_001",
+      "sequence": 10,
+      "event_type": "SKILL_COMPLETED",
+      "occurred_at": "2026-08-02T10:00:10.500+08:00",
+      "producer": "skill-executor",
+      "correlation_id": "exec-task-map-backup",
+      "causation_id": "evt-0008",
+      "payload": {
+        "execution_id": "exec-task-map-backup",
+        "result_summary": "映射备份业务端到端路径",
+        "ended_at": "2026-08-02T10:00:10.500+08:00"
+      }
+    },
+    {
+      "event_id": "evt-0011",
+      "session_id": "session-layered_topology_demo_001",
+      "sequence": 11,
+      "event_type": "TASK_STATUS_CHANGED",
+      "producer": "planner",
+      "correlation_id": "exec-task-map-backup",
+      "causation_id": "evt-0010",
+      "payload": {
+        "task_id": "task-map-backup",
+        "status": "SUCCEEDED"
+      }
+    },
+    {
+      "event_id": "evt-0012",
+      "session_id": "session-layered_topology_demo_001",
+      "sequence": 12,
+      "event_type": "TASK_STATUS_CHANGED",
+      "producer": "planner",
+      "correlation_id": "exec-task-check-competitors",
+      "causation_id": "evt-0007",
+      "payload": {
+        "task": {
+          "task_id": "task-check-competitors",
+          "skill_code": "QUERY_KPI",
+          "skill_id": "kpi_query",
+          "action": "QUERY_KPI",
+          "stage": "evidence_collection",
+          "display_name": "检查备份客户端主机是否饱和",
+          "goal": "检查备份客户端主机是否饱和",
+          "target_object_refs": [
+            "client-os-01"
+          ],
+          "input": {
+            "series_ids": [
+              "kpi-host-cpu"
+            ]
+          },
+          "priority": 99,
+          "execution_mode": "PARALLEL",
+          "ui_role": "PRIMARY",
+          "status": "RUNNING",
+          "result_refs": [
+            "kpi-host-cpu"
+          ],
+          "started_at": "2026-08-02T10:00:10.600+08:00",
+          "ended_at": "2026-08-02T10:00:11.100+08:00",
+          "error": null
+        },
+        "status": "RUNNING"
+      }
+    },
+    {
+      "event_id": "evt-0013",
+      "session_id": "session-layered_topology_demo_001",
+      "sequence": 13,
+      "event_type": "SKILL_STARTED",
+      "occurred_at": "2026-08-02T10:00:10.600+08:00",
+      "producer": "skill-executor",
+      "correlation_id": "exec-task-check-competitors",
+      "causation_id": "evt-0012",
+      "payload": {
+        "execution_id": "exec-task-check-competitors",
+        "task_id": "task-check-competitors",
+        "skill_id": "kpi_query",
+        "ui_role": "PRIMARY",
+        "goal": "检查备份客户端主机是否饱和",
+        "action_text": "执行 kpi_query：检查备份客户端主机是否饱和",
+        "reason_text": "备份客户端主机 CPU/IO 是否饱和或本地争用",
+        "expected_result_text": "如命中则客户端本地饱和；否则为访问链路或后端故障",
+        "target_object_refs": [
+          "client-os-01"
+        ]
+      }
+    },
+    {
+      "event_id": "evt-0014",
+      "session_id": "session-layered_topology_demo_001",
+      "sequence": 14,
+      "event_type": "SKILL_COMPLETED",
+      "occurred_at": "2026-08-02T10:00:11.100+08:00",
+      "producer": "skill-executor",
+      "correlation_id": "exec-task-check-competitors",
+      "causation_id": "evt-0012",
+      "payload": {
+        "execution_id": "exec-task-check-competitors",
+        "result_summary": "检查备份客户端主机是否饱和",
+        "ended_at": "2026-08-02T10:00:11.100+08:00"
+      }
+    },
+    {
+      "event_id": "evt-0015",
+      "session_id": "session-layered_topology_demo_001",
+      "sequence": 15,
+      "event_type": "FACT_DISCOVERED",
+      "producer": "fact-normalizer",
+      "correlation_id": "exec-task-check-competitors",
+      "causation_id": "evt-0014",
+      "payload": {
+        "fact_refs": [
+          "fact-kpi-host-cpu"
+        ],
+        "facts": [
+          {
+            "fact_id": "fact-kpi-host-cpu",
+            "fact_type": "KPI_WINDOW",
+            "object_refs": [
+              "client-os-01"
+            ],
+            "occurred_at": "2026-08-02T10:00:10.000+08:00",
+            "observed_range": {
+              "start": "2026-08-02T09:59:50.000+08:00",
+              "end": "2026-08-02T10:00:20.000+08:00"
+            },
+            "source": {
+              "execution_id": "exec-task-check-competitors",
+              "skill_id": "kpi_query",
+              "source_refs": [
+                "kpi-host-cpu"
+              ],
+              "query_coverage": {
+                "object_coverage": "COMPLETE",
+                "time_coverage": "COMPLETE",
+                "metric_coverage": "COMPLETE"
+              }
+            },
+            "quality": {
+              "level": "HIGH",
+              "completeness": "COMPLETE",
+              "freshness": "REPLAY_DATA"
+            },
+            "payload": {
+              "metric_name": "客户端CPU",
+              "indicator_id": "cpu_util",
+              "unit": "%",
+              "baseline": 30,
+              "thresholds": {
+                "high": 90
+              },
+              "peak_value": 34,
+              "peak_at": "2026-08-02T10:00:10.000+08:00",
+              "samples": [
+                {
+                  "timestamp": "2026-08-02T09:59:50.000+08:00",
+                  "value": 32
+                },
+                {
+                  "timestamp": "2026-08-02T10:00:10.000+08:00",
+                  "value": 34
+                },
+                {
+                  "timestamp": "2026-08-02T10:00:20.000+08:00",
+                  "value": 33
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "event_id": "evt-0016",
+      "session_id": "session-layered_topology_demo_001",
+      "sequence": 16,
+      "event_type": "TASK_STATUS_CHANGED",
+      "producer": "planner",
+      "correlation_id": "exec-task-check-competitors",
+      "causation_id": "evt-0015",
+      "payload": {
+        "task_id": "task-check-competitors",
+        "status": "SUCCEEDED"
+      }
+    },
+    {
+      "event_id": "evt-0017",
+      "session_id": "session-layered_topology_demo_001",
+      "sequence": 17,
+      "event_type": "TASK_STATUS_CHANGED",
+      "producer": "planner",
+      "correlation_id": "exec-task-verify-host-if",
+      "causation_id": "evt-0007",
+      "payload": {
+        "task": {
+          "task_id": "task-verify-host-if",
+          "skill_code": "LINK_HEALTH_QUERY",
+          "skill_id": "link_health_query",
+          "action": "LINK_HEALTH_QUERY",
+          "stage": "evidence_collection",
+          "display_name": "验证主机访问链路健康",
+          "goal": "验证主机访问链路健康",
+          "target_object_refs": [
+            "host-if-01"
+          ],
+          "input": {
+            "object_ids": [
+              "host-if-01"
+            ]
+          },
+          "priority": 98,
+          "execution_mode": "PARALLEL",
+          "ui_role": "PRIMARY",
+          "status": "RUNNING",
+          "result_refs": [
+            "log-host-if-normal"
+          ],
+          "started_at": "2026-08-02T10:00:11.200+08:00",
+          "ended_at": "2026-08-02T10:00:11.800+08:00",
+          "error": null
+        },
+        "status": "RUNNING"
+      }
+    },
+    {
+      "event_id": "evt-0018",
+      "session_id": "session-layered_topology_demo_001",
+      "sequence": 18,
+      "event_type": "SKILL_STARTED",
+      "occurred_at": "2026-08-02T10:00:11.200+08:00",
+      "producer": "skill-executor",
+      "correlation_id": "exec-task-verify-host-if",
+      "causation_id": "evt-0017",
+      "payload": {
+        "execution_id": "exec-task-verify-host-if",
+        "task_id": "task-verify-host-if",
+        "skill_id": "link_health_query",
+        "ui_role": "PRIMARY",
+        "goal": "验证主机访问链路健康",
+        "action_text": "执行 link_health_query：验证主机访问链路健康",
+        "reason_text": "主机侧接口是否出现拥塞、错误或链路异常",
+        "expected_result_text": "如命中则主机接口错误计数或带宽打满；否则为存储侧故障",
+        "target_object_refs": [
+          "host-if-01"
+        ]
+      }
+    },
+    {
+      "event_id": "evt-0019",
+      "session_id": "session-layered_topology_demo_001",
+      "sequence": 19,
+      "event_type": "SKILL_COMPLETED",
+      "occurred_at": "2026-08-02T10:00:11.800+08:00",
+      "producer": "skill-executor",
+      "correlation_id": "exec-task-verify-host-if",
+      "causation_id": "evt-0017",
+      "payload": {
+        "execution_id": "exec-task-verify-host-if",
+        "result_summary": "验证主机访问链路健康",
+        "ended_at": "2026-08-02T10:00:11.800+08:00"
+      }
+    },
+    {
+      "event_id": "evt-0020",
+      "session_id": "session-layered_topology_demo_001",
+      "sequence": 20,
+      "event_type": "FACT_DISCOVERED",
+      "producer": "fact-normalizer",
+      "correlation_id": "exec-task-verify-host-if",
+      "causation_id": "evt-0019",
+      "payload": {
+        "fact_refs": [
+          "fact-log-host-if-normal"
+        ],
+        "facts": [
+          {
+            "fact_id": "fact-log-host-if-normal",
+            "fact_type": "LOG",
+            "object_refs": [
+              "host-if-01"
+            ],
+            "occurred_at": "2026-08-02T10:00:11.400+08:00",
+            "source": {
+              "execution_id": "exec-task-verify-host-if",
+              "skill_id": "link_health_query",
+              "source_refs": [
+                "log-host-if-normal"
+              ]
+            },
+            "payload": {
+              "level": "INFO",
+              "component": "host-if",
+              "message": "host-if-01 link healthy, no congestion or interface errors",
+              "fingerprint_id": "fp-host-normal"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "event_id": "evt-0021",
+      "session_id": "session-layered_topology_demo_001",
+      "sequence": 21,
+      "event_type": "TASK_STATUS_CHANGED",
+      "producer": "planner",
+      "correlation_id": "exec-task-verify-host-if",
+      "causation_id": "evt-0020",
+      "payload": {
+        "task_id": "task-verify-host-if",
+        "status": "SUCCEEDED"
+      }
+    },
+    {
+      "event_id": "evt-0022",
+      "session_id": "session-layered_topology_demo_001",
+      "sequence": 22,
       "event_type": "TASK_STATUS_CHANGED",
       "producer": "planner",
       "correlation_id": "exec-task-verify-lun-kpi",
@@ -923,34 +1422,34 @@
               "kpi-lun-backup-latency"
             ]
           },
-          "priority": 99,
+          "priority": 97,
           "execution_mode": "PARALLEL",
-          "ui_role": "BACKGROUND",
+          "ui_role": "PRIMARY",
           "status": "RUNNING",
           "result_refs": [
             "kpi-lun-backup-latency"
           ],
-          "started_at": "2026-08-02T10:00:10.600+08:00",
-          "ended_at": "2026-08-02T10:00:11.200+08:00",
+          "started_at": "2026-08-02T10:00:11.900+08:00",
+          "ended_at": "2026-08-02T10:00:12.500+08:00",
           "error": null
         },
         "status": "RUNNING"
       }
     },
     {
-      "event_id": "evt-0009",
+      "event_id": "evt-0023",
       "session_id": "session-layered_topology_demo_001",
-      "sequence": 9,
+      "sequence": 23,
       "event_type": "SKILL_STARTED",
-      "occurred_at": "2026-08-02T10:00:10.600+08:00",
+      "occurred_at": "2026-08-02T10:00:11.900+08:00",
       "producer": "skill-executor",
       "correlation_id": "exec-task-verify-lun-kpi",
-      "causation_id": "evt-0008",
+      "causation_id": "evt-0022",
       "payload": {
         "execution_id": "exec-task-verify-lun-kpi",
         "task_id": "task-verify-lun-kpi",
         "skill_id": "kpi_query",
-        "ui_role": "BACKGROUND",
+        "ui_role": "PRIMARY",
         "goal": "验证备份LUN时延与IO",
         "action_text": "执行 kpi_query：验证备份LUN时延与IO",
         "reason_text": "LUN 自身是否出现 IO 争用或时延异常",
@@ -961,28 +1460,28 @@
       }
     },
     {
-      "event_id": "evt-0010",
+      "event_id": "evt-0024",
       "session_id": "session-layered_topology_demo_001",
-      "sequence": 10,
+      "sequence": 24,
       "event_type": "SKILL_COMPLETED",
-      "occurred_at": "2026-08-02T10:00:11.200+08:00",
+      "occurred_at": "2026-08-02T10:00:12.500+08:00",
       "producer": "skill-executor",
       "correlation_id": "exec-task-verify-lun-kpi",
-      "causation_id": "evt-0008",
+      "causation_id": "evt-0022",
       "payload": {
         "execution_id": "exec-task-verify-lun-kpi",
         "result_summary": "验证备份LUN时延与IO",
-        "ended_at": "2026-08-02T10:00:11.200+08:00"
+        "ended_at": "2026-08-02T10:00:12.500+08:00"
       }
     },
     {
-      "event_id": "evt-0011",
+      "event_id": "evt-0025",
       "session_id": "session-layered_topology_demo_001",
-      "sequence": 11,
+      "sequence": 25,
       "event_type": "FACT_DISCOVERED",
       "producer": "fact-normalizer",
       "correlation_id": "exec-task-verify-lun-kpi",
-      "causation_id": "evt-0010",
+      "causation_id": "evt-0024",
       "payload": {
         "fact_refs": [
           "fact-kpi-lun-backup-latency"
@@ -1050,22 +1549,250 @@
       }
     },
     {
-      "event_id": "evt-0012",
+      "event_id": "evt-0026",
       "session_id": "session-layered_topology_demo_001",
-      "sequence": 12,
+      "sequence": 26,
       "event_type": "TASK_STATUS_CHANGED",
       "producer": "planner",
       "correlation_id": "exec-task-verify-lun-kpi",
-      "causation_id": "evt-0011",
+      "causation_id": "evt-0025",
       "payload": {
         "task_id": "task-verify-lun-kpi",
         "status": "SUCCEEDED"
       }
     },
     {
-      "event_id": "evt-0013",
+      "event_id": "evt-0027",
       "session_id": "session-layered_topology_demo_001",
-      "sequence": 13,
+      "sequence": 27,
+      "event_type": "TASK_STATUS_CHANGED",
+      "producer": "planner",
+      "correlation_id": "exec-task-query-disk-alarm",
+      "causation_id": "evt-0007",
+      "payload": {
+        "task": {
+          "task_id": "task-query-disk-alarm",
+          "skill_code": "QUERY_ALARM",
+          "skill_id": "alarm_query",
+          "action": "QUERY_ALARM",
+          "stage": "evidence_collection",
+          "display_name": "查询RAID与磁盘告警及读错误",
+          "goal": "查询RAID与磁盘告警及读错误",
+          "target_object_refs": [
+            "raid-01a",
+            "disk-01a"
+          ],
+          "input": {
+            "object_ids": [
+              "raid-01a",
+              "disk-01a"
+            ],
+            "series_ids": [
+              "kpi-disk-01a-read-err"
+            ]
+          },
+          "priority": 96,
+          "execution_mode": "PARALLEL",
+          "ui_role": "PRIMARY",
+          "status": "RUNNING",
+          "result_refs": [
+            "alm-raid-degrade-8802",
+            "alm-disk-01a-fault",
+            "kpi-disk-01a-read-err"
+          ],
+          "started_at": "2026-08-02T10:00:12.600+08:00",
+          "ended_at": "2026-08-02T10:00:13.200+08:00",
+          "error": null
+        },
+        "status": "RUNNING"
+      }
+    },
+    {
+      "event_id": "evt-0028",
+      "session_id": "session-layered_topology_demo_001",
+      "sequence": 28,
+      "event_type": "SKILL_STARTED",
+      "occurred_at": "2026-08-02T10:00:12.600+08:00",
+      "producer": "skill-executor",
+      "correlation_id": "exec-task-query-disk-alarm",
+      "causation_id": "evt-0027",
+      "payload": {
+        "execution_id": "exec-task-query-disk-alarm",
+        "task_id": "task-query-disk-alarm",
+        "skill_id": "alarm_query",
+        "ui_role": "PRIMARY",
+        "goal": "查询RAID与磁盘告警及读错误",
+        "action_text": "执行 alarm_query：查询RAID与磁盘告警及读错误",
+        "reason_text": "RAID 组是否降级或在重建",
+        "expected_result_text": "如命中则 RAID 降级告警与重建日志一致",
+        "target_object_refs": [
+          "raid-01a",
+          "disk-01a"
+        ]
+      }
+    },
+    {
+      "event_id": "evt-0029",
+      "session_id": "session-layered_topology_demo_001",
+      "sequence": 29,
+      "event_type": "SKILL_COMPLETED",
+      "occurred_at": "2026-08-02T10:00:13.200+08:00",
+      "producer": "skill-executor",
+      "correlation_id": "exec-task-query-disk-alarm",
+      "causation_id": "evt-0027",
+      "payload": {
+        "execution_id": "exec-task-query-disk-alarm",
+        "result_summary": "查询RAID与磁盘告警及读错误",
+        "ended_at": "2026-08-02T10:00:13.200+08:00"
+      }
+    },
+    {
+      "event_id": "evt-0030",
+      "session_id": "session-layered_topology_demo_001",
+      "sequence": 30,
+      "event_type": "FACT_DISCOVERED",
+      "producer": "fact-normalizer",
+      "correlation_id": "exec-task-query-disk-alarm",
+      "causation_id": "evt-0029",
+      "payload": {
+        "fact_refs": [
+          "fact-alm-raid-degrade-8802",
+          "fact-alm-disk-01a-fault",
+          "fact-kpi-disk-01a-read-err"
+        ],
+        "facts": [
+          {
+            "fact_id": "fact-alm-raid-degrade-8802",
+            "fact_type": "ALARM",
+            "object_refs": [
+              "raid-01a"
+            ],
+            "occurred_at": "2026-08-02T10:00:03.500+08:00",
+            "source": {
+              "execution_id": "exec-task-query-disk-alarm",
+              "skill_id": "alarm_query",
+              "source_refs": [
+                "alm-raid-degrade-8802"
+              ]
+            },
+            "payload": {
+              "alarm_code": "RAID_GROUP_DEGRADED",
+              "name": "RAID组降级",
+              "severity": "CRITICAL",
+              "occurred_at": "2026-08-02T10:00:03.500+08:00",
+              "cleared_at": null,
+              "status": "active",
+              "raw_fields": {
+                "raid_group": "raid-01a",
+                "degraded_disk": "disk-01a"
+              }
+            }
+          },
+          {
+            "fact_id": "fact-alm-disk-01a-fault",
+            "fact_type": "ALARM",
+            "object_refs": [
+              "disk-01a"
+            ],
+            "occurred_at": "2026-08-02T10:00:03.600+08:00",
+            "source": {
+              "execution_id": "exec-task-query-disk-alarm",
+              "skill_id": "alarm_query",
+              "source_refs": [
+                "alm-disk-01a-fault"
+              ]
+            },
+            "payload": {
+              "alarm_code": "DISK_FAULT",
+              "name": "磁盘故障",
+              "severity": "MAJOR",
+              "occurred_at": "2026-08-02T10:00:03.600+08:00",
+              "cleared_at": null,
+              "status": "active",
+              "raw_fields": {
+                "error_type": "sector_reallocated",
+                "sector_count": 51
+              }
+            }
+          },
+          {
+            "fact_id": "fact-kpi-disk-01a-read-err",
+            "fact_type": "KPI_WINDOW",
+            "object_refs": [
+              "disk-01a"
+            ],
+            "occurred_at": "2026-08-02T10:00:20.000+08:00",
+            "observed_range": {
+              "start": "2026-08-02T09:59:50.000+08:00",
+              "end": "2026-08-02T10:00:20.000+08:00"
+            },
+            "source": {
+              "execution_id": "exec-task-query-disk-alarm",
+              "skill_id": "alarm_query",
+              "source_refs": [
+                "kpi-disk-01a-read-err"
+              ],
+              "query_coverage": {
+                "object_coverage": "COMPLETE",
+                "time_coverage": "COMPLETE",
+                "metric_coverage": "COMPLETE"
+              }
+            },
+            "quality": {
+              "level": "HIGH",
+              "completeness": "COMPLETE",
+              "freshness": "REPLAY_DATA"
+            },
+            "payload": {
+              "metric_name": "磁盘读错误",
+              "indicator_id": "read_errors",
+              "unit": "count",
+              "baseline": 0,
+              "thresholds": {
+                "high": 5
+              },
+              "peak_value": 58,
+              "peak_at": "2026-08-02T10:00:20.000+08:00",
+              "samples": [
+                {
+                  "timestamp": "2026-08-02T09:59:50.000+08:00",
+                  "value": 0
+                },
+                {
+                  "timestamp": "2026-08-02T10:00:02.000+08:00",
+                  "value": 14
+                },
+                {
+                  "timestamp": "2026-08-02T10:00:10.000+08:00",
+                  "value": 51
+                },
+                {
+                  "timestamp": "2026-08-02T10:00:20.000+08:00",
+                  "value": 58
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "event_id": "evt-0031",
+      "session_id": "session-layered_topology_demo_001",
+      "sequence": 31,
+      "event_type": "TASK_STATUS_CHANGED",
+      "producer": "planner",
+      "correlation_id": "exec-task-query-disk-alarm",
+      "causation_id": "evt-0030",
+      "payload": {
+        "task_id": "task-query-disk-alarm",
+        "status": "SUCCEEDED"
+      }
+    },
+    {
+      "event_id": "evt-0032",
+      "session_id": "session-layered_topology_demo_001",
+      "sequence": 32,
       "event_type": "TASK_STATUS_CHANGED",
       "producer": "planner",
       "correlation_id": "exec-task-match-sector-fp",
@@ -1089,39 +1816,39 @@
               "raid-01a"
             ]
           },
-          "priority": 97,
+          "priority": 95,
           "execution_mode": "PARALLEL",
-          "ui_role": "BACKGROUND",
+          "ui_role": "PRIMARY",
           "status": "RUNNING",
           "result_refs": [
             "fp-sector-fault",
             "fp-raid-rebuild"
           ],
-          "started_at": "2026-08-02T10:00:12.100+08:00",
-          "ended_at": "2026-08-02T10:00:12.700+08:00",
+          "started_at": "2026-08-02T10:00:13.300+08:00",
+          "ended_at": "2026-08-02T10:00:13.900+08:00",
           "error": null
         },
         "status": "RUNNING"
       }
     },
     {
-      "event_id": "evt-0014",
+      "event_id": "evt-0033",
       "session_id": "session-layered_topology_demo_001",
-      "sequence": 14,
+      "sequence": 33,
       "event_type": "SKILL_STARTED",
-      "occurred_at": "2026-08-02T10:00:12.100+08:00",
+      "occurred_at": "2026-08-02T10:00:13.300+08:00",
       "producer": "skill-executor",
       "correlation_id": "exec-task-match-sector-fp",
-      "causation_id": "evt-0013",
+      "causation_id": "evt-0032",
       "payload": {
         "execution_id": "exec-task-match-sector-fp",
         "task_id": "task-match-sector-fp",
         "skill_id": "log_fingerprint_query",
-        "ui_role": "BACKGROUND",
+        "ui_role": "PRIMARY",
         "goal": "匹配扇区坏道与重建指纹",
         "action_text": "执行 log_fingerprint_query：匹配扇区坏道与重建指纹",
-        "reason_text": "底层磁盘是否出现扇区故障",
-        "expected_result_text": "如命中则磁盘扇区错误日志与读延迟一致",
+        "reason_text": "RAID 组是否降级或在重建",
+        "expected_result_text": "如命中则 RAID 降级告警与重建日志一致",
         "target_object_refs": [
           "disk-01a",
           "raid-01a"
@@ -1129,28 +1856,28 @@
       }
     },
     {
-      "event_id": "evt-0015",
+      "event_id": "evt-0034",
       "session_id": "session-layered_topology_demo_001",
-      "sequence": 15,
+      "sequence": 34,
       "event_type": "SKILL_COMPLETED",
-      "occurred_at": "2026-08-02T10:00:12.700+08:00",
+      "occurred_at": "2026-08-02T10:00:13.900+08:00",
       "producer": "skill-executor",
       "correlation_id": "exec-task-match-sector-fp",
-      "causation_id": "evt-0013",
+      "causation_id": "evt-0032",
       "payload": {
         "execution_id": "exec-task-match-sector-fp",
         "result_summary": "匹配扇区坏道与重建指纹",
-        "ended_at": "2026-08-02T10:00:12.700+08:00"
+        "ended_at": "2026-08-02T10:00:13.900+08:00"
       }
     },
     {
-      "event_id": "evt-0016",
+      "event_id": "evt-0035",
       "session_id": "session-layered_topology_demo_001",
-      "sequence": 16,
+      "sequence": 35,
       "event_type": "FACT_DISCOVERED",
       "producer": "fact-normalizer",
       "correlation_id": "exec-task-match-sector-fp",
-      "causation_id": "evt-0015",
+      "causation_id": "evt-0034",
       "payload": {
         "fact_refs": [
           "fact-fp-sector-fault",
@@ -1221,502 +1948,22 @@
       }
     },
     {
-      "event_id": "evt-0017",
+      "event_id": "evt-0036",
       "session_id": "session-layered_topology_demo_001",
-      "sequence": 17,
+      "sequence": 36,
       "event_type": "TASK_STATUS_CHANGED",
       "producer": "planner",
       "correlation_id": "exec-task-match-sector-fp",
-      "causation_id": "evt-0016",
+      "causation_id": "evt-0035",
       "payload": {
         "task_id": "task-match-sector-fp",
         "status": "SUCCEEDED"
       }
     },
     {
-      "event_id": "evt-0018",
+      "event_id": "evt-0037",
       "session_id": "session-layered_topology_demo_001",
-      "sequence": 18,
-      "event_type": "TASK_STATUS_CHANGED",
-      "producer": "planner",
-      "correlation_id": "exec-task-map-backup",
-      "causation_id": "evt-0007",
-      "payload": {
-        "task": {
-          "task_id": "task-map-backup",
-          "skill_code": "BUSINESS_MAPPING",
-          "skill_id": "business_mapping",
-          "action": "BUSINESS_MAPPING",
-          "stage": "scope_localization",
-          "display_name": "映射备份业务端到端路径",
-          "goal": "映射备份业务端到端路径",
-          "target_object_refs": [
-            "backup-app-01"
-          ],
-          "input": {
-            "object_ids": [
-              "backup-app-01"
-            ]
-          },
-          "priority": 100,
-          "execution_mode": "PARALLEL",
-          "ui_role": "PRIMARY",
-          "status": "RUNNING",
-          "result_refs": [
-            "e-backup-app-bs",
-            "e-bs-backup-client",
-            "e-os-lun-backup"
-          ],
-          "started_at": "2026-08-02T10:00:10.000+08:00",
-          "ended_at": "2026-08-02T10:00:10.500+08:00",
-          "error": null
-        },
-        "status": "RUNNING"
-      }
-    },
-    {
-      "event_id": "evt-0019",
-      "session_id": "session-layered_topology_demo_001",
-      "sequence": 19,
-      "event_type": "SKILL_STARTED",
-      "occurred_at": "2026-08-02T10:00:10.000+08:00",
-      "producer": "skill-executor",
-      "correlation_id": "exec-task-map-backup",
-      "causation_id": "evt-0018",
-      "payload": {
-        "execution_id": "exec-task-map-backup",
-        "task_id": "task-map-backup",
-        "skill_id": "business_mapping",
-        "ui_role": "PRIMARY",
-        "goal": "映射备份业务端到端路径",
-        "action_text": "执行 business_mapping：映射备份业务端到端路径",
-        "reason_text": "LUN 自身是否出现 IO 争用或时延异常",
-        "expected_result_text": "如命中则 LUN IO/时延异常；否则为底层故障影响",
-        "target_object_refs": [
-          "backup-app-01"
-        ]
-      }
-    },
-    {
-      "event_id": "evt-0020",
-      "session_id": "session-layered_topology_demo_001",
-      "sequence": 20,
-      "event_type": "SKILL_COMPLETED",
-      "occurred_at": "2026-08-02T10:00:10.500+08:00",
-      "producer": "skill-executor",
-      "correlation_id": "exec-task-map-backup",
-      "causation_id": "evt-0018",
-      "payload": {
-        "execution_id": "exec-task-map-backup",
-        "result_summary": "映射备份业务端到端路径",
-        "ended_at": "2026-08-02T10:00:10.500+08:00"
-      }
-    },
-    {
-      "event_id": "evt-0021",
-      "session_id": "session-layered_topology_demo_001",
-      "sequence": 21,
-      "event_type": "TASK_STATUS_CHANGED",
-      "producer": "planner",
-      "correlation_id": "exec-task-map-backup",
-      "causation_id": "evt-0020",
-      "payload": {
-        "task_id": "task-map-backup",
-        "status": "SUCCEEDED"
-      }
-    },
-    {
-      "event_id": "evt-0022",
-      "session_id": "session-layered_topology_demo_001",
-      "sequence": 22,
-      "event_type": "TASK_STATUS_CHANGED",
-      "producer": "planner",
-      "correlation_id": "exec-task-query-disk-alarm",
-      "causation_id": "evt-0007",
-      "payload": {
-        "task": {
-          "task_id": "task-query-disk-alarm",
-          "skill_code": "QUERY_ALARM",
-          "skill_id": "alarm_query",
-          "action": "QUERY_ALARM",
-          "stage": "evidence_collection",
-          "display_name": "查询RAID与磁盘告警",
-          "goal": "查询RAID与磁盘告警",
-          "target_object_refs": [
-            "raid-01a",
-            "disk-01a"
-          ],
-          "input": {
-            "object_ids": [
-              "raid-01a",
-              "disk-01a"
-            ]
-          },
-          "priority": 98,
-          "execution_mode": "PARALLEL",
-          "ui_role": "BACKGROUND",
-          "status": "RUNNING",
-          "result_refs": [
-            "alm-raid-degrade-8802",
-            "alm-disk-01a-fault"
-          ],
-          "started_at": "2026-08-02T10:00:11.500+08:00",
-          "ended_at": "2026-08-02T10:00:12.000+08:00",
-          "error": null
-        },
-        "status": "RUNNING"
-      }
-    },
-    {
-      "event_id": "evt-0023",
-      "session_id": "session-layered_topology_demo_001",
-      "sequence": 23,
-      "event_type": "SKILL_STARTED",
-      "occurred_at": "2026-08-02T10:00:11.500+08:00",
-      "producer": "skill-executor",
-      "correlation_id": "exec-task-query-disk-alarm",
-      "causation_id": "evt-0022",
-      "payload": {
-        "execution_id": "exec-task-query-disk-alarm",
-        "task_id": "task-query-disk-alarm",
-        "skill_id": "alarm_query",
-        "ui_role": "BACKGROUND",
-        "goal": "查询RAID与磁盘告警",
-        "action_text": "执行 alarm_query：查询RAID与磁盘告警",
-        "reason_text": "底层磁盘是否出现扇区故障",
-        "expected_result_text": "如命中则磁盘扇区错误日志与读延迟一致",
-        "target_object_refs": [
-          "raid-01a",
-          "disk-01a"
-        ]
-      }
-    },
-    {
-      "event_id": "evt-0024",
-      "session_id": "session-layered_topology_demo_001",
-      "sequence": 24,
-      "event_type": "SKILL_COMPLETED",
-      "occurred_at": "2026-08-02T10:00:12.000+08:00",
-      "producer": "skill-executor",
-      "correlation_id": "exec-task-query-disk-alarm",
-      "causation_id": "evt-0022",
-      "payload": {
-        "execution_id": "exec-task-query-disk-alarm",
-        "result_summary": "查询RAID与磁盘告警",
-        "ended_at": "2026-08-02T10:00:12.000+08:00"
-      }
-    },
-    {
-      "event_id": "evt-0025",
-      "session_id": "session-layered_topology_demo_001",
-      "sequence": 25,
-      "event_type": "FACT_DISCOVERED",
-      "producer": "fact-normalizer",
-      "correlation_id": "exec-task-query-disk-alarm",
-      "causation_id": "evt-0024",
-      "payload": {
-        "fact_refs": [
-          "fact-alm-raid-degrade-8802",
-          "fact-alm-disk-01a-fault"
-        ],
-        "facts": [
-          {
-            "fact_id": "fact-alm-raid-degrade-8802",
-            "fact_type": "ALARM",
-            "object_refs": [
-              "raid-01a"
-            ],
-            "occurred_at": "2026-08-02T10:00:03.500+08:00",
-            "source": {
-              "execution_id": "exec-task-query-disk-alarm",
-              "skill_id": "alarm_query",
-              "source_refs": [
-                "alm-raid-degrade-8802"
-              ]
-            },
-            "payload": {
-              "alarm_code": "RAID_GROUP_DEGRADED",
-              "name": "RAID组降级",
-              "severity": "CRITICAL",
-              "occurred_at": "2026-08-02T10:00:03.500+08:00",
-              "cleared_at": null,
-              "status": "active",
-              "raw_fields": {
-                "raid_group": "raid-01a",
-                "degraded_disk": "disk-01a"
-              }
-            }
-          },
-          {
-            "fact_id": "fact-alm-disk-01a-fault",
-            "fact_type": "ALARM",
-            "object_refs": [
-              "disk-01a"
-            ],
-            "occurred_at": "2026-08-02T10:00:03.600+08:00",
-            "source": {
-              "execution_id": "exec-task-query-disk-alarm",
-              "skill_id": "alarm_query",
-              "source_refs": [
-                "alm-disk-01a-fault"
-              ]
-            },
-            "payload": {
-              "alarm_code": "DISK_FAULT",
-              "name": "磁盘故障",
-              "severity": "MAJOR",
-              "occurred_at": "2026-08-02T10:00:03.600+08:00",
-              "cleared_at": null,
-              "status": "active",
-              "raw_fields": {
-                "error_type": "sector_reallocated",
-                "sector_count": 51
-              }
-            }
-          }
-        ]
-      }
-    },
-    {
-      "event_id": "evt-0026",
-      "session_id": "session-layered_topology_demo_001",
-      "sequence": 26,
-      "event_type": "TASK_STATUS_CHANGED",
-      "producer": "planner",
-      "correlation_id": "exec-task-query-disk-alarm",
-      "causation_id": "evt-0025",
-      "payload": {
-        "task_id": "task-query-disk-alarm",
-        "status": "SUCCEEDED"
-      }
-    },
-    {
-      "event_id": "evt-0027",
-      "session_id": "session-layered_topology_demo_001",
-      "sequence": 27,
-      "event_type": "TASK_STATUS_CHANGED",
-      "producer": "planner",
-      "correlation_id": "exec-task-check-competitors",
-      "causation_id": "evt-0007",
-      "payload": {
-        "task": {
-          "task_id": "task-check-competitors",
-          "skill_code": "QUERY_KPI",
-          "skill_id": "kpi_query",
-          "action": "QUERY_KPI",
-          "stage": "evidence_collection",
-          "display_name": "检查主机与IO竞争候选",
-          "goal": "检查主机与IO竞争候选",
-          "target_object_refs": [
-            "client-os-01",
-            "disk-01a"
-          ],
-          "input": {
-            "series_ids": [
-              "kpi-host-cpu",
-              "kpi-disk-01a-read-err"
-            ]
-          },
-          "priority": 96,
-          "execution_mode": "PARALLEL",
-          "ui_role": "BACKGROUND",
-          "status": "RUNNING",
-          "result_refs": [
-            "kpi-host-cpu",
-            "kpi-disk-01a-read-err"
-          ],
-          "started_at": "2026-08-02T10:00:12.800+08:00",
-          "ended_at": "2026-08-02T10:00:13.400+08:00",
-          "error": null
-        },
-        "status": "RUNNING"
-      }
-    },
-    {
-      "event_id": "evt-0028",
-      "session_id": "session-layered_topology_demo_001",
-      "sequence": 28,
-      "event_type": "SKILL_STARTED",
-      "occurred_at": "2026-08-02T10:00:12.800+08:00",
-      "producer": "skill-executor",
-      "correlation_id": "exec-task-check-competitors",
-      "causation_id": "evt-0027",
-      "payload": {
-        "execution_id": "exec-task-check-competitors",
-        "task_id": "task-check-competitors",
-        "skill_id": "kpi_query",
-        "ui_role": "BACKGROUND",
-        "goal": "检查主机与IO竞争候选",
-        "action_text": "执行 kpi_query：检查主机与IO竞争候选",
-        "reason_text": "底层磁盘是否出现扇区故障",
-        "expected_result_text": "如命中则磁盘扇区错误日志与读延迟一致",
-        "target_object_refs": [
-          "client-os-01",
-          "disk-01a"
-        ]
-      }
-    },
-    {
-      "event_id": "evt-0029",
-      "session_id": "session-layered_topology_demo_001",
-      "sequence": 29,
-      "event_type": "SKILL_COMPLETED",
-      "occurred_at": "2026-08-02T10:00:13.400+08:00",
-      "producer": "skill-executor",
-      "correlation_id": "exec-task-check-competitors",
-      "causation_id": "evt-0027",
-      "payload": {
-        "execution_id": "exec-task-check-competitors",
-        "result_summary": "检查主机与IO竞争候选",
-        "ended_at": "2026-08-02T10:00:13.400+08:00"
-      }
-    },
-    {
-      "event_id": "evt-0030",
-      "session_id": "session-layered_topology_demo_001",
-      "sequence": 30,
-      "event_type": "FACT_DISCOVERED",
-      "producer": "fact-normalizer",
-      "correlation_id": "exec-task-check-competitors",
-      "causation_id": "evt-0029",
-      "payload": {
-        "fact_refs": [
-          "fact-kpi-host-cpu",
-          "fact-kpi-disk-01a-read-err"
-        ],
-        "facts": [
-          {
-            "fact_id": "fact-kpi-host-cpu",
-            "fact_type": "KPI_WINDOW",
-            "object_refs": [
-              "client-os-01"
-            ],
-            "occurred_at": "2026-08-02T10:00:10.000+08:00",
-            "observed_range": {
-              "start": "2026-08-02T09:59:50.000+08:00",
-              "end": "2026-08-02T10:00:20.000+08:00"
-            },
-            "source": {
-              "execution_id": "exec-task-check-competitors",
-              "skill_id": "kpi_query",
-              "source_refs": [
-                "kpi-host-cpu"
-              ],
-              "query_coverage": {
-                "object_coverage": "COMPLETE",
-                "time_coverage": "COMPLETE",
-                "metric_coverage": "COMPLETE"
-              }
-            },
-            "quality": {
-              "level": "HIGH",
-              "completeness": "COMPLETE",
-              "freshness": "REPLAY_DATA"
-            },
-            "payload": {
-              "metric_name": "客户端CPU",
-              "indicator_id": "cpu_util",
-              "unit": "%",
-              "baseline": 30,
-              "thresholds": {
-                "high": 90
-              },
-              "peak_value": 34,
-              "peak_at": "2026-08-02T10:00:10.000+08:00",
-              "samples": [
-                {
-                  "timestamp": "2026-08-02T09:59:50.000+08:00",
-                  "value": 32
-                },
-                {
-                  "timestamp": "2026-08-02T10:00:10.000+08:00",
-                  "value": 34
-                },
-                {
-                  "timestamp": "2026-08-02T10:00:20.000+08:00",
-                  "value": 33
-                }
-              ]
-            }
-          },
-          {
-            "fact_id": "fact-kpi-disk-01a-read-err",
-            "fact_type": "KPI_WINDOW",
-            "object_refs": [
-              "disk-01a"
-            ],
-            "occurred_at": "2026-08-02T10:00:20.000+08:00",
-            "observed_range": {
-              "start": "2026-08-02T09:59:50.000+08:00",
-              "end": "2026-08-02T10:00:20.000+08:00"
-            },
-            "source": {
-              "execution_id": "exec-task-check-competitors",
-              "skill_id": "kpi_query",
-              "source_refs": [
-                "kpi-disk-01a-read-err"
-              ],
-              "query_coverage": {
-                "object_coverage": "COMPLETE",
-                "time_coverage": "COMPLETE",
-                "metric_coverage": "COMPLETE"
-              }
-            },
-            "quality": {
-              "level": "HIGH",
-              "completeness": "COMPLETE",
-              "freshness": "REPLAY_DATA"
-            },
-            "payload": {
-              "metric_name": "磁盘读错误",
-              "indicator_id": "read_errors",
-              "unit": "count",
-              "baseline": 0,
-              "thresholds": {
-                "high": 5
-              },
-              "peak_value": 58,
-              "peak_at": "2026-08-02T10:00:20.000+08:00",
-              "samples": [
-                {
-                  "timestamp": "2026-08-02T09:59:50.000+08:00",
-                  "value": 0
-                },
-                {
-                  "timestamp": "2026-08-02T10:00:02.000+08:00",
-                  "value": 14
-                },
-                {
-                  "timestamp": "2026-08-02T10:00:10.000+08:00",
-                  "value": 51
-                },
-                {
-                  "timestamp": "2026-08-02T10:00:20.000+08:00",
-                  "value": 58
-                }
-              ]
-            }
-          }
-        ]
-      }
-    },
-    {
-      "event_id": "evt-0031",
-      "session_id": "session-layered_topology_demo_001",
-      "sequence": 31,
-      "event_type": "TASK_STATUS_CHANGED",
-      "producer": "planner",
-      "correlation_id": "exec-task-check-competitors",
-      "causation_id": "evt-0030",
-      "payload": {
-        "task_id": "task-check-competitors",
-        "status": "SUCCEEDED"
-      }
-    },
-    {
-      "event_id": "evt-0032",
-      "session_id": "session-layered_topology_demo_001",
-      "sequence": 32,
+      "sequence": 37,
       "event_type": "TASK_STATUS_CHANGED",
       "producer": "planner",
       "correlation_id": "exec-task-search-similar",
@@ -1737,34 +1984,34 @@
               "raid_degrade"
             ]
           },
-          "priority": 95,
+          "priority": 94,
           "execution_mode": "PARALLEL",
-          "ui_role": "BACKGROUND",
+          "ui_role": "PRIMARY",
           "status": "RUNNING",
           "result_refs": [
             "case-20260728-021"
           ],
-          "started_at": "2026-08-02T10:00:13.500+08:00",
-          "ended_at": "2026-08-02T10:00:14.200+08:00",
+          "started_at": "2026-08-02T10:00:14.000+08:00",
+          "ended_at": "2026-08-02T10:00:14.700+08:00",
           "error": null
         },
         "status": "RUNNING"
       }
     },
     {
-      "event_id": "evt-0033",
+      "event_id": "evt-0038",
       "session_id": "session-layered_topology_demo_001",
-      "sequence": 33,
+      "sequence": 38,
       "event_type": "SKILL_STARTED",
-      "occurred_at": "2026-08-02T10:00:13.500+08:00",
+      "occurred_at": "2026-08-02T10:00:14.000+08:00",
       "producer": "skill-executor",
       "correlation_id": "exec-task-search-similar",
-      "causation_id": "evt-0032",
+      "causation_id": "evt-0037",
       "payload": {
         "execution_id": "exec-task-search-similar",
         "task_id": "task-search-similar",
         "skill_id": "similar_case_query",
-        "ui_role": "BACKGROUND",
+        "ui_role": "PRIMARY",
         "goal": "检索磁盘故障历史案例",
         "action_text": "执行 similar_case_query：检索磁盘故障历史案例",
         "reason_text": "按 Planner 优先级验证候选相关对象与时间窗",
@@ -1773,28 +2020,28 @@
       }
     },
     {
-      "event_id": "evt-0034",
+      "event_id": "evt-0039",
       "session_id": "session-layered_topology_demo_001",
-      "sequence": 34,
+      "sequence": 39,
       "event_type": "SKILL_COMPLETED",
-      "occurred_at": "2026-08-02T10:00:14.200+08:00",
+      "occurred_at": "2026-08-02T10:00:14.700+08:00",
       "producer": "skill-executor",
       "correlation_id": "exec-task-search-similar",
-      "causation_id": "evt-0032",
+      "causation_id": "evt-0037",
       "payload": {
         "execution_id": "exec-task-search-similar",
         "result_summary": "检索磁盘故障历史案例",
-        "ended_at": "2026-08-02T10:00:14.200+08:00"
+        "ended_at": "2026-08-02T10:00:14.700+08:00"
       }
     },
     {
-      "event_id": "evt-0035",
+      "event_id": "evt-0040",
       "session_id": "session-layered_topology_demo_001",
-      "sequence": 35,
+      "sequence": 40,
       "event_type": "FACT_DISCOVERED",
       "producer": "fact-normalizer",
       "correlation_id": "exec-task-search-similar",
-      "causation_id": "evt-0034",
+      "causation_id": "evt-0039",
       "payload": {
         "fact_refs": [
           "fact-case-20260728-021"
@@ -1832,38 +2079,38 @@
       }
     },
     {
-      "event_id": "evt-0036",
+      "event_id": "evt-0041",
       "session_id": "session-layered_topology_demo_001",
-      "sequence": 36,
+      "sequence": 41,
       "event_type": "TASK_STATUS_CHANGED",
       "producer": "planner",
       "correlation_id": "exec-task-search-similar",
-      "causation_id": "evt-0035",
+      "causation_id": "evt-0040",
       "payload": {
         "task_id": "task-search-similar",
         "status": "SUCCEEDED"
       }
     },
     {
-      "event_id": "evt-0037",
+      "event_id": "evt-0042",
       "session_id": "session-layered_topology_demo_001",
-      "sequence": 37,
+      "sequence": 42,
       "event_type": "DIAGNOSIS_PHASE_CHANGED",
       "producer": "planner",
       "correlation_id": null,
-      "causation_id": "evt-0036",
+      "causation_id": "evt-0041",
       "payload": {
         "phase": "COMPETING_EXPLANATION"
       }
     },
     {
-      "event_id": "evt-0038",
+      "event_id": "evt-0043",
       "session_id": "session-layered_topology_demo_001",
-      "sequence": 38,
+      "sequence": 43,
       "event_type": "EVIDENCE_CREATED",
       "producer": "reasoning",
       "correlation_id": null,
-      "causation_id": "evt-0025",
+      "causation_id": "evt-0030",
       "payload": {
         "evidence_ref": "ev-raid-degrade-alarm",
         "evidence": {
@@ -1890,13 +2137,13 @@
       }
     },
     {
-      "event_id": "evt-0039",
+      "event_id": "evt-0044",
       "session_id": "session-layered_topology_demo_001",
-      "sequence": 39,
+      "sequence": 44,
       "event_type": "EVIDENCE_CREATED",
       "producer": "reasoning",
       "correlation_id": null,
-      "causation_id": "evt-0025",
+      "causation_id": "evt-0030",
       "payload": {
         "evidence_ref": "ev-disk-fault-alarm",
         "evidence": {
@@ -1923,13 +2170,13 @@
       }
     },
     {
-      "event_id": "evt-0040",
+      "event_id": "evt-0045",
       "session_id": "session-layered_topology_demo_001",
-      "sequence": 40,
+      "sequence": 45,
       "event_type": "EVIDENCE_CREATED",
       "producer": "reasoning",
       "correlation_id": null,
-      "causation_id": "evt-0016",
+      "causation_id": "evt-0035",
       "payload": {
         "evidence_ref": "ev-sector-fp",
         "evidence": {
@@ -1956,13 +2203,13 @@
       }
     },
     {
-      "event_id": "evt-0041",
+      "event_id": "evt-0046",
       "session_id": "session-layered_topology_demo_001",
-      "sequence": 41,
+      "sequence": 46,
       "event_type": "EVIDENCE_CREATED",
       "producer": "reasoning",
       "correlation_id": null,
-      "causation_id": "evt-0016",
+      "causation_id": "evt-0035",
       "payload": {
         "evidence_ref": "ev-rebuild-fp",
         "evidence": {
@@ -1989,13 +2236,13 @@
       }
     },
     {
-      "event_id": "evt-0042",
+      "event_id": "evt-0047",
       "session_id": "session-layered_topology_demo_001",
-      "sequence": 42,
+      "sequence": 47,
       "event_type": "EVIDENCE_CREATED",
       "producer": "reasoning",
       "correlation_id": null,
-      "causation_id": "evt-0011",
+      "causation_id": "evt-0025",
       "payload": {
         "evidence_ref": "ev-backup-latency",
         "evidence": {
@@ -2022,13 +2269,13 @@
       }
     },
     {
-      "event_id": "evt-0043",
+      "event_id": "evt-0048",
       "session_id": "session-layered_topology_demo_001",
-      "sequence": 43,
+      "sequence": 48,
       "event_type": "EVIDENCE_CREATED",
       "producer": "reasoning",
       "correlation_id": null,
-      "causation_id": "evt-0030",
+      "causation_id": "evt-0015",
       "payload": {
         "evidence_ref": "ev-host-normal",
         "evidence": {
@@ -2055,13 +2302,46 @@
       }
     },
     {
-      "event_id": "evt-0044",
+      "event_id": "evt-0049",
       "session_id": "session-layered_topology_demo_001",
-      "sequence": 44,
+      "sequence": 49,
       "event_type": "EVIDENCE_CREATED",
       "producer": "reasoning",
       "correlation_id": null,
-      "causation_id": "evt-0011",
+      "causation_id": "evt-0020",
+      "payload": {
+        "evidence_ref": "ev-host-if-normal",
+        "evidence": {
+          "evidence_id": "ev-host-if-normal",
+          "evidence_type": "MECHANISM",
+          "fact_refs": [
+            "fact-log-host-if-normal"
+          ],
+          "effects": [
+            {
+              "candidate_id": "cand-host-bottleneck",
+              "effect": "WEAKEN",
+              "score_delta": -15,
+              "explanation": "主机访问链路健康，削弱主机瓶颈候选"
+            }
+          ],
+          "object_refs": [
+            "host-if-01"
+          ],
+          "time_alignment_ms": 900,
+          "quality": "HIGH",
+          "created_by": "reasoning-engine"
+        }
+      }
+    },
+    {
+      "event_id": "evt-0050",
+      "session_id": "session-layered_topology_demo_001",
+      "sequence": 50,
+      "event_type": "EVIDENCE_CREATED",
+      "producer": "reasoning",
+      "correlation_id": null,
+      "causation_id": "evt-0025",
       "payload": {
         "evidence_ref": "ev-latency-contend",
         "evidence": {
@@ -2088,9 +2368,9 @@
       }
     },
     {
-      "event_id": "evt-0045",
+      "event_id": "evt-0051",
       "session_id": "session-layered_topology_demo_001",
-      "sequence": 45,
+      "sequence": 51,
       "event_type": "EVIDENCE_CREATED",
       "producer": "reasoning",
       "correlation_id": null,
@@ -2121,13 +2401,13 @@
       }
     },
     {
-      "event_id": "evt-0046",
+      "event_id": "evt-0052",
       "session_id": "session-layered_topology_demo_001",
-      "sequence": 46,
+      "sequence": 52,
       "event_type": "EVIDENCE_CREATED",
       "producer": "reasoning",
       "correlation_id": null,
-      "causation_id": "evt-0035",
+      "causation_id": "evt-0040",
       "payload": {
         "evidence_ref": "ev-similar-disk",
         "evidence": {
@@ -2154,13 +2434,13 @@
       }
     },
     {
-      "event_id": "evt-0047",
+      "event_id": "evt-0053",
       "session_id": "session-layered_topology_demo_001",
-      "sequence": 47,
+      "sequence": 53,
       "event_type": "CANDIDATE_REFINED",
       "producer": "reasoning",
       "correlation_id": null,
-      "causation_id": "evt-0046",
+      "causation_id": "evt-0052",
       "payload": {
         "candidate_id": "cand-disk-sector-fault",
         "fault_mode_code": "DISK_SECTOR_FAULT",
@@ -2168,13 +2448,13 @@
       }
     },
     {
-      "event_id": "evt-0048",
+      "event_id": "evt-0054",
       "session_id": "session-layered_topology_demo_001",
-      "sequence": 48,
+      "sequence": 54,
       "event_type": "CANDIDATE_REFINED",
       "producer": "reasoning",
       "correlation_id": null,
-      "causation_id": "evt-0046",
+      "causation_id": "evt-0052",
       "payload": {
         "candidate_id": "cand-lun-contention",
         "fault_mode_code": "LUN_IO_CONTENTION",
@@ -2182,13 +2462,13 @@
       }
     },
     {
-      "event_id": "evt-0049",
+      "event_id": "evt-0055",
       "session_id": "session-layered_topology_demo_001",
-      "sequence": 49,
+      "sequence": 55,
       "event_type": "CANDIDATE_REFINED",
       "producer": "reasoning",
       "correlation_id": null,
-      "causation_id": "evt-0046",
+      "causation_id": "evt-0052",
       "payload": {
         "candidate_id": "cand-host-bottleneck",
         "fault_mode_code": "HOST_RESOURCE_BOTTLENECK",
@@ -2196,13 +2476,13 @@
       }
     },
     {
-      "event_id": "evt-0050",
+      "event_id": "evt-0056",
       "session_id": "session-layered_topology_demo_001",
-      "sequence": 50,
+      "sequence": 56,
       "event_type": "CANDIDATE_UPDATED",
       "producer": "reasoning",
       "correlation_id": null,
-      "causation_id": "evt-0038",
+      "causation_id": "evt-0043",
       "payload": {
         "candidate_id": "cand-disk-sector-fault",
         "score_before": 35,
@@ -2216,13 +2496,13 @@
       }
     },
     {
-      "event_id": "evt-0051",
+      "event_id": "evt-0057",
       "session_id": "session-layered_topology_demo_001",
-      "sequence": 51,
+      "sequence": 57,
       "event_type": "CANDIDATE_UPDATED",
       "producer": "reasoning",
       "correlation_id": null,
-      "causation_id": "evt-0044",
+      "causation_id": "evt-0050",
       "payload": {
         "candidate_id": "cand-lun-contention",
         "score_before": 25,
@@ -2235,13 +2515,13 @@
       }
     },
     {
-      "event_id": "evt-0052",
+      "event_id": "evt-0058",
       "session_id": "session-layered_topology_demo_001",
-      "sequence": 52,
+      "sequence": 58,
       "event_type": "CANDIDATE_UPDATED",
       "producer": "reasoning",
       "correlation_id": null,
-      "causation_id": "evt-0043",
+      "causation_id": "evt-0048",
       "payload": {
         "candidate_id": "cand-host-bottleneck",
         "score_before": 20,
@@ -2254,13 +2534,13 @@
       }
     },
     {
-      "event_id": "evt-0053",
+      "event_id": "evt-0059",
       "session_id": "session-layered_topology_demo_001",
-      "sequence": 53,
+      "sequence": 59,
       "event_type": "CANDIDATE_UPDATED",
       "producer": "reasoning",
       "correlation_id": null,
-      "causation_id": "evt-0040",
+      "causation_id": "evt-0045",
       "payload": {
         "candidate_id": "cand-disk-sector-fault",
         "score_before": 66,
@@ -2276,13 +2556,13 @@
       }
     },
     {
-      "event_id": "evt-0054",
+      "event_id": "evt-0060",
       "session_id": "session-layered_topology_demo_001",
-      "sequence": 54,
+      "sequence": 60,
       "event_type": "CANDIDATE_UPDATED",
       "producer": "reasoning",
       "correlation_id": null,
-      "causation_id": "evt-0044",
+      "causation_id": "evt-0050",
       "payload": {
         "candidate_id": "cand-lun-contention",
         "score_before": 18,
@@ -2295,13 +2575,13 @@
       }
     },
     {
-      "event_id": "evt-0055",
+      "event_id": "evt-0061",
       "session_id": "session-layered_topology_demo_001",
-      "sequence": 55,
+      "sequence": 61,
       "event_type": "CANDIDATE_UPDATED",
       "producer": "reasoning",
       "correlation_id": null,
-      "causation_id": "evt-0043",
+      "causation_id": "evt-0048",
       "payload": {
         "candidate_id": "cand-host-bottleneck",
         "score_before": 12,
@@ -2314,25 +2594,25 @@
       }
     },
     {
-      "event_id": "evt-0056",
+      "event_id": "evt-0062",
       "session_id": "session-layered_topology_demo_001",
-      "sequence": 56,
+      "sequence": 62,
       "event_type": "DIAGNOSIS_PHASE_CHANGED",
       "producer": "planner",
       "correlation_id": null,
-      "causation_id": "evt-0055",
+      "causation_id": "evt-0061",
       "payload": {
         "phase": "CONCLUSION_CHECK"
       }
     },
     {
-      "event_id": "evt-0057",
+      "event_id": "evt-0063",
       "session_id": "session-layered_topology_demo_001",
-      "sequence": 57,
+      "sequence": 63,
       "event_type": "ROOT_CAUSE_CONFIRMED",
       "producer": "reasoning",
       "correlation_id": null,
-      "causation_id": "evt-0053",
+      "causation_id": "evt-0059",
       "payload": {
         "candidate_ref": "cand-disk-sector-fault",
         "score": 95,
@@ -2350,13 +2630,13 @@
       }
     },
     {
-      "event_id": "evt-0058",
+      "event_id": "evt-0064",
       "session_id": "session-layered_topology_demo_001",
-      "sequence": 58,
+      "sequence": 64,
       "event_type": "DIAGNOSIS_COMPLETED",
       "producer": "runtime",
       "correlation_id": null,
-      "causation_id": "evt-0057",
+      "causation_id": "evt-0063",
       "payload": {
         "conclusion": {
           "diagnosis_id": "diag-layered-disk-sector-001",
@@ -2432,17 +2712,17 @@
           },
           {
             "scene_id": "scene-06",
-            "sequence": 37,
+            "sequence": 42,
             "title": "候选验证与排除"
           },
           {
             "scene_id": "scene-07",
-            "sequence": 56,
+            "sequence": 62,
             "title": "根因诊断完成"
           },
           {
             "scene_id": "scene-08",
-            "sequence": 56,
+            "sequence": 62,
             "title": "修复闭环能力预告"
           }
         ]

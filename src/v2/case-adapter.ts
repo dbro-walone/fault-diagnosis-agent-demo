@@ -605,22 +605,7 @@ function autoPlanTargets(
     }
   }
 
-  // issue#15：Planner 与实例拓扑资源一一对应，补齐未被任务或原始计划引用的节点。
-  for (const resource of instanceTopology.resources) {
-    if (targetByResource.has(resource.resource_id)) continue
-    const layer = resourceToLayer(resource.resource_type_code)
-    const layerName = topoLayerDef(layer).name
-    targetByResource.set(resource.resource_id, {
-      seq: 0,
-      target_resource: resource.resource_id,
-      target_fault_mode: '待诊断',
-      verify_question: `${resource.resource_id} 是否存在与当前症状相关的异常`,
-      expected_finding: `核查 ${resource.resource_id} 在 ${layerName} 的状态`,
-      topo_path: [resource.resource_id],
-      scope: layerName,
-      round: 1,
-    })
-  }
+  // 仅保留源计划目标 + 任务覆盖目标（排查路径节点），不把整张拓扑塞进 Planner。
 
   const domainRank: Record<ReturnType<typeof domainOf>, number> = { S1: 0, S2: 1, S3: 2 }
   const layerIndex = new Map<TopoLayerCode, number>(

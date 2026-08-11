@@ -15,6 +15,7 @@
 
 import {
   TaskStatus,
+  type CanonicalFact,
   type DiagnosisSessionSnapshot,
   type PlannerTarget,
   type RuntimeEvent,
@@ -48,9 +49,10 @@ export function presentationProjection(
   const subject = deriveSubject(snapshot, adapted)
   const focusSignature = computeFocusSignature(subject)
 
-  // Planner 目标 VM（复用 projection-store 的确定性推导，与 UI 保持同一口径）。
+  // Planner 目标 VM（复用 projection-store 的确定性推导，与 UI 保持同一口径；
+  // 绑定全量观测 Fact，保证路径映射类任务产出的 Fact 也计入"已验证"，状态与主 store 一致）。
   const plannerStore = new ProjectionStore()
-  plannerStore.bind(snapshot)
+  plannerStore.bind(snapshot, { observationsFacts: adapted.facts })
   const plannerVm = plannerStore.plannerTargets()
   const activeTargetVm = plannerVm.targets.find((t) => t.is_active) ?? null
   const activeTarget = activeTargetVm
@@ -250,7 +252,7 @@ export function deriveSubject(snapshot: DiagnosisSessionSnapshot, adapted: Adapt
   }
 
   // 3. 节点。
-  const focusId = focusObjectId(snapshot)
+  const focusId = focusObjectId(snapshot, adapted.facts)
   if (focusId) {
     return {
       kind: 'node',
@@ -323,9 +325,20 @@ function activePlannerTargetOf(s: DiagnosisSessionSnapshot): PlannerTarget | nul
   )
 }
 
-/** 按 Planner seq 顺序取下一个尚未裁决的目标。 */
-function nextPendingPlannerTarget(s: DiagnosisSessionSnapshot): PlannerTarget | null {
+/**
+ * 按 Planner seq 顺序取下一个尚未裁决的目标。
+ * 与 projection-store 的 derivePlannerTargetStatus 同口径：终态任务产出的
+ * 全量观测 Fact（含路径映射 Fact）也视为"已验证"，避免待排查目标残留 pending。
+ */
+function nextPendingPlannerTarget(
+  s: DiagnosisSessionSnapshot,
+  allFacts?: CanonicalFact[] | null,
+): PlannerTarget | null {
   const terminalStatuses = new Set(['SUCCEEDED', 'DATA_MISSING', 'FAILED', 'SKIPPED'])
+  const doneTaskIds = new Set(
+    s.tasks.filter((tsk) => terminalStatuses.has(tsk.status)).map((tsk) => tsk.task_id),
+  )
+  const factsPool = allFacts ?? s.facts
   return (
     [...s.planner_targets]
       .sort((a, b) => a.seq - b.seq)
@@ -336,6 +349,12 @@ function nextPendingPlannerTarget(s: DiagnosisSessionSnapshot): PlannerTarget | 
             terminalStatuses.has(tsk.status),
         )
         if (hasTerminalTask) return false
+        const covered = factsPool.some(
+          (f) =>
+            (f.object_refs ?? []).includes(t.target_resource) &&
+            doneTaskIds.has(f.source.execution_id.replace(/^exec-/, '')),
+        )
+        if (covered) return false
         const cands = s.candidates.filter((c) => c.object_id === t.target_resource)
         if (cands.some((c) => c.status === 'CONFIRMED' || c.status === 'WEAKENED')) return false
         return true
@@ -354,12 +373,12 @@ function candidateObjectIds(snapshot: DiagnosisSessionSnapshot): string[] {
 }
 
 /** 当前焦点对象：active/pending Planner 目标 > agent_focus > 当前活动目标。 */
-function focusObjectId(s: DiagnosisSessionSnapshot): string | null {
+function focusObjectId(s: DiagnosisSessionSnapshot, allFacts?: CanonicalFact[] | null): string | null {
   const active = activePlannerTargetOf(s)
   if (active) return active.target_resource
   // 诊断中：取第一个 pending 目标，保持 Planner 的逐层扫描顺序。
   if (s.planner_targets.length > 0 && !s.session.terminal_status) {
-    const nextPending = nextPendingPlannerTarget(s)
+    const nextPending = nextPendingPlannerTarget(s, allFacts)
     if (nextPending) return nextPending.target_resource
   }
   // PLAN_CREATED 前空白期：不回退 agent_focus / candidate，画布保持无焦点。
@@ -389,7 +408,23 @@ function nextPendingPath(
   const pending = plannerVm.targets.filter((t) => t.status === 'pending')
   if (!pending.length) return []
   const active = plannerVm.targets.find((t) => t.is_active)
-  const pick = (active ? pending.find((p) => p.seq > active.seq) : undefined) ?? pending[0]
+  // 与画布 focusObjectId 同口径：任务间隙取"当前扫描位置之后"的 pending（S1→S2→S3 前向），
+  // 而非回跳到最早的 pending 假设。位置 = 最近已启动任务的 target 最小 seq。
+  const seqByResource = new Map(snapshot.planner_targets.map((t) => [t.target_resource, t.seq]))
+  const minSeqOf = (ids: string[] | undefined): number => {
+    let min = Infinity
+    for (const id of ids ?? []) {
+      const seq = seqByResource.get(id)
+      if (seq !== undefined && seq < min) min = seq
+    }
+    return min
+  }
+  const started = (tsk: { status: TaskStatus }): boolean =>
+    tsk.status !== TaskStatus.PLANNED && tsk.status !== TaskStatus.READY
+  const lastTask = [...snapshot.tasks].reverse().find(started)
+  const position = active ? active.seq : lastTask ? minSeqOf(lastTask.target_object_refs) : 0
+  const pick =
+    pending.find((p) => p.seq > position) ?? pending[0]
   const target = snapshot.planner_targets.find((t) => t.target_resource === pick.target_resource)
   return target?.topo_path ?? []
 }

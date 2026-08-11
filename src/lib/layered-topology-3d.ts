@@ -171,6 +171,8 @@ export interface DiagnosisFocusScanRef {
   entry_object_refs: string[]
   examined_objects: Array<{ object_id: string }>
   path_object_ids: string[]
+  /** issue#16：全部 Planner 排查目标资源（seq 序）——诊断态完整排查路径，无关节点隐藏。 */
+  planner_path_ids: string[]
   active_query_object_id: string | null
   focus_object_id: string | null
   graph_entry_anchors: string[]
@@ -210,20 +212,21 @@ function bridgeMembers(adj: Map<string, string[]>, from: string, to: string): st
 }
 
 /**
- * 诊断聚焦拓扑子图（issue#9 Q1-A）：
- * 焦点对象 = 入口业务对象 ∪ path_object_ids ∪ examined_objects ∪ active/focus，映射到可见锚点，
- * 相邻锚点沿物理拓扑（category==='topology'）BFS 桥接，得到"诊断链路"节点集。
- * 其余拓扑节点（非链路、非必要桥接）由调用方隐藏。
+ * 诊断聚焦拓扑子图（issue#9 Q1-A + issue#16）：
+ * 焦点对象 = 全部 Planner 排查目标（planner_path_ids，seq 序）∪ 入口业务对象 ∪ 已排查对象 ∪ active/focus，
+ * 映射到可见锚点，相邻锚点沿物理拓扑（category==='topology'）BFS 桥接，得到"诊断链路"节点集。
+ * 其余拓扑节点（非链路、非必要桥接）由调用方隐藏——诊断一开始完整排查路径即可见。
  */
 function computeFocusTopologyVisible(
   graph: LayeredActiveGraph,
   scan: DiagnosisFocusScanRef,
 ): Set<string> {
-  // 焦点对象序：入口业务对象 → PLANNER 路径（seq 序）→ 已排查对象 → 当前推进。
+  // 焦点对象序：Planner 完整路径（seq 序）→ 入口业务对象 → 已排查对象 → 当前推进。
   const focusIds: string[] = []
   const push = (id: string | null | undefined): void => {
     if (id && !focusIds.includes(id)) focusIds.push(id)
   }
+  for (const id of scan.planner_path_ids) push(id)
   for (const id of scan.entry_object_refs) push(id)
   for (const id of scan.path_object_ids) push(id)
   for (const o of scan.examined_objects) push(o.object_id)
@@ -371,8 +374,11 @@ export function buildLayered3DGraph(input: Layered3DGraphInput): Layered3DGraph 
     : expandedLayers
   const graph = buildLayeredActiveGraph(model, { expandedLayers: forcedExpanded, criticalObjectIds })
 
-  // issue#13：诊断态拓扑是 Planner 的完整投影，不再按诊断进度过滤节点。
-  const focusTopology = null
+  // issue#16：诊断中（非终态）只显示完整排查路径（Planner targets + BFS 桥接），
+  // 无关节点完全隐藏；终态恢复全拓扑（与浏览态冷冻一致）。
+  const focusTopology = focusMode && !isTerminal
+    ? computeFocusTopologyVisible(graph, diagnosisScan!)
+    : null
   const focusKnowledge = focusMode && isTerminal
     ? computeFocusKnowledgeVisible(diagnosisScan!)
     : null
@@ -403,8 +409,11 @@ export function buildLayered3DGraph(input: Layered3DGraphInput): Layered3DGraph 
     ? topologyAssociationsForKnowledge(selectedNodeId!, crossLinks, kgLinks, 3)
     : new Set<string>()
 
-  // 诊断态与浏览态都保留完整活动拓扑；诊断态由 forcedExpanded 强制显示全部成员。
-  const topoNodes = graph.nodes
+  // 浏览态保留完整活动拓扑；诊断中（issue#16）只显示完整排查路径（Planner targets + BFS 桥接），
+  // 无关节点完全隐藏，让"排查路径 vs 背景"一目了然。
+  const topoNodes = focusTopology
+    ? graph.nodes.filter((n) => focusTopology.has(n.id))
+    : graph.nodes
 
   // 节点坐标：拓扑节点按 S1→S3 域/子层定 Y/Z，成员按子层带均匀排布 X（issue#8 自动布局，
   // 拉均匀、不重叠、层级清晰）；DETACHED 关键对象（层收起但成员可见）右移避让聚合头；
